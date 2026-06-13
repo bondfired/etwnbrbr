@@ -9,22 +9,22 @@ extends Node2D
 
 var left_door_closed  = false
 var right_door_closed = false
+var game_over: bool = false
 
 func _ready():
-	# _ready() runs once when the scene loads
 	night_timer.wait_time = 45.0
 	night_timer.start()
 	night_timer.timeout.connect(_on_hour_passed)
 
 func _process(delta):
-	# _process() runs every single frame
-	# delta = time since last frame (keeps drain speed consistent)
+	if game_over:
+		return
 	GameManager.power -= GameManager.get_power_drain() * delta
 	GameManager.power = clamp(GameManager.power, 0, 100)
-	
+
 	power_label.text = "Power: %d%%" % int(GameManager.power)
 	hour_label.text  = "%d AM" % GameManager.current_hour
-	
+
 	if GameManager.power <= 0:
 		_power_out()
 
@@ -47,10 +47,13 @@ func _on_camera_button_pressed():
 	pass # camera not built yet - will be added in Phase 4
 
 func _power_out():
+	game_over = true
+	night_timer.stop()
 	left_door_closed  = false
 	right_door_closed = false
 	left_door.visible  = false
 	right_door.visible = false
 
 func _win():
-	pass 
+	game_over = true
+	night_timer.stop()

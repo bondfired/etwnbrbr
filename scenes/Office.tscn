@@ -65,5 +65,5 @@ text = "DOOR"
 wait_time = 45.0
 
 [connection signal="pressed" from="LeftDoorButton" to="." method="_on_left_door_button_pressed"]
-[connection signal="pressed" from="LeftDoorButton" to="." method="_on_right_door_button_pressed"]
-[connection signal="pressed" from="LeftDoorButton" to="." method="_on_camera_button_pressed"]
+[connection signal="pressed" from="RightDoorButton" to="." method="_on_right_door_button_pressed"]
+[connection signal="pressed" from="CameraButton" to="." method="_on_camera_button_pressed"]
