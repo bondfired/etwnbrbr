@@ -120,13 +120,25 @@ func _tick_animatronics(delta: float):
 		var state = anim_state[anim_name]
 
 		if not state["active"]:
-			if linear_hour >= data["active_linear_hour"]:
+			if GameManager.is_custom_night:
+				if GameManager.custom_ai.get(anim_name, 0) > 0:
+					state["active"] = true
+				else:
+					continue
+			elif linear_hour >= data["active_linear_hour"]:
 				state["active"] = true
 			else:
 				continue
 
-		# Speed up as night progresses
-		var move_time = max(2.0, data["base_time"] - linear_hour * 0.35)
+		# Move time: custom night uses AI level (0=never, 20=fastest)
+		var move_time: float
+		if GameManager.is_custom_night:
+			var ai_lvl = GameManager.custom_ai.get(anim_name, 0)
+			if ai_lvl == 0:
+				continue
+			move_time = lerpf(45.0, 1.5, float(ai_lvl - 1) / 19.0)
+		else:
+			move_time = max(2.0, data["base_time"] - linear_hour * 0.35)
 
 		# Camera watching effect
 		var watch_cam    = data["watch_cam"]
@@ -229,9 +241,10 @@ func _win():
 	is_game_over = true
 	night_timer.stop()
 	cam_overlay.visible = false
-	var idx = GameManager.night_number - 1
-	if idx >= 0 and idx < GameManager.nights_completed.size():
-		GameManager.nights_completed[idx] = true
+	if not GameManager.is_custom_night:
+		var idx = GameManager.night_number - 1
+		if idx >= 0 and idx < GameManager.nights_completed.size():
+			GameManager.nights_completed[idx] = true
 	win_overlay.visible = true
 
 func _restart():
@@ -245,6 +258,9 @@ func _go_to_menu():
 	get_tree().change_scene_to_file("res://scenes/MainMenu.tscn")
 
 func _next_night():
+	if GameManager.is_custom_night:
+		_go_to_menu()
+		return
 	GameManager.night_number  = min(GameManager.night_number + 1, 6)
 	GameManager.power         = 100.0
 	GameManager.current_hour  = 12

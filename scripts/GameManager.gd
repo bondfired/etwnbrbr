@@ -7,6 +7,13 @@ var camera_open: bool = false
 var current_hour: int = 12
 var night_number: int = 1
 var nights_completed: Array = [false, false, false, false, false, false]
+var is_custom_night: bool = false
+var custom_ai: Dictionary = {
+	"BonnieJake": 5,
+	"ChicaJasker": 5,
+	"FreddyMarcus": 5,
+	"FoxyBlitz": 5
+}
 
 func get_power_drain() -> float:
 	var drain = power_drain_base

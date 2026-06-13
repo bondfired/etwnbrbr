@@ -70,57 +70,74 @@ func _build_night_selector():
 	hdr.add_theme_color_override("font_color", Color(0.75, 0.55, 0.18))
 	add_child(hdr)
 
-	var btn_w  = 140.0
-	var gap    = 18.0
-	var row_w  = btn_w * 6 + gap * 5
+	var btn_w   = 140.0
+	var gap     = 18.0
+	var row_w   = btn_w * 6 + gap * 5
 	var start_x = (W - row_w) / 2.0
-	var btn_y  = 244.0
+	var btn_y   = 244.0
 
 	for i in range(6):
 		var night_num = i + 1
-		var col_x = start_x + i * (btn_w + gap)
+		var col_x  = start_x + i * (btn_w + gap)
+		# Night 1 always open; every other night requires the previous one complete
+		var unlocked = (i == 0) or GameManager.nights_completed[i - 1]
 
-		# Night label above button
 		var night_lbl = Label.new()
 		night_lbl.text = "NIGHT %d" % night_num
 		night_lbl.set_position(Vector2(col_x, btn_y))
 		night_lbl.set_size(Vector2(btn_w, 22))
 		night_lbl.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
 		night_lbl.add_theme_font_size_override("font_size", 13)
-		night_lbl.add_theme_color_override("font_color", Color(0.75, 0.60, 0.25))
+		night_lbl.add_theme_color_override(
+			"font_color",
+			Color(0.75, 0.60, 0.25) if unlocked else Color(0.35, 0.28, 0.18)
+		)
 		add_child(night_lbl)
 
-		# Button
 		var btn = Button.new()
-		btn.text = str(night_num)
+		btn.text  = str(night_num) if unlocked else "[LOCK]"
 		btn.set_position(Vector2(col_x + 30, btn_y + 24))
 		btn.set_size(Vector2(btn_w - 60, 52))
 		btn.add_theme_font_size_override("font_size", 28)
-		btn.pressed.connect(_start_night.bind(night_num))
+		btn.disabled = not unlocked
+		if unlocked:
+			btn.pressed.connect(_start_night.bind(night_num))
 		add_child(btn)
 
-		# Stars
-		var completed = false
-		if i < GameManager.nights_completed.size():
-			completed = GameManager.nights_completed[i]
+		var completed = GameManager.nights_completed[i]
 		var star_lbl = Label.new()
 		star_lbl.text = "★★★" if completed else "☆☆☆"
 		star_lbl.set_position(Vector2(col_x + 18, btn_y + 82))
 		star_lbl.set_size(Vector2(btn_w, 26))
 		star_lbl.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
 		star_lbl.add_theme_font_size_override("font_size", 20)
-		star_lbl.add_theme_color_override("font_color", Color.YELLOW if completed else Color(0.30, 0.28, 0.22))
+		star_lbl.add_theme_color_override(
+			"font_color",
+			Color.YELLOW if completed else (Color(0.30, 0.28, 0.22) if unlocked else Color(0.18, 0.16, 0.12))
+		)
 		add_child(star_lbl)
 
-# ── New Game button ────────────────────────────────────────────────────────────
+# ── New Game / Custom Night buttons ───────────────────────────────────────────
 func _build_new_game_button():
-	var btn = Button.new()
-	btn.text = "NEW GAME"
-	btn.set_position(Vector2((W - 220) / 2.0, 400))
-	btn.set_size(Vector2(220, 54))
-	btn.add_theme_font_size_override("font_size", 22)
-	btn.pressed.connect(_new_game)
-	add_child(btn)
+	var new_btn = Button.new()
+	new_btn.text = "NEW GAME"
+	new_btn.set_position(Vector2(W / 2.0 - 240.0, 400))
+	new_btn.set_size(Vector2(210, 54))
+	new_btn.add_theme_font_size_override("font_size", 22)
+	new_btn.pressed.connect(_new_game)
+	add_child(new_btn)
+
+	# Custom Night unlocks after completing Night 5
+	var custom_unlocked = GameManager.nights_completed[4]
+	var custom_btn = Button.new()
+	custom_btn.text = "CUSTOM NIGHT" if custom_unlocked else "[LOCK] CUSTOM"
+	custom_btn.set_position(Vector2(W / 2.0 + 30.0, 400))
+	custom_btn.set_size(Vector2(210, 54))
+	custom_btn.add_theme_font_size_override("font_size", 18)
+	custom_btn.disabled = not custom_unlocked
+	if custom_unlocked:
+		custom_btn.pressed.connect(_open_custom_night)
+	add_child(custom_btn)
 
 # ── Footer ─────────────────────────────────────────────────────────────────────
 func _build_footer():
@@ -175,9 +192,13 @@ func _new_game():
 	_start_night(1)
 
 func _start_night(night: int):
-	GameManager.night_number   = night
-	GameManager.power          = 100.0
-	GameManager.current_hour   = 12
-	GameManager.doors_open     = false
-	GameManager.camera_open    = false
+	GameManager.is_custom_night = false
+	GameManager.night_number    = night
+	GameManager.power           = 100.0
+	GameManager.current_hour    = 12
+	GameManager.doors_open      = false
+	GameManager.camera_open     = false
 	get_tree().change_scene_to_file("res://scenes/Office.tscn")
+
+func _open_custom_night():
+	get_tree().change_scene_to_file("res://scenes/CustomNight.tscn")
