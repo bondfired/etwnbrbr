@@ -1,0 +1,69 @@
+[gd_scene format=3 uid="uid://bcjggrbid5hab"]
+
+[ext_resource type="Script" uid="uid://cpeiam0ktl2qy" path="res://scenes/office.gd" id="1_7jmox"]
+[ext_resource type="Texture2D" uid="uid://c3w1bmwxvvbi2" path="res://assets/backgrounds/efwffew.jpg" id="2_cb63e"]
+[ext_resource type="Texture2D" uid="uid://6f24mexdbppk" path="res://assets/backgrounds/door.png" id="3_4g2wo"]
+
+[sub_resource type="Theme" id="Theme_3obsa"]
+
+[node name="Office" type="Node2D" unique_id=1153161966 groups=["Office"]]
+script = ExtResource("1_7jmox")
+metadata/_edit_vertical_guides_ = [-251.0]
+
+[node name="Background" type="Sprite2D" parent="." unique_id=1455808486]
+position = Vector2(572, 323)
+texture = ExtResource("2_cb63e")
+
+[node name="LeftDoor" type="Sprite2D" parent="." unique_id=1564978285]
+visible = false
+position = Vector2(95.99999, 325)
+scale = Vector2(0.18, 0.246)
+texture = ExtResource("3_4g2wo")
+
+[node name="RightDoor" type="Sprite2D" parent="." unique_id=1845193920]
+visible = false
+position = Vector2(1046, 325)
+scale = Vector2(0.18, 0.246)
+texture = ExtResource("3_4g2wo")
+
+[node name="PowerLabel" type="Label" parent="." unique_id=20869428]
+offset_left = 981.0
+offset_top = 631.0
+offset_right = 1066.0
+offset_bottom = 654.0
+text = "Power: 100"
+
+[node name="HourLabel" type="Label" parent="." unique_id=262378128]
+offset_top = 6.0
+offset_right = 48.0
+offset_bottom = 29.0
+theme = SubResource("Theme_3obsa")
+text = "12 AM"
+
+[node name="CameraButton" type="Button" parent="." unique_id=473758369]
+offset_left = 539.0
+offset_top = 589.0
+offset_right = 583.0
+offset_bottom = 620.0
+text = "CAM"
+
+[node name="LeftDoorButton" type="Button" parent="." unique_id=516335705]
+offset_left = 218.0
+offset_top = 386.0
+offset_right = 274.0
+offset_bottom = 417.0
+text = "DOOR"
+
+[node name="RightDoorButton" type="Button" parent="." unique_id=1800942489]
+offset_left = 861.0
+offset_top = 399.0
+offset_right = 917.0
+offset_bottom = 430.0
+text = "DOOR"
+
+[node name="NightTimer" type="Timer" parent="." unique_id=579643031]
+wait_time = 45.0
+
+[connection signal="pressed" from="LeftDoorButton" to="." method="_on_left_door_button_pressed"]
+[connection signal="pressed" from="LeftDoorButton" to="." method="_on_right_door_button_pressed"]
+[connection signal="pressed" from="LeftDoorButton" to="." method="_on_camera_button_pressed"]
