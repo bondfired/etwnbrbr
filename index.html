@@ -1,0 +1,682 @@
+
+<!DOCTYPE html>
+
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Lyra's Day 3 🐱</title>
+<link href="https://fonts.googleapis.com/css2?family=Lora:ital,wght@0,400;0,600;0,700;1,400;1,600&family=Nunito:wght@300;400;500;600&display=swap" rel="stylesheet">
+<style>
+:root {
+--blush: #f5d0d8;
+--rose: #c9607a;
+--lavender: #e8d5f0;
+--lilac: #9b72b8;
+--cream: #fef9f4;
+--warm: #fdeee3;
+--text: #352840;
+--muted: #9880a0;
+--card-bg: rgba(255,252,255,0.75);
+}
+
+* { margin: 0; padding: 0; box-sizing: border-box; }
+
+body {
+background-color: var(–cream);
+background-image:
+radial-gradient(ellipse at 15% 10%, rgba(232,213,240,0.45) 0%, transparent 45%),
+radial-gradient(ellipse at 85% 5%, rgba(245,208,216,0.4) 0%, transparent 40%),
+radial-gradient(ellipse at 50% 95%, rgba(232,213,240,0.3) 0%, transparent 50%);
+min-height: 100vh;
+font-family: ‘Nunito’, sans-serif;
+color: var(–text);
+padding: 0 0 100px;
+overflow-x: hidden;
+}
+
+/* ── Decorative cats scattered in background ── */
+.bg-cat {
+position: fixed;
+font-size: 22px;
+opacity: 0.08;
+pointer-events: none;
+user-select: none;
+z-index: 0;
+animation: sway 6s ease-in-out infinite;
+}
+.bg-cat:nth-child(2) { animation-delay: -1s; font-size: 30px; }
+.bg-cat:nth-child(3) { animation-delay: -2.5s; font-size: 18px; }
+.bg-cat:nth-child(4) { animation-delay: -4s; font-size: 26px; }
+.bg-cat:nth-child(5) { animation-delay: -0.8s; font-size: 20px; }
+.bg-cat:nth-child(6) { animation-delay: -3s; font-size: 28px; }
+.bg-cat:nth-child(7) { animation-delay: -1.8s; font-size: 16px; }
+.bg-cat:nth-child(8) { animation-delay: -5s; font-size: 24px; }
+
+@keyframes sway {
+0%, 100% { transform: rotate(-4deg) translateY(0); }
+50% { transform: rotate(4deg) translateY(-8px); }
+}
+
+/* ── Header banner ── */
+.header-wrap {
+position: relative;
+text-align: center;
+padding: 52px 20px 36px;
+z-index: 1;
+animation: fadeDown 0.9s ease both;
+}
+
+.cat-banner {
+font-size: 28px;
+letter-spacing: 8px;
+margin-bottom: 10px;
+display: block;
+animation: bounce-cats 2s ease infinite;
+}
+
+@keyframes bounce-cats {
+0%, 100% { transform: translateY(0); }
+50% { transform: translateY(-5px); }
+}
+
+.eyebrow {
+font-size: 10px;
+font-weight: 600;
+letter-spacing: 5px;
+text-transform: uppercase;
+color: var(–lilac);
+margin-bottom: 10px;
+}
+
+h1 {
+font-family: ‘Lora’, serif;
+font-size: clamp(2.2rem, 7vw, 3.4rem);
+color: var(–text);
+line-height: 1.15;
+margin-bottom: 14px;
+}
+
+h1 em {
+color: var(–rose);
+font-style: italic;
+}
+
+h1 .name {
+color: var(–lilac);
+font-style: normal;
+}
+
+.tagline {
+font-size: 13.5px;
+color: var(–muted);
+font-weight: 400;
+line-height: 1.8;
+max-width: 300px;
+margin: 0 auto;
+}
+
+/* ── ASCII cat mascot ── */
+.mascot {
+display: inline-block;
+background: rgba(255,255,255,0.7);
+border: 1.5px solid rgba(155,114,184,0.2);
+border-radius: 18px;
+padding: 14px 22px;
+margin: 20px auto 0;
+font-size: 12px;
+line-height: 1.4;
+color: var(–text);
+font-family: monospace;
+backdrop-filter: blur(6px);
+position: relative;
+animation: fadeUp 1s 0.4s ease both;
+}
+
+.mascot::after {
+content: ‘’;
+position: absolute;
+bottom: -10px;
+left: 50%;
+transform: translateX(-50%);
+border: 5px solid transparent;
+border-top-color: rgba(155,114,184,0.25);
+}
+
+.cat-quote {
+font-family: ‘Lora’, serif;
+font-style: italic;
+font-size: 11px;
+color: var(–lilac);
+margin-top: 6px;
+display: block;
+font-family: ‘Nunito’, sans-serif;
+}
+
+/* ── Progress ── */
+.progress-wrap {
+max-width: 480px;
+margin: 0 auto 40px;
+padding: 0 20px;
+animation: fadeUp 0.8s 0.3s ease both;
+position: relative;
+z-index: 1;
+}
+
+.progress-label {
+display: flex;
+justify-content: space-between;
+align-items: center;
+font-size: 12px;
+color: var(–muted);
+margin-bottom: 8px;
+}
+
+.progress-label .paw-count {
+font-size: 13px;
+}
+
+.progress-bar {
+height: 8px;
+background: rgba(155,114,184,0.15);
+border-radius: 99px;
+overflow: hidden;
+}
+
+.progress-fill {
+height: 100%;
+background: linear-gradient(90deg, var(–blush), var(–rose), var(–lilac));
+border-radius: 99px;
+transition: width 0.6s cubic-bezier(0.34,1.56,0.64,1);
+width: 0%;
+}
+
+/* ── Sections ── */
+.section {
+max-width: 480px;
+margin: 0 auto 32px;
+padding: 0 20px;
+animation: fadeUp 0.7s ease both;
+position: relative;
+z-index: 1;
+}
+
+.section:nth-child(3) { animation-delay: 0.05s; }
+.section:nth-child(4) { animation-delay: 0.1s; }
+.section:nth-child(5) { animation-delay: 0.15s; }
+.section:nth-child(6) { animation-delay: 0.2s; }
+.section:nth-child(7) { animation-delay: 0.25s; }
+.section:nth-child(8) { animation-delay: 0.3s; }
+.section:nth-child(9) { animation-delay: 0.35s; }
+
+.section-header {
+display: flex;
+align-items: center;
+gap: 10px;
+margin-bottom: 12px;
+}
+
+.section-icon {
+width: 34px;
+height: 34px;
+border-radius: 12px;
+display: flex;
+align-items: center;
+justify-content: center;
+font-size: 16px;
+flex-shrink: 0;
+}
+
+.section-title {
+font-family: ‘Lora’, serif;
+font-size: 16.5px;
+font-weight: 700;
+color: var(–text);
+}
+
+.section-badge {
+margin-left: auto;
+font-size: 10px;
+padding: 3px 9px;
+border-radius: 99px;
+font-weight: 600;
+letter-spacing: 0.4px;
+}
+
+.badge-morning { background: rgba(255,200,150,0.25); color: #c07030; }
+.badge-midday { background: rgba(255,230,100,0.3); color: #907010; }
+.badge-night { background: rgba(155,114,184,0.18); color: var(–lilac); }
+
+.tag-morning { background: rgba(255,210,170,0.55); color: #b06020; }
+.tag-midday { background: rgba(255,235,130,0.55); color: #806010; }
+.tag-night { background: rgba(220,210,245,0.7); color: var(–lilac); }
+
+/* ── Task cards ── */
+.task-card {
+background: var(–card-bg);
+backdrop-filter: blur(10px);
+border: 1.5px solid rgba(232,213,240,0.5);
+border-radius: 16px;
+padding: 13px 15px;
+margin-bottom: 7px;
+display: flex;
+align-items: flex-start;
+gap: 12px;
+cursor: pointer;
+transition: all 0.22s ease;
+user-select: none;
+position: relative;
+overflow: hidden;
+}
+
+.task-card::before {
+content: ‘’;
+position: absolute;
+left: 0; top: 0; bottom: 0;
+width: 3px;
+background: linear-gradient(180deg, var(–blush), var(–lilac));
+opacity: 0;
+transition: opacity 0.2s;
+border-radius: 99px;
+}
+
+.task-card:hover {
+background: rgba(255,255,255,0.92);
+border-color: rgba(155,114,184,0.3);
+transform: translateX(3px);
+box-shadow: 0 4px 18px rgba(155,114,184,0.12);
+}
+
+.task-card:hover::before { opacity: 1; }
+
+.task-card.done {
+opacity: 0.5;
+background: rgba(255,255,255,0.35);
+}
+
+.task-card.done .task-text {
+text-decoration: line-through;
+color: var(–muted);
+}
+
+.task-card.done::before { opacity: 1; }
+
+/* paw checkbox */
+.paw-box {
+width: 22px;
+height: 22px;
+flex-shrink: 0;
+margin-top: 1px;
+display: flex;
+align-items: center;
+justify-content: center;
+font-size: 18px;
+transition: all 0.25s cubic-bezier(0.34,1.56,0.64,1);
+filter: grayscale(1) opacity(0.3);
+}
+
+.task-card.done .paw-box {
+filter: grayscale(0) opacity(1);
+transform: scale(1.15);
+}
+
+.task-info { flex: 1; min-width: 0; }
+
+.task-text {
+font-size: 13.5px;
+font-weight: 500;
+color: var(–text);
+line-height: 1.4;
+margin-bottom: 2px;
+transition: color 0.2s;
+}
+
+.task-note {
+font-size: 11px;
+color: var(–muted);
+font-weight: 400;
+line-height: 1.45;
+}
+
+.task-tag {
+font-size: 10px;
+padding: 2px 8px;
+border-radius: 99px;
+font-weight: 600;
+flex-shrink: 0;
+margin-top: 2px;
+align-self: flex-start;
+}
+
+/* tag styles above */
+
+/* ── Cat dividers ── */
+.cat-divider {
+text-align: center;
+font-size: 16px;
+letter-spacing: 6px;
+color: rgba(155,114,184,0.25);
+margin: 4px 0 28px;
+max-width: 480px;
+margin-left: auto;
+margin-right: auto;
+padding: 0 20px;
+}
+
+/* ── Completion message ── */
+.done-msg {
+text-align: center;
+max-width: 480px;
+margin: 0 auto;
+padding: 36px 20px;
+opacity: 0;
+transform: translateY(10px);
+transition: all 0.7s ease;
+pointer-events: none;
+position: relative;
+z-index: 1;
+}
+
+.done-msg.show {
+opacity: 1;
+transform: translateY(0);
+pointer-events: auto;
+}
+
+.done-msg .done-cats {
+font-size: 36px;
+letter-spacing: 5px;
+display: block;
+margin-bottom: 12px;
+animation: bounce-cats 1.5s ease infinite;
+}
+
+.done-msg p {
+font-family: ‘Lora’, serif;
+font-size: 19px;
+color: var(–rose);
+font-style: italic;
+line-height: 1.5;
+}
+
+.done-msg small {
+display: block;
+font-size: 12px;
+color: var(–muted);
+margin-top: 8px;
+}
+
+/* ── Floating particles ── */
+.particle {
+position: fixed;
+pointer-events: none;
+animation: floatUp 1.5s ease forwards;
+z-index: 200;
+font-size: 20px;
+}
+
+@keyframes floatUp {
+0% { opacity: 1; transform: translateY(0) rotate(0deg) scale(1); }
+100% { opacity: 0; transform: translateY(-130px) rotate(25deg) scale(0.4); }
+}
+
+.falling-cat {
+position: fixed;
+top: -40px;
+pointer-events: none;
+user-select: none;
+z-index: 999;
+animation: fall linear forwards;
+}
+
+@keyframes fall {
+0% { transform: translateY(0) rotate(-10deg); opacity: 1; }
+80% { opacity: 1; }
+100% { transform: translateY(110vh) rotate(20deg); opacity: 0; }
+}
+
+@keyframes fadeDown {
+from { opacity: 0; transform: translateY(-24px); }
+to { opacity: 1; transform: translateY(0); }
+}
+
+@keyframes fadeUp {
+from { opacity: 0; transform: translateY(22px); }
+to { opacity: 1; transform: translateY(0); }
+}
+
+#roaming-cat {
+position: fixed;
+bottom: 18px;
+font-size: 26px;
+z-index: 50;
+pointer-events: none;
+user-select: none;
+filter: drop-shadow(0 2px 4px rgba(0,0,0,0.1));
+animation: cat-bob 0.4s ease-in-out infinite;
+}
+
+@keyframes cat-bob {
+0%, 100% { margin-bottom: 0px; }
+50% { margin-bottom: 4px; }
+}
+
+#roaming-cat { animation: cat-bob 0.4s ease-in-out infinite; }
+</style>
+
+</head>
+<body>
+
+<!-- Background decorative cats -->
+
+<div class="bg-cat" style="top:8%;left:4%">🐱</div>
+<div class="bg-cat" style="top:22%;right:3%">😺</div>
+<div class="bg-cat" style="top:40%;left:2%">🐾</div>
+<div class="bg-cat" style="top:55%;right:5%">🐱</div>
+<div class="bg-cat" style="top:70%;left:6%">😻</div>
+<div class="bg-cat" style="top:85%;right:2%">🐾</div>
+<div class="bg-cat" style="top:15%;left:50%">🐱</div>
+<div class="bg-cat" style="top:63%;left:45%">😺</div>
+
+<!-- Roaming cat at bottom -->
+
+<div id="roaming-cat">🐈</div>
+
+<!-- Header -->
+
+<div class="header-wrap">
+<span class="cat-banner">🐾 🐱 🐾</span>
+<div class="eyebrow">HALLLLLLLOOO</div>
+<h1><span class="name">Lyra's</span> <em>Day 3</em><br>Checklist 🐾</h1>
+
+<div class="mascot">
+<pre style="font-size:13px"> /\ /\
+( o o )
+=( Y )=
+) (
+(_)-(_)</pre>
+<span class="cat-quote">🐱 "You can do it, Lyra~ meow~ :3"</span>
+</div>
+
+<p class="tagline" style="margin-top:18px">Mrrrp<br>Your cats believe in you 🐾</p>
+</div>
+
+<!-- Progress -->
+
+<div class="progress-wrap">
+<div class="progress-label">
+<span>🐾 Paws completed today</span>
+<span class="paw-count" id="prog-text">0 / 0</span>
+</div>
+<div class="progress-bar">
+<div class="progress-fill" id="prog-fill"></div>
+</div>
+</div>
+
+<div id="app"></div>
+<div class="done-msg" id="done-msg">
+<span class="done-cats">😻 🐱 😻</span>
+<p>"Lyra did everything today!<br>Your cats are so proud of you."</p>
+<small>🐾 You're unstoppable🐾</small>
+</div>
+
+<script>
+const sections = [
+{
+icon: "🌅", bg: "rgba(255,230,210,0.55)", badge: "morning",
+title: "Morning",
+tasks: [
+{ text: "Wake up — aim for the same time every day (7–10am)", note: "Consistency trains your body clock 🐱 Even on tough days, try!", tag: "morning" },
+{ text: "Brush and floss your teeth", note: "Your smile is your superpower 😺", tag: "morning" },
+{ text: "Full skincare routine", note: "Cleanser → toner → moisturizer → SPF ‼️ SPF is morning only!", tag: "morning" },
+{ text: "Drink a full glass of water first thing", note: "Hydration kickstarts everything — even cats need water 💧", tag: "morning" },
+{ text: "Step outside for 5 minutes", note: "Like a cat in a sunny window ☀️ Just 5 min of fresh air counts!", tag: "morning" },
+{ text: "Do the workout 💪", note: "20 squats · 15 knee push-ups · 40-sec plank · 20 lunges each leg · 30 jumping jacks — repeat 2× with 2 min rest 🐾", tag: "morning" },
+{ text: "Eat a light breakfast", note: "Fuel your body", tag: "morning" },
+]
+},
+{
+icon: "☀️", bg: "rgba(255,245,200,0.45)", badge: "midday",
+title: "Midday",
+tasks: [
+{ text: "Walk around the house more — avoid sitting or laying all day", note: "Cats don't lay around all day... well, okay they do. But you shouldn't 🐈", tag: "midday" },
+{ text: "Read for 20 minutes without getting distracted", note: "Anything you like", tag: "midday" },
+{ text: "Journal how you feel right now", note: "Hai", tag: "midday" },
+{ text: "Take a 20-minute walk outside", note: "Exploring like a curious cat 🐾 You've got this!", tag: "midday" },
+]
+},
+{
+icon: "🌙", bg: "rgba(220,210,245,0.45)", badge: "night",
+title: "Night",
+tasks: [
+{ text: "Full skincare routine", note: "Cleanser → toner → moisturizer (no SPF at night!)", tag: "night" },
+{ text: "Shower", note: "Cats groom before sleep. So should you 😺", tag: "night" },
+{ text: "Stretch before sleeping", note: "Loose muscles = better sleep 🐱", tag: "night" },
+{ text: "5-minute breathing or meditation session", note: "Let the day go. Breathe slow 🐾", tag: "night" },
+{ text: "Think about me 💕", note: "🐱 ...this one's mandatory", tag: "night" },
+{ text: "Sleep 🌙", note: "You did amazing today, Lyra. Rest now. 😻", tag: "night" },
+]
+}
+];
+
+const pawEmojis = ['🐾','😺','🐱','😻','🐈','✨','💕','🌸','⭐'];
+const app = document.getElementById('app');
+const progFill = document.getElementById('prog-fill');
+const progText = document.getElementById('prog-text');
+const doneMsg = document.getElementById('done-msg');
+
+let state = {};
+try { const s = localStorage.getItem('lyra-tasks'); if (s) state = JSON.parse(s); } catch(e) {}
+function save() { try { localStorage.setItem('lyra-tasks', JSON.stringify(state)); } catch(e) {} }
+
+function totalCount() { return sections.reduce((a,s) => a + s.tasks.length, 0); }
+function doneCount() { return Object.values(state).filter(Boolean).length; }
+
+function updateProgress() {
+const total = totalCount(), done = doneCount();
+progFill.style.width = (total ? (done/total)*100 : 0) + '%';
+progText.textContent = `${done} / ${total}`;
+doneMsg.classList.toggle('show', done === total && total > 0);
+}
+
+function spawnParticles(x, y) {
+for (let i = 0; i < 5; i++) {
+const el = document.createElement('div');
+el.className = 'particle';
+el.textContent = pawEmojis[Math.floor(Math.random() * pawEmojis.length)];
+el.style.left = (x + (Math.random() - 0.5) * 70) + 'px';
+el.style.top = (y - 10) + 'px';
+el.style.animationDelay = (Math.random() * 0.35) + 's';
+el.style.fontSize = (14 + Math.random() * 12) + 'px';
+document.body.appendChild(el);
+setTimeout(() => el.remove(), 1800);
+}
+}
+
+sections.forEach((sec, si) => {
+// Divider between sections
+if (si > 0) {
+const div = document.createElement('div');
+div.className = 'cat-divider';
+div.textContent = '🐾 · · · 🐾';
+app.appendChild(div);
+}
+
+const secEl = document.createElement('div');
+secEl.className = 'section';
+
+const hdr = document.createElement('div');
+hdr.className = 'section-header';
+hdr.innerHTML = `
+<div class="section-icon" style="background:${sec.bg}">${sec.icon}</div>
+<div class="section-title">${sec.title}</div>
+<span class="section-badge badge-${sec.badge}">${sec.badge}</span>
+`;
+secEl.appendChild(hdr);
+
+sec.tasks.forEach((task, ti) => {
+const id = `${si}-${ti}`;
+const card = document.createElement('div');
+card.className = 'task-card' + (state[id] ? ' done' : '');
+card.innerHTML = `
+<div class="paw-box">🐾</div>
+<div class="task-info">
+<div class="task-text">${task.text}</div>
+${task.note ? `<div class="task-note">${task.note}</div>` : ''}
+</div>
+<span class="task-tag tag-${task.tag}">${task.tag}</span>
+`;
+card.addEventListener('click', e => {
+state[id] = !state[id];
+card.classList.toggle('done', state[id]);
+if (state[id]) spawnParticles(e.clientX, e.clientY);
+save();
+updateProgress();
+});
+secEl.appendChild(card);
+});
+
+app.appendChild(secEl);
+});
+
+updateProgress();
+
+// Roaming cat — scaleX(1) = faces right, scaleX(-1) = faces left
+const roamCat = document.getElementById('roaming-cat');
+let catPos = 0, catDir = 1; // 1 = moving right, -1 = moving left
+
+function moveCat() {
+catPos += catDir * 1.4;
+if (catPos > window.innerWidth + 20) {
+catDir = -1;
+roamCat.style.transform = 'scaleX(1)'; // face left
+}
+if (catPos < -60) {
+catDir = 1;
+roamCat.style.transform = 'scaleX(-1)'; // face right
+}
+roamCat.style.left = catPos + 'px';
+}
+
+// Start facing right (scaleX(-1) = faces right in this emoji)
+roamCat.style.transform = 'scaleX(-1)';
+setInterval(moveCat, 30);
+
+// Falling cats from top
+const fallingCatEmojis = ['🐱','😺','😸','😻','🐈','🐈‍⬛','🐾'];
+function spawnFallingCat() {
+const el = document.createElement('div');
+el.className = 'falling-cat';
+el.textContent = fallingCatEmojis[Math.floor(Math.random() * fallingCatEmojis.length)];
+el.style.left = (Math.random() * 98) + 'vw';
+const duration = 3.5 + Math.random() * 4;
+el.style.fontSize = (13 + Math.random() * 16) + 'px';
+el.style.animationDuration = duration + 's';
+document.body.appendChild(el);
+setTimeout(() => el.remove(), duration * 1000);
+}
+setInterval(spawnFallingCat, 600);
+</script>
+
+</body>
+</html>
