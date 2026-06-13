@@ -229,6 +229,9 @@ func _win():
 	is_game_over = true
 	night_timer.stop()
 	cam_overlay.visible = false
+	var idx = GameManager.night_number - 1
+	if idx >= 0 and idx < GameManager.nights_completed.size():
+		GameManager.nights_completed[idx] = true
 	win_overlay.visible = true
 
 func _restart():
@@ -236,6 +239,17 @@ func _restart():
 	GameManager.current_hour = 12
 	GameManager.doors_open   = false
 	GameManager.camera_open  = false
+	get_tree().reload_current_scene()
+
+func _go_to_menu():
+	get_tree().change_scene_to_file("res://scenes/MainMenu.tscn")
+
+func _next_night():
+	GameManager.night_number  = min(GameManager.night_number + 1, 6)
+	GameManager.power         = 100.0
+	GameManager.current_hour  = 12
+	GameManager.doors_open    = false
+	GameManager.camera_open   = false
 	get_tree().reload_current_scene()
 
 # ── Camera display ────────────────────────────────────────────────────────────
@@ -358,10 +372,17 @@ func _build_gameover_overlay():
 
 	var btn = Button.new()
 	btn.text = "TRY AGAIN"
-	btn.set_position(Vector2(435, 400))
-	btn.set_size(Vector2(220, 55))
+	btn.set_position(Vector2(335, 400))
+	btn.set_size(Vector2(200, 52))
 	btn.pressed.connect(_restart)
 	gameover_overlay.add_child(btn)
+
+	var menu_btn = Button.new()
+	menu_btn.text = "MAIN MENU"
+	menu_btn.set_position(Vector2(555, 400))
+	menu_btn.set_size(Vector2(200, 52))
+	menu_btn.pressed.connect(_go_to_menu)
+	gameover_overlay.add_child(menu_btn)
 
 func _build_win_overlay():
 	win_overlay = Control.new()
@@ -387,9 +408,23 @@ func _build_win_overlay():
 	sub.add_theme_font_size_override("font_size", 38)
 	win_overlay.add_child(sub)
 
-	var btn = Button.new()
-	btn.text = "PLAY AGAIN"
-	btn.set_position(Vector2(435, 400))
-	btn.set_size(Vector2(220, 55))
-	btn.pressed.connect(_restart)
-	win_overlay.add_child(btn)
+	var next_btn = Button.new()
+	next_btn.text = "NEXT NIGHT"
+	next_btn.set_position(Vector2(290, 395))
+	next_btn.set_size(Vector2(190, 52))
+	next_btn.pressed.connect(_next_night)
+	win_overlay.add_child(next_btn)
+
+	var again_btn = Button.new()
+	again_btn.text = "PLAY AGAIN"
+	again_btn.set_position(Vector2(500, 395))
+	again_btn.set_size(Vector2(190, 52))
+	again_btn.pressed.connect(_restart)
+	win_overlay.add_child(again_btn)
+
+	var menu_btn = Button.new()
+	menu_btn.text = "MAIN MENU"
+	menu_btn.set_position(Vector2(395, 460))
+	menu_btn.set_size(Vector2(190, 48))
+	menu_btn.pressed.connect(_go_to_menu)
+	win_overlay.add_child(menu_btn)
