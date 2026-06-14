@@ -11,7 +11,7 @@ config_version=5
 [application]
 
 config/name="five nights at stack"
-run/main_scene="uid://dbjvs1q2n8mko"
+run/main_scene="uid://bntsc1ntro001"
 config/features=PackedStringArray("4.6", "Forward Plus")
 config/icon="res://icon.svg"
 

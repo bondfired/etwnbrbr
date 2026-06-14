@@ -46,52 +46,52 @@ var win_overlay: Control
 const ANIMATRONICS: Dictionary = {
 	"Jake": {
 		"path": ["Show Stage", "Backstage", "West Hall", "Left Hall Corner", "LEFT_DOOR"],
-		"base_time": 9.0, "watch_cam": "West Hall",
+		"base_time": 16.0, "watch_cam": "West Hall",
 		"active_linear_hour": 0, "min_night": 1
 	},
 	"Jasker": {
 		"path": ["Show Stage", "Dining Hall", "East Hall", "East Hall Corner", "RIGHT_DOOR"],
-		"base_time": 12.0, "watch_cam": "East Hall",
+		"base_time": 20.0, "watch_cam": "East Hall",
 		"active_linear_hour": 0, "min_night": 1
 	},
 	"Marcus": {
 		"path": ["Show Stage", "Dining Hall", "East Hall", "East Hall Corner", "RIGHT_DOOR"],
-		"base_time": 18.0, "watch_cam": "",
-		"active_linear_hour": 2, "min_night": 3
+		"base_time": 28.0, "watch_cam": "",
+		"active_linear_hour": 2, "min_night": 2
 	},
 	"Blitz": {
 		"path": ["Pirate Cove", "West Hall", "LEFT_DOOR"],
-		"base_time": 5.0, "watch_cam": "Pirate Cove",
+		"base_time": 10.0, "watch_cam": "Pirate Cove",
 		"active_linear_hour": 1, "min_night": 2
 	},
 	"Doggie": {
 		"path": ["Music Room", "APPROACHING", "BOTH_DOORS"],
-		"base_time": 15.0, "watch_cam": "",
-		"active_linear_hour": 0, "min_night": 2
+		"base_time": 24.0, "watch_cam": "",
+		"active_linear_hour": 0, "min_night": 5
 	},
 	"Astro": {
 		"path": ["SHADOW", "SHADOW_NEAR", "DOOR"],
-		"base_time": 22.0, "watch_cam": "",
+		"base_time": 30.0, "watch_cam": "",
 		"active_linear_hour": 1, "min_night": 3
 	},
 	"BFB": {
 		"path": ["Dining Hall", "East Hall", "East Hall Corner", "RIGHT_DOOR"],
-		"base_time": 13.0, "watch_cam": "",
-		"active_linear_hour": 0, "min_night": 2
+		"base_time": 22.0, "watch_cam": "",
+		"active_linear_hour": 0, "min_night": 5
 	},
 	"Owen": {
 		"path": ["Show Stage", "Backstage", "West Hall", "Left Hall Corner", "LEFT_DOOR"],
-		"base_time": 14.0, "watch_cam": "",
+		"base_time": 22.0, "watch_cam": "",
 		"active_linear_hour": 0, "min_night": 4
 	},
 	"Tung": {
 		"path": ["Tung's Room", "East Hall", "East Hall Corner", "RIGHT_DOOR"],
-		"base_time": 7.0, "watch_cam": "",
+		"base_time": 14.0, "watch_cam": "",
 		"active_linear_hour": 0, "min_night": 4
 	},
 	"Jace": {
 		"path": ["Jaces and Services", "Backstage", "West Hall", "Left Hall Corner", "DOOR"],
-		"base_time": 11.0, "watch_cam": "",
+		"base_time": 18.0, "watch_cam": "",
 		"active_linear_hour": 1, "min_night": 5
 	}
 }
@@ -178,7 +178,7 @@ func _is_goku_active() -> bool:
 func _is_kolzaru_active() -> bool:
 	if GameManager.is_custom_night:
 		return GameManager.custom_ai.get("Kolzaru", 0) > 0
-	return GameManager.night_number >= 4 and _get_linear_hour() >= 2
+	return GameManager.night_number >= 2 and _get_linear_hour() >= 2
 
 # Runtime state per animatronic
 var anim_state: Dictionary = {}
@@ -310,8 +310,8 @@ func _tick_animatronics(delta: float):
 				continue
 			move_time = lerpf(45.0, 1.5, float(ai_lvl - 1) / 19.0)
 		else:
-			var night_scale = 1.0 - float(GameManager.night_number - 1) * 0.1
-			move_time = max(1.5, data["base_time"] * night_scale - linear_hour * 0.3)
+			var night_scale = 1.0 - float(GameManager.night_number - 1) * 0.07
+			move_time = max(3.0, data["base_time"] * night_scale - linear_hour * 0.2)
 
 		# Camera watching effect
 		var watch_cam    = data["watch_cam"]
@@ -782,7 +782,7 @@ func _build_night_intro():
 	night_intro_overlay.add_child(night_lbl)
 
 	night_intro_label = Label.new()
-	night_intro_label.text = "Freddy Fazbear's Pizza"
+	night_intro_label.text = "Stack Validated's Emporium"
 	night_intro_label.set_position(Vector2(0, 330))
 	night_intro_label.set_size(Vector2(1152, 30))
 	night_intro_label.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
@@ -930,7 +930,7 @@ func _build_camera_overlay():
 	cam_overlay.add_child(bg)
 
 	var header = Label.new()
-	header.text = "FREDDY FAZBEAR'S PIZZA  —  SECURITY CAMERAS"
+	header.text = "STACK VALIDATED'S EMPORIUM  —  SECURITY CAMERAS"
 	header.set_position(Vector2(0, 8))
 	header.set_size(Vector2(1152, 26))
 	header.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER

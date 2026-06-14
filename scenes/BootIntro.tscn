@@ -1,0 +1,8 @@
+[gd_scene format=3 uid="uid://bntsc1ntro001"]
+
+[ext_resource type="Script" uid="uid://bntgd1ntro001" path="res://scenes/boot_intro.gd" id="1_boot"]
+
+[node name="BootIntro" type="Control"]
+anchor_right = 1.0
+anchor_bottom = 1.0
+script = ExtResource("1_boot")

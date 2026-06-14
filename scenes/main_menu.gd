@@ -49,7 +49,7 @@ func _build_title():
 	add_child(title)
 
 	var sub = Label.new()
-	sub.text = "FREDDY FAZBEAR'S PIZZA"
+	sub.text = "STACK VALIDATED'S EMPORIUM"
 	sub.set_position(Vector2(0, 142))
 	sub.set_size(Vector2(W, 34))
 	sub.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
