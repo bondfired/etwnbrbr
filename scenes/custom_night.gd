@@ -3,8 +3,8 @@ extends Control
 const W = 1152.0
 const H = 648.0
 
-const ANIM_KEYS   = ["BonnieJake", "ChicaJasker", "FreddyMarcus", "FoxyBlitz", "Doggie", "Astro", "BFB", "Goku", "Owen"]
-const ANIM_LABELS = ["BONNIE JAKE", "CHICA JASKER", "FREDDY MARCUS", "FOXY BLITZ", "DOGGIE", "ASTRO", "BFB", "GOKU", "OWEN"]
+const ANIM_KEYS   = ["BonnieJake", "ChicaJasker", "FreddyMarcus", "FoxyBlitz", "Doggie", "Astro", "BFB", "Goku", "Owen", "Tung"]
+const ANIM_LABELS = ["BONNIE JAKE", "CHICA JASKER", "FREDDY MARCUS", "FOXY BLITZ", "DOGGIE", "ASTRO", "BFB", "GOKU", "OWEN", "TUNG"]
 
 var ai_displays: Dictionary = {}
 var static_overlay: ColorRect
@@ -55,19 +55,25 @@ func _build_title():
 
 	_separator(138)
 
-# ── Per-animatronic controls (2 rows of 3) ────────────────────────────────────
+# ── Per-animatronic controls (3 cols × 4 rows, last row centred) ─────────────
 func _build_animatronic_controls():
 	var col_w   = 340.0
 	var total_w = col_w * 3
 	var start_x = (W - total_w) / 2.0
+	var row_h   = 90.0
 
-	for i in range(9):
+	for i in range(ANIM_KEYS.size()):
 		var key   = ANIM_KEYS[i]
 		var label = ANIM_LABELS[i]
-		var row   = i / 3       # 0, 1, 2
+		var row   = i / 3
 		var col   = i % 3
 		var cx    = start_x + col * col_w
-		var cy    = 148.0 + row * 100.0
+		var cy    = 148.0 + row * row_h
+
+		# Centre any lone item in the last row
+		var items_in_row = ANIM_KEYS.size() - row * 3
+		if items_in_row == 1:
+			cx = (W - col_w) / 2.0
 
 		# Name
 		var name_lbl = Label.new()
@@ -82,10 +88,10 @@ func _build_animatronic_controls():
 		# Big AI number
 		var num_lbl = Label.new()
 		num_lbl.text = str(GameManager.custom_ai[key])
-		num_lbl.set_position(Vector2(cx + 120, cy + 26))
-		num_lbl.set_size(Vector2(100, 58))
+		num_lbl.set_position(Vector2(cx + 120, cy + 22))
+		num_lbl.set_size(Vector2(100, 54))
 		num_lbl.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
-		num_lbl.add_theme_font_size_override("font_size", 48)
+		num_lbl.add_theme_font_size_override("font_size", 44)
 		num_lbl.add_theme_color_override("font_color", Color.WHITE)
 		add_child(num_lbl)
 		ai_displays[key] = num_lbl
@@ -93,8 +99,8 @@ func _build_animatronic_controls():
 		# Decrease button
 		var dec = Button.new()
 		dec.text = "-"
-		dec.set_position(Vector2(cx + 50, cy + 34))
-		dec.set_size(Vector2(48, 48))
+		dec.set_position(Vector2(cx + 50, cy + 28))
+		dec.set_size(Vector2(46, 46))
 		dec.add_theme_font_size_override("font_size", 28)
 		dec.pressed.connect(_change_ai.bind(key, -1))
 		add_child(dec)
@@ -102,8 +108,8 @@ func _build_animatronic_controls():
 		# Increase button
 		var inc = Button.new()
 		inc.text = "+"
-		inc.set_position(Vector2(cx + col_w - 106, cy + 34))
-		inc.set_size(Vector2(48, 48))
+		inc.set_position(Vector2(cx + col_w - 104, cy + 28))
+		inc.set_size(Vector2(46, 46))
 		inc.add_theme_font_size_override("font_size", 28)
 		inc.pressed.connect(_change_ai.bind(key, 1))
 		add_child(inc)
@@ -111,26 +117,26 @@ func _build_animatronic_controls():
 		# Fill bar
 		var bar_w = col_w - 100.0
 		var bar_bg = ColorRect.new()
-		bar_bg.set_position(Vector2(cx + 50, cy + 92))
-		bar_bg.set_size(Vector2(bar_w, 8))
+		bar_bg.set_position(Vector2(cx + 50, cy + 80))
+		bar_bg.set_size(Vector2(bar_w, 6))
 		bar_bg.color = Color(0.18, 0.14, 0.08)
 		add_child(bar_bg)
 
 		var bar_fill = ColorRect.new()
-		bar_fill.set_position(Vector2(cx + 50, cy + 92))
-		bar_fill.set_size(Vector2(bar_w * GameManager.custom_ai[key] / 20.0, 8))
+		bar_fill.set_position(Vector2(cx + 50, cy + 80))
+		bar_fill.set_size(Vector2(bar_w * GameManager.custom_ai[key] / 20.0, 6))
 		bar_fill.color = Color(0.90, 0.65, 0.10)
 		add_child(bar_fill)
 		ai_displays[key + "_bar"]     = bar_fill
 		ai_displays[key + "_bar_max"] = bar_w
 
-	_separator(410)
+	_separator(510)
 
 # ── Presets ────────────────────────────────────────────────────────────────────
 func _build_presets():
 	var hdr = Label.new()
 	hdr.text = "— PRESETS —"
-	hdr.set_position(Vector2(0, 422))
+	hdr.set_position(Vector2(0, 522))
 	hdr.set_size(Vector2(W, 24))
 	hdr.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
 	hdr.add_theme_font_size_override("font_size", 15)
@@ -138,10 +144,10 @@ func _build_presets():
 	add_child(hdr)
 
 	var presets = [
-		["ALL 0",  [0,  0,  0,  0,  0,  0,  0,  0,  0]],
-		["ALL 5",  [5,  5,  5,  5,  5,  5,  5,  5,  5]],
-		["ALL 10", [10, 10, 10, 10, 10, 10, 10, 10, 10]],
-		["ALL 20", [20, 20, 20, 20, 20, 20, 20, 20, 20]],
+		["ALL 0",  [0,  0,  0,  0,  0,  0,  0,  0,  0,  0]],
+		["ALL 5",  [5,  5,  5,  5,  5,  5,  5,  5,  5,  5]],
+		["ALL 10", [10, 10, 10, 10, 10, 10, 10, 10, 10, 10]],
+		["ALL 20", [20, 20, 20, 20, 20, 20, 20, 20, 20, 20]],
 	]
 
 	var btn_w   = 160.0
@@ -153,29 +159,29 @@ func _build_presets():
 		var p   = presets[i]
 		var btn = Button.new()
 		btn.text = p[0]
-		btn.set_position(Vector2(start_x + i * (btn_w + gap), 450))
+		btn.set_position(Vector2(start_x + i * (btn_w + gap), 548))
 		btn.set_size(Vector2(btn_w, 38))
 		btn.add_theme_font_size_override("font_size", 16)
 		btn.pressed.connect(_apply_preset.bind(p[1]))
 		add_child(btn)
 
-	_separator(496)
+	_separator(594)
 
 # ── Start / Back ───────────────────────────────────────────────────────────────
 func _build_action_buttons():
 	var start_btn = Button.new()
 	start_btn.text = "START NIGHT"
-	start_btn.set_position(Vector2(W / 2.0 - 230.0, 512))
-	start_btn.set_size(Vector2(210, 50))
-	start_btn.add_theme_font_size_override("font_size", 20)
+	start_btn.set_position(Vector2(W / 2.0 - 230.0, 606))
+	start_btn.set_size(Vector2(210, 38))
+	start_btn.add_theme_font_size_override("font_size", 18)
 	start_btn.pressed.connect(_start_custom)
 	add_child(start_btn)
 
 	var back_btn = Button.new()
 	back_btn.text = "BACK"
-	back_btn.set_position(Vector2(W / 2.0 + 20.0, 512))
-	back_btn.set_size(Vector2(210, 50))
-	back_btn.add_theme_font_size_override("font_size", 20)
+	back_btn.set_position(Vector2(W / 2.0 + 20.0, 606))
+	back_btn.set_size(Vector2(210, 38))
+	back_btn.add_theme_font_size_override("font_size", 18)
 	back_btn.pressed.connect(_go_back)
 	add_child(back_btn)
 

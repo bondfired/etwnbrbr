@@ -89,6 +89,12 @@ const ANIMATRONICS: Dictionary = {
 		"base_time": 14.0,
 		"watch_cam": "",
 		"active_linear_hour": 0
+	},
+	"Tung": {
+		"path": ["Show Stage", "Dining Hall", "East Hall", "East Hall Corner", "RIGHT_DOOR"],
+		"base_time": 7.0,
+		"watch_cam": "",
+		"active_linear_hour": 0
 	}
 }
 
@@ -110,9 +116,18 @@ var db_give_btn: Button
 # ── Owen state ────────────────────────────────────────────────────────────────
 var owen_at_door: bool               = false
 var owen_trapped: bool               = false
-var owen_door_preemptively_closed: bool = false  # door was ALREADY closed when Owen arrived
+var owen_door_preemptively_closed: bool = false
 var owen_flash_btn: Button
 var owen_door_label: Label
+
+# ── Tung / dodge state ────────────────────────────────────────────────────────
+const TUNG_ATTACK_WINDOW: float = 2.5
+var tung_attacking: bool   = false
+var tung_attack_timer: float = 0.0
+var tung_attack_label: Label
+var head_lowered: bool     = false
+var head_lower_btn: Button
+var head_status_label: Label
 
 func _is_goku_active() -> bool:
 	if GameManager.is_custom_night:
@@ -145,6 +160,7 @@ func _ready():
 	_build_audio_warning()
 	_build_goku_ui()
 	_build_owen_ui()
+	_build_tung_ui()
 	_build_camera_overlay()
 	_build_gameover_overlay()
 	_build_win_overlay()
@@ -166,6 +182,7 @@ func _process(delta: float):
 
 	_tick_animatronics(delta)
 	_update_astro_warning()
+	_process_tung_attack(delta)
 
 	if _is_goku_active():
 		db_hud_label.text   = "Dragon Balls: %d / 7" % db_found
@@ -275,6 +292,16 @@ func _try_enter(anim_name: String):
 		# Door open: Owen waits, player must flash him from Left Hall Corner
 		return
 
+	# Tung: dodge-based mechanic — doors don't repel him, player must lower head
+	if anim_name == "Tung":
+		if tung_attacking:
+			return  # attack already in progress
+		tung_attacking = true
+		tung_attack_timer = 0.0
+		tung_attack_label.text = "!! TUNG IS SWINGING !!"
+		tung_attack_label.visible = true
+		return
+
 	var blocked = (door == "LEFT_DOOR" and left_door_closed) or \
 				  (door == "RIGHT_DOOR" and right_door_closed)
 
@@ -318,7 +345,11 @@ func _on_cam_next():
 	_update_cam_display()
 
 func _input(event: InputEvent):
-	if not camera_open or is_game_over:
+	if is_game_over:
+		return
+	if event is InputEventKey and event.pressed and event.keycode == KEY_SPACE:
+		_toggle_head_lower()
+	if not camera_open:
 		return
 	if event.is_action_pressed("ui_left") or event is InputEventKey and event.pressed and event.keycode == KEY_A:
 		_on_cam_prev()
@@ -488,6 +519,52 @@ func _build_owen_ui():
 	owen_door_label.add_theme_color_override("font_color", Color(1.0, 0.3, 0.0))
 	owen_door_label.visible = false
 	hud_layer.add_child(owen_door_label)
+
+func _build_tung_ui():
+	tung_attack_label = Label.new()
+	tung_attack_label.set_position(Vector2(226, 8))
+	tung_attack_label.set_size(Vector2(700, 32))
+	tung_attack_label.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
+	tung_attack_label.add_theme_font_size_override("font_size", 22)
+	tung_attack_label.add_theme_color_override("font_color", Color.RED)
+	tung_attack_label.visible = false
+	hud_layer.add_child(tung_attack_label)
+
+	head_status_label = Label.new()
+	head_status_label.text = "[ HEAD DOWN ]"
+	head_status_label.set_position(Vector2(10, 96))
+	head_status_label.add_theme_font_size_override("font_size", 14)
+	head_status_label.add_theme_color_override("font_color", Color(0.2, 0.9, 0.2))
+	head_status_label.visible = false
+	hud_layer.add_child(head_status_label)
+
+	head_lower_btn = Button.new()
+	head_lower_btn.text = "LOWER HEAD  [SPACE]"
+	head_lower_btn.set_position(Vector2(820, 576))
+	head_lower_btn.set_size(Vector2(240, 46))
+	head_lower_btn.add_theme_font_size_override("font_size", 16)
+	head_lower_btn.pressed.connect(_toggle_head_lower)
+	hud_layer.add_child(head_lower_btn)
+
+func _toggle_head_lower():
+	head_lowered = !head_lowered
+	head_lower_btn.text = "RAISE HEAD  [SPACE]" if head_lowered else "LOWER HEAD  [SPACE]"
+	head_status_label.visible = head_lowered
+
+func _process_tung_attack(delta: float):
+	if not tung_attacking:
+		return
+	tung_attack_timer += delta
+	var t = TUNG_ATTACK_WINDOW - tung_attack_timer
+	tung_attack_label.text = "!! TUNG IS SWINGING — LOWER YOUR HEAD!! (%.1f)" % max(0.0, t)
+	if tung_attack_timer >= TUNG_ATTACK_WINDOW:
+		tung_attacking = false
+		tung_attack_label.visible = false
+		if head_lowered:
+			anim_state["Tung"]["index"] = 0
+			anim_state["Tung"]["timer"] = 0.0
+		else:
+			_game_over("Tung")
 
 func _collect_dragon_ball():
 	var room = CAM_ROOMS[current_cam]
