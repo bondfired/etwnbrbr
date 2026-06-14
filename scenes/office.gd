@@ -108,8 +108,9 @@ var db_collect_btn: Button
 var db_give_btn: Button
 
 # ── Owen state ────────────────────────────────────────────────────────────────
-var owen_at_door: bool  = false
-var owen_trapped: bool  = false
+var owen_at_door: bool               = false
+var owen_trapped: bool               = false
+var owen_door_preemptively_closed: bool = false  # door was ALREADY closed when Owen arrived
 var owen_flash_btn: Button
 var owen_door_label: Label
 
@@ -243,7 +244,11 @@ func _try_enter(anim_name: String):
 	var door = path[-1]
 
 	# Doggie: only retreats when BOTH doors are closed; slips through any open one
+	# If Owen is already at the left door, Doggie backs off — can't attack simultaneously
 	if door == "BOTH_DOORS":
+		if owen_at_door:
+			anim_state[anim_name]["index"] = 0
+			return
 		if left_door_closed and right_door_closed:
 			anim_state[anim_name]["index"] = 0  # back to his desk
 		else:
@@ -254,13 +259,20 @@ func _try_enter(anim_name: String):
 	if door == "DOOR":
 		door = anim_state[anim_name].get("target_door", "LEFT_DOOR")
 
-	# Owen: doors have no effect; closing traps him, opening after = game over
+	# Owen: doors don't repel him; only closing AFTER he arrives traps him
 	if anim_name == "Owen":
+		if owen_at_door:
+			return  # already processed, waiting to be flashed or door opened
+		# If Doggie is currently threatening, Owen holds back
+		var doggie_idx = anim_state.get("Doggie", {}).get("index", 0)
+		if doggie_idx >= ANIMATRONICS["Doggie"]["path"].size() - 1:
+			anim_state["Owen"]["index"] = 0
+			return
 		owen_at_door = true
 		if left_door_closed:
-			owen_trapped = true  # door won't save you — opening it will
-		else:
-			_game_over("Owen")
+			# Door was already closed before Owen arrived — not trapped, just waiting
+			owen_door_preemptively_closed = true
+		# Door open: Owen waits, player must flash him from Left Hall Corner
 		return
 
 	var blocked = (door == "LEFT_DOOR" and left_door_closed) or \
@@ -273,12 +285,17 @@ func _try_enter(anim_name: String):
 
 # ── Button handlers ───────────────────────────────────────────────────────────
 func _on_left_door_button_pressed():
+	if owen_at_door:
+		if left_door_closed:
+			# Door is closed and player is opening it while Owen is outside — he enters
+			_game_over("Owen")
+			return
+		else:
+			# Door is open and player is closing it AFTER Owen arrived — traps him
+			owen_trapped = true
 	left_door_closed  = !left_door_closed
 	left_door.visible = left_door_closed
 	GameManager.doors_open = left_door_closed or right_door_closed
-	# Opening the left door after Owen got trapped = immediate jumpscare
-	if not left_door_closed and owen_trapped:
-		_game_over("Owen")
 
 func _on_right_door_button_pressed():
 	right_door_closed  = !right_door_closed
@@ -383,13 +400,15 @@ func _update_cam_display():
 	db_collect_btn.visible = has_uncollected_db
 	cam_db_counter.text    = "★ Dragon Balls: %d / 7" % db_found
 
-	# Owen flash button — visible only when Owen is in this room and not yet at door
-	var owen_st  = anim_state.get("Owen", {})
-	var owen_idx = owen_st.get("index", 0)
+	# Owen flash button — visible when Owen is in this camera room, or at the door and
+	# player is viewing Left Hall Corner (the hallway just outside the left door)
+	var owen_st   = anim_state.get("Owen", {})
+	var owen_idx  = owen_st.get("index", 0)
 	var owen_path = ANIMATRONICS["Owen"]["path"]
-	var owen_visible_here = owen_st.get("active", false) and not owen_at_door \
+	var owen_in_room = owen_st.get("active", false) and not owen_at_door \
 		and owen_idx < owen_path.size() and owen_path[owen_idx] == room
-	owen_flash_btn.visible = owen_visible_here
+	var owen_at_door_cam = owen_at_door and room == "Left Hall Corner"
+	owen_flash_btn.visible = owen_in_room or owen_at_door_cam
 
 	# Collect visible animatronics (Astro is never shown on any camera)
 	var found: Array = []
@@ -483,11 +502,14 @@ func _give_dragon_balls():
 
 func _flash_owen():
 	var state = anim_state.get("Owen", {})
-	if not state.get("active", false) or owen_at_door:
+	if not state.get("active", false):
 		return
 	# Send Owen back to a random early position in his path
 	state["index"] = randi() % 3
 	state["timer"] = 0.0
+	owen_at_door   = false
+	owen_trapped   = false
+	owen_door_preemptively_closed = false
 	_update_cam_display()
 
 func _build_power_warning():
