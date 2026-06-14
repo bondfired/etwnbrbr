@@ -16,7 +16,8 @@ var custom_ai: Dictionary = {
 	"Doggie": 5,
 	"Astro": 5,
 	"BFB": 5,
-	"Goku": 5
+	"Goku": 5,
+	"Owen": 5
 }
 
 func get_power_drain() -> float:

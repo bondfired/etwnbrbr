@@ -83,6 +83,12 @@ const ANIMATRONICS: Dictionary = {
 		"base_time": 13.0,
 		"watch_cam": "",
 		"active_linear_hour": 0
+	},
+	"Owen": {
+		"path": ["Show Stage", "Backstage", "West Hall", "Left Hall Corner", "LEFT_DOOR"],
+		"base_time": 8.0,
+		"watch_cam": "",
+		"active_linear_hour": 0
 	}
 }
 
@@ -100,6 +106,11 @@ var cam_db_label: Label
 var cam_db_counter: Label
 var db_collect_btn: Button
 var db_give_btn: Button
+
+# ── Owen state ────────────────────────────────────────────────────────────────
+var owen_at_door: bool  = false
+var owen_trapped: bool  = false
+var owen_flash_btn: Button
 
 func _is_goku_active() -> bool:
 	if GameManager.is_custom_night:
@@ -239,6 +250,15 @@ func _try_enter(anim_name: String):
 	if door == "DOOR":
 		door = anim_state[anim_name].get("target_door", "LEFT_DOOR")
 
+	# Owen: doors have no effect; closing traps him, opening after = game over
+	if anim_name == "Owen":
+		owen_at_door = true
+		if left_door_closed:
+			owen_trapped = true  # door won't save you — opening it will
+		else:
+			_game_over("Owen")
+		return
+
 	var blocked = (door == "LEFT_DOOR" and left_door_closed) or \
 				  (door == "RIGHT_DOOR" and right_door_closed)
 
@@ -252,6 +272,9 @@ func _on_left_door_button_pressed():
 	left_door_closed  = !left_door_closed
 	left_door.visible = left_door_closed
 	GameManager.doors_open = left_door_closed or right_door_closed
+	# Opening the left door after Owen got trapped = immediate jumpscare
+	if not left_door_closed and owen_trapped:
+		_game_over("Owen")
 
 func _on_right_door_button_pressed():
 	right_door_closed  = !right_door_closed
@@ -356,6 +379,14 @@ func _update_cam_display():
 	db_collect_btn.visible = has_uncollected_db
 	cam_db_counter.text    = "★ Dragon Balls: %d / 7" % db_found
 
+	# Owen flash button — visible only when Owen is in this room and not yet at door
+	var owen_st  = anim_state.get("Owen", {})
+	var owen_idx = owen_st.get("index", 0)
+	var owen_path = ANIMATRONICS["Owen"]["path"]
+	var owen_visible_here = owen_st.get("active", false) and not owen_at_door \
+		and owen_idx < owen_path.size() and owen_path[owen_idx] == room
+	owen_flash_btn.visible = owen_visible_here
+
 	# Collect visible animatronics (Astro is never shown on any camera)
 	var found: Array = []
 	for anim_name in ANIMATRONICS:
@@ -436,6 +467,15 @@ func _collect_dragon_ball():
 func _give_dragon_balls():
 	db_given = true
 	db_give_btn.visible = false
+
+func _flash_owen():
+	var state = anim_state.get("Owen", {})
+	if not state.get("active", false) or owen_at_door:
+		return
+	# Send Owen back to a random early position in his path
+	state["index"] = randi() % 3
+	state["timer"] = 0.0
+	_update_cam_display()
 
 func _build_power_warning():
 	power_warn_label = Label.new()
@@ -542,6 +582,17 @@ func _build_camera_overlay():
 	cam_db_counter.add_theme_font_size_override("font_size", 16)
 	cam_db_counter.add_theme_color_override("font_color", Color.ORANGE)
 	cam_overlay.add_child(cam_db_counter)
+
+	# Owen flash button
+	owen_flash_btn = Button.new()
+	owen_flash_btn.text = "FLASH LIGHT"
+	owen_flash_btn.set_position(Vector2(460, 420))
+	owen_flash_btn.set_size(Vector2(210, 44))
+	owen_flash_btn.add_theme_font_size_override("font_size", 18)
+	owen_flash_btn.add_theme_color_override("font_color", Color.WHITE)
+	owen_flash_btn.visible = false
+	owen_flash_btn.pressed.connect(_flash_owen)
+	cam_overlay.add_child(owen_flash_btn)
 
 func _build_gameover_overlay():
 	gameover_overlay = Control.new()
