@@ -1,0 +1,690 @@
+extends Node2D
+
+@onready var left_door   = $LeftDoor
+@onready var right_door  = $RightDoor
+@onready var power_label = $PowerLabel
+@onready var hour_label  = $HourLabel
+@onready var night_timer = $NightTimer
+
+var left_door_closed  = false
+var right_door_closed = false
+var is_game_over: bool = false
+
+# ── Camera ────────────────────────────────────────────────────────────────────
+var camera_open: bool = false
+var current_cam: int = 0
+const CAM_ROOMS: Array = [
+	"Show Stage",
+	"Dining Hall",
+	"Backstage",
+	"West Hall",
+	"Left Hall Corner",
+	"East Hall",
+	"East Hall Corner",
+	"Pirate Cove",
+	"Music Room"
+]
+
+# ── UI nodes built at runtime ─────────────────────────────────────────────────
+var hud_layer: CanvasLayer
+var power_warn_label: Label
+var audio_warn_label: Label
+var cam_overlay: Control
+var cam_title_label: Label
+var cam_anim_label: Label
+var cam_list_label: Label
+var gameover_overlay: Control
+var caught_label: Label
+var win_overlay: Control
+
+# ── Animatronic definitions ───────────────────────────────────────────────────
+# path: rooms to traverse; last entry is LEFT_DOOR / RIGHT_DOOR / BOTH_DOORS / DOOR
+# BOTH_DOORS = requires BOTH doors closed to repel (Doggie)
+# DOOR       = door side assigned randomly at runtime (Astro)
+const ANIMATRONICS: Dictionary = {
+	"BonnieJake": {
+		"path": ["Show Stage", "Backstage", "West Hall", "Left Hall Corner", "LEFT_DOOR"],
+		"base_time": 9.0,
+		"watch_cam": "West Hall",
+		"active_linear_hour": 0
+	},
+	"ChicaJasker": {
+		"path": ["Show Stage", "Dining Hall", "East Hall", "East Hall Corner", "RIGHT_DOOR"],
+		"base_time": 12.0,
+		"watch_cam": "East Hall",
+		"active_linear_hour": 0
+	},
+	"FreddyMarcus": {
+		"path": ["Show Stage", "Dining Hall", "East Hall", "East Hall Corner", "RIGHT_DOOR"],
+		"base_time": 18.0,
+		"watch_cam": "",
+		"active_linear_hour": 2
+	},
+	"FoxyBlitz": {
+		"path": ["Pirate Cove", "West Hall", "LEFT_DOOR"],
+		"base_time": 5.0,
+		"watch_cam": "Pirate Cove",
+		"active_linear_hour": 1
+	},
+	"Doggie": {
+		"path": ["Music Room", "APPROACHING", "BOTH_DOORS"],
+		"base_time": 15.0,
+		"watch_cam": "",
+		"active_linear_hour": 0
+	},
+	"Astro": {
+		"path": ["SHADOW", "SHADOW_NEAR", "DOOR"],
+		"base_time": 22.0,
+		"watch_cam": "",
+		"active_linear_hour": 1
+	},
+	"BFB": {
+		"path": ["Dining Hall", "East Hall", "East Hall Corner", "RIGHT_DOOR"],
+		"base_time": 13.0,
+		"watch_cam": "",
+		"active_linear_hour": 0
+	},
+	"Owen": {
+		"path": ["Show Stage", "Backstage", "West Hall", "Left Hall Corner", "LEFT_DOOR"],
+		"base_time": 14.0,
+		"watch_cam": "",
+		"active_linear_hour": 0
+	}
+}
+
+# ── Dragon Ball system (Goku) ──────────────────────────────────────────────────
+const DB_ROOMS: Array = [
+	"Show Stage", "Dining Hall", "Backstage",
+	"West Hall", "Left Hall Corner", "East Hall", "East Hall Corner"
+]
+var db_collected: Dictionary = {}
+var db_found: int = 0
+var db_given: bool = false
+
+var db_hud_label: Label
+var cam_db_label: Label
+var cam_db_counter: Label
+var db_collect_btn: Button
+var db_give_btn: Button
+
+# ── Owen state ────────────────────────────────────────────────────────────────
+var owen_at_door: bool  = false
+var owen_trapped: bool  = false
+var owen_flash_btn: Button
+var owen_door_label: Label
+
+func _is_goku_active() -> bool:
+	if GameManager.is_custom_night:
+		return GameManager.custom_ai.get("Goku", 0) > 0
+	return true
+
+# Runtime state per animatronic
+var anim_state: Dictionary = {}
+
+# ── Helpers ───────────────────────────────────────────────────────────────────
+func _get_linear_hour() -> int:
+	return 0 if GameManager.current_hour == 12 else GameManager.current_hour
+
+# ── Lifecycle ─────────────────────────────────────────────────────────────────
+func _ready():
+	for name in ANIMATRONICS:
+		anim_state[name] = {"index": 0, "timer": 0.0, "active": false}
+	for room in DB_ROOMS:
+		db_collected[room] = false
+
+	night_timer.wait_time = 45.0
+	night_timer.start()
+	night_timer.timeout.connect(_on_hour_passed)
+
+	hud_layer = CanvasLayer.new()
+	hud_layer.layer = 10
+	add_child(hud_layer)
+
+	_build_power_warning()
+	_build_audio_warning()
+	_build_goku_ui()
+	_build_owen_ui()
+	_build_camera_overlay()
+	_build_gameover_overlay()
+	_build_win_overlay()
+
+func _process(delta: float):
+	if is_game_over:
+		return
+
+	GameManager.power -= GameManager.get_power_drain() * delta
+	GameManager.power = clamp(GameManager.power, 0.0, 100.0)
+
+	power_label.text = "Power: %d%%" % int(GameManager.power)
+	hour_label.text  = "%d AM" % GameManager.current_hour
+	power_warn_label.visible = GameManager.power < 20.0
+
+	if GameManager.power <= 0.0:
+		_power_out()
+		return
+
+	_tick_animatronics(delta)
+	_update_astro_warning()
+
+	if _is_goku_active():
+		db_hud_label.text   = "Dragon Balls: %d / 7" % db_found
+		db_hud_label.visible = not db_given
+		db_give_btn.visible  = db_found >= 7 and not db_given and not camera_open
+	else:
+		db_hud_label.visible = false
+		db_give_btn.visible  = false
+
+	owen_door_label.visible = owen_at_door
+
+	if camera_open:
+		_update_cam_display()
+
+# ── Animatronic AI ────────────────────────────────────────────────────────────
+func _tick_animatronics(delta: float):
+	var linear_hour = _get_linear_hour()
+	for anim_name in ANIMATRONICS:
+		var data  = ANIMATRONICS[anim_name]
+		var state = anim_state[anim_name]
+
+		if not state["active"]:
+			var should_activate = false
+			if GameManager.is_custom_night:
+				should_activate = GameManager.custom_ai.get(anim_name, 0) > 0
+			else:
+				should_activate = linear_hour >= data["active_linear_hour"]
+
+			if should_activate:
+				state["active"] = true
+				if anim_name == "Astro":
+					state["target_door"] = "LEFT_DOOR" if randi() % 2 == 0 else "RIGHT_DOOR"
+			else:
+				continue
+
+		# Move time: custom night uses AI level (0=never, 20=fastest)
+		var move_time: float
+		if GameManager.is_custom_night:
+			var ai_lvl = GameManager.custom_ai.get(anim_name, 0)
+			if ai_lvl == 0:
+				continue
+			move_time = lerpf(45.0, 1.5, float(ai_lvl - 1) / 19.0)
+		else:
+			move_time = max(2.0, data["base_time"] - linear_hour * 0.35)
+
+		# Camera watching effect
+		var watch_cam    = data["watch_cam"]
+		var watching_now = camera_open and watch_cam != "" and CAM_ROOMS[current_cam] == watch_cam
+
+		if watching_now:
+			if anim_name == "FoxyBlitz":
+				state["timer"] = 0.0  # keep Foxy at bay while watched
+				continue
+			else:
+				move_time *= 2.0  # other animatronics slow down when watched
+
+		state["timer"] += delta
+		if state["timer"] >= move_time:
+			state["timer"] = 0.0
+			_advance_animatronic(anim_name)
+
+func _advance_animatronic(anim_name: String):
+	var state = anim_state[anim_name]
+	var path  = ANIMATRONICS[anim_name]["path"]
+
+	if state["index"] >= path.size() - 1:
+		_try_enter(anim_name)
+		return
+
+	state["index"] += 1
+	if state["index"] == path.size() - 1:
+		_try_enter(anim_name)
+
+func _try_enter(anim_name: String):
+	var path = ANIMATRONICS[anim_name]["path"]
+	var door = path[-1]
+
+	# Doggie: only retreats when BOTH doors are closed; slips through any open one
+	if door == "BOTH_DOORS":
+		if left_door_closed and right_door_closed:
+			anim_state[anim_name]["index"] = 0  # back to his desk
+		else:
+			_game_over(anim_name)
+		return
+
+	# Astro: door side was randomly assigned at activation
+	if door == "DOOR":
+		door = anim_state[anim_name].get("target_door", "LEFT_DOOR")
+
+	# Owen: doors have no effect; closing traps him, opening after = game over
+	if anim_name == "Owen":
+		owen_at_door = true
+		if left_door_closed:
+			owen_trapped = true  # door won't save you — opening it will
+		else:
+			_game_over("Owen")
+		return
+
+	var blocked = (door == "LEFT_DOOR" and left_door_closed) or \
+				  (door == "RIGHT_DOOR" and right_door_closed)
+
+	if blocked:
+		anim_state[anim_name]["index"] = max(0, anim_state[anim_name]["index"] - 1)
+	else:
+		_game_over(anim_name)
+
+# ── Button handlers ───────────────────────────────────────────────────────────
+func _on_left_door_button_pressed():
+	left_door_closed  = !left_door_closed
+	left_door.visible = left_door_closed
+	GameManager.doors_open = left_door_closed or right_door_closed
+	# Opening the left door after Owen got trapped = immediate jumpscare
+	if not left_door_closed and owen_trapped:
+		_game_over("Owen")
+
+func _on_right_door_button_pressed():
+	right_door_closed  = !right_door_closed
+	right_door.visible = right_door_closed
+	GameManager.doors_open = left_door_closed or right_door_closed
+
+func _on_camera_button_pressed():
+	camera_open = !camera_open
+	GameManager.camera_open = camera_open
+	cam_overlay.visible = camera_open
+	if camera_open:
+		_update_cam_display()
+
+func _on_cam_prev():
+	current_cam = (current_cam - 1 + CAM_ROOMS.size()) % CAM_ROOMS.size()
+	_update_cam_display()
+
+func _on_cam_next():
+	current_cam = (current_cam + 1) % CAM_ROOMS.size()
+	_update_cam_display()
+
+func _input(event: InputEvent):
+	if not camera_open or is_game_over:
+		return
+	if event.is_action_pressed("ui_left") or event is InputEventKey and event.pressed and event.keycode == KEY_A:
+		_on_cam_prev()
+	elif event.is_action_pressed("ui_right") or event is InputEventKey and event.pressed and event.keycode == KEY_D:
+		_on_cam_next()
+
+# ── Hour / win / loss ─────────────────────────────────────────────────────────
+func _on_hour_passed():
+	GameManager.current_hour += 1
+	if GameManager.current_hour > 12:
+		GameManager.current_hour = 1
+	if GameManager.current_hour == 5 and _is_goku_active() and not db_given:
+		_game_over("Goku")
+		return
+	if GameManager.current_hour >= 6:
+		_win()
+
+func _power_out():
+	is_game_over = true
+	night_timer.stop()
+	left_door_closed  = false
+	right_door_closed = false
+	left_door.visible  = false
+	right_door.visible = false
+	# Freddy guaranteed attack after lights go out
+	await get_tree().create_timer(3.0).timeout
+	_game_over("FreddyMarcus")
+
+func _game_over(anim_name: String):
+	if gameover_overlay.visible:
+		return
+	is_game_over = true
+	night_timer.stop()
+	cam_overlay.visible = false
+	camera_open = false
+	GameManager.camera_open = false
+	gameover_overlay.visible = true
+	caught_label.text = "Caught by %s!" % anim_name
+
+func _win():
+	is_game_over = true
+	night_timer.stop()
+	cam_overlay.visible = false
+	if not GameManager.is_custom_night:
+		var idx = GameManager.night_number - 1
+		if idx >= 0 and idx < GameManager.nights_completed.size():
+			GameManager.nights_completed[idx] = true
+	win_overlay.visible = true
+
+func _restart():
+	GameManager.power        = 100.0
+	GameManager.current_hour = 12
+	GameManager.doors_open   = false
+	GameManager.camera_open  = false
+	get_tree().reload_current_scene()
+
+func _go_to_menu():
+	get_tree().change_scene_to_file("res://scenes/MainMenu.tscn")
+
+func _next_night():
+	if GameManager.is_custom_night:
+		_go_to_menu()
+		return
+	GameManager.night_number  = min(GameManager.night_number + 1, 6)
+	GameManager.power         = 100.0
+	GameManager.current_hour  = 12
+	GameManager.doors_open    = false
+	GameManager.camera_open   = false
+	get_tree().reload_current_scene()
+
+# ── Camera display ────────────────────────────────────────────────────────────
+func _update_cam_display():
+	var room = CAM_ROOMS[current_cam]
+	cam_title_label.text = "CAM %d  —  %s" % [current_cam + 1, room]
+
+	# Dragon ball detection
+	var has_uncollected_db = _is_goku_active() and (room in DB_ROOMS) and not db_collected.get(room, true)
+	cam_db_label.visible   = has_uncollected_db
+	db_collect_btn.visible = has_uncollected_db
+	cam_db_counter.text    = "★ Dragon Balls: %d / 7" % db_found
+
+	# Owen flash button — visible only when Owen is in this room and not yet at door
+	var owen_st  = anim_state.get("Owen", {})
+	var owen_idx = owen_st.get("index", 0)
+	var owen_path = ANIMATRONICS["Owen"]["path"]
+	var owen_visible_here = owen_st.get("active", false) and not owen_at_door \
+		and owen_idx < owen_path.size() and owen_path[owen_idx] == room
+	owen_flash_btn.visible = owen_visible_here
+
+	# Collect visible animatronics (Astro is never shown on any camera)
+	var found: Array = []
+	for anim_name in ANIMATRONICS:
+		if anim_name == "Astro":
+			continue
+		var state = anim_state[anim_name]
+		if not state["active"]:
+			continue
+		var path = ANIMATRONICS[anim_name]["path"]
+		var idx  = state["index"]
+		if idx < path.size() and path[idx] == room:
+			var label = "Doggie (at desk)" if anim_name == "Doggie" else anim_name
+			found.append(label)
+
+	# Special Music Room display: warn loudly when Doggie has left
+	var doggie_st    = anim_state.get("Doggie", {})
+	var doggie_gone  = doggie_st.get("active", false) and doggie_st.get("index", 0) > 0
+	if room == "Music Room" and doggie_gone:
+		cam_anim_label.text = "!! DOGGIE IS NOT AT HIS DESK !!"
+		cam_anim_label.add_theme_color_override("font_color", Color.RED)
+	elif found.size() > 0:
+		cam_anim_label.text = ">> " + ", ".join(found) + " <<"
+		cam_anim_label.add_theme_color_override("font_color", Color.YELLOW)
+	else:
+		cam_anim_label.text = "(empty)"
+		cam_anim_label.add_theme_color_override("font_color", Color.YELLOW)
+
+	# Room list
+	var list_text = ""
+	for i in range(CAM_ROOMS.size()):
+		var r        = CAM_ROOMS[i]
+		var selected = ">" if i == current_cam else " "
+		var occupied = false
+		for anim_name in ANIMATRONICS:
+			if anim_name == "Astro":
+				continue
+			var state = anim_state[anim_name]
+			if not state["active"]:
+				continue
+			var path = ANIMATRONICS[anim_name]["path"]
+			var idx  = state["index"]
+			if idx < path.size() and path[idx] == r:
+				occupied = true
+				break
+		var marker = ""
+		if r == "Music Room" and doggie_gone:
+			marker = "  (!! GONE)"
+		elif occupied:
+			marker = "  (!)"
+		list_text += "%s CAM %d - %s%s\n" % [selected, i + 1, r, marker]
+	cam_list_label.text = list_text
+
+# ── UI builders ───────────────────────────────────────────────────────────────
+func _build_goku_ui():
+	db_hud_label = Label.new()
+	db_hud_label.set_position(Vector2(10, 32))
+	db_hud_label.add_theme_font_size_override("font_size", 16)
+	db_hud_label.add_theme_color_override("font_color", Color.ORANGE)
+	db_hud_label.visible = false
+	hud_layer.add_child(db_hud_label)
+
+	db_give_btn = Button.new()
+	db_give_btn.text = "GIVE DRAGON BALLS TO GOKU"
+	db_give_btn.set_position(Vector2(380, 565))
+	db_give_btn.set_size(Vector2(360, 48))
+	db_give_btn.add_theme_font_size_override("font_size", 17)
+	db_give_btn.visible = false
+	db_give_btn.pressed.connect(_give_dragon_balls)
+	hud_layer.add_child(db_give_btn)
+
+func _build_owen_ui():
+	owen_door_label = Label.new()
+	owen_door_label.text = "!! OWEN IS AT THE LEFT DOOR — DO NOT OPEN IT !!"
+	owen_door_label.set_position(Vector2(200, 58))
+	owen_door_label.add_theme_font_size_override("font_size", 18)
+	owen_door_label.add_theme_color_override("font_color", Color(1.0, 0.3, 0.0))
+	owen_door_label.visible = false
+	hud_layer.add_child(owen_door_label)
+
+func _collect_dragon_ball():
+	var room = CAM_ROOMS[current_cam]
+	if room in DB_ROOMS and not db_collected.get(room, false):
+		db_collected[room] = true
+		db_found += 1
+		_update_cam_display()
+
+func _give_dragon_balls():
+	db_given = true
+	db_give_btn.visible = false
+
+func _flash_owen():
+	var state = anim_state.get("Owen", {})
+	if not state.get("active", false) or owen_at_door:
+		return
+	# Send Owen back to a random early position in his path
+	state["index"] = randi() % 3
+	state["timer"] = 0.0
+	_update_cam_display()
+
+func _build_power_warning():
+	power_warn_label = Label.new()
+	power_warn_label.text = "!! LOW POWER !!"
+	power_warn_label.set_position(Vector2(420, 578))
+	power_warn_label.add_theme_font_size_override("font_size", 24)
+	power_warn_label.add_theme_color_override("font_color", Color.RED)
+	power_warn_label.visible = false
+	hud_layer.add_child(power_warn_label)
+
+func _build_audio_warning():
+	audio_warn_label = Label.new()
+	audio_warn_label.set_position(Vector2(300, 28))
+	audio_warn_label.add_theme_font_size_override("font_size", 20)
+	audio_warn_label.add_theme_color_override("font_color", Color(0.9, 0.75, 0.1))
+	audio_warn_label.visible = false
+	hud_layer.add_child(audio_warn_label)
+
+func _update_astro_warning():
+	var st = anim_state.get("Astro", {})
+	if not st.get("active", false):
+		audio_warn_label.visible = false
+		return
+	var idx  = st.get("index", 0)
+	var path = ANIMATRONICS["Astro"]["path"]
+	if idx >= path.size() - 2:  # SHADOW_NEAR or DOOR — he's close
+		var door = st.get("target_door", "LEFT_DOOR")
+		var side = "LEFT" if door == "LEFT_DOOR" else "RIGHT"
+		audio_warn_label.text = "[ You hear something near the %s door... ]" % side
+		audio_warn_label.visible = true
+	else:
+		audio_warn_label.visible = false
+
+func _build_camera_overlay():
+	cam_overlay = Control.new()
+	cam_overlay.set_anchors_preset(Control.PRESET_FULL_RECT)
+	cam_overlay.visible = false
+	hud_layer.add_child(cam_overlay)
+
+	var bg = ColorRect.new()
+	bg.set_anchors_preset(Control.PRESET_FULL_RECT)
+	bg.color = Color(0.0, 0.0, 0.0, 0.88)
+	cam_overlay.add_child(bg)
+
+	cam_title_label = Label.new()
+	cam_title_label.text = "CAM 1 — Show Stage"
+	cam_title_label.set_position(Vector2(260, 70))
+	cam_title_label.add_theme_font_size_override("font_size", 36)
+	cam_overlay.add_child(cam_title_label)
+
+	cam_anim_label = Label.new()
+	cam_anim_label.text = "(empty)"
+	cam_anim_label.set_position(Vector2(280, 150))
+	cam_anim_label.add_theme_font_size_override("font_size", 28)
+	cam_anim_label.add_theme_color_override("font_color", Color.YELLOW)
+	cam_overlay.add_child(cam_anim_label)
+
+	cam_list_label = Label.new()
+	cam_list_label.set_position(Vector2(30, 70))
+	cam_list_label.add_theme_font_size_override("font_size", 15)
+	cam_overlay.add_child(cam_list_label)
+
+	var prev_btn = Button.new()
+	prev_btn.text = "< PREV"
+	prev_btn.set_position(Vector2(160, 520))
+	prev_btn.set_size(Vector2(130, 44))
+	prev_btn.pressed.connect(_on_cam_prev)
+	cam_overlay.add_child(prev_btn)
+
+	var next_btn = Button.new()
+	next_btn.text = "NEXT >"
+	next_btn.set_position(Vector2(820, 520))
+	next_btn.set_size(Vector2(130, 44))
+	next_btn.pressed.connect(_on_cam_next)
+	cam_overlay.add_child(next_btn)
+
+	var close_btn = Button.new()
+	close_btn.text = "[ LOWER CAMERA ]"
+	close_btn.set_position(Vector2(430, 555))
+	close_btn.set_size(Vector2(210, 44))
+	close_btn.pressed.connect(_on_camera_button_pressed)
+	cam_overlay.add_child(close_btn)
+
+	# Dragon Ball UI (inside camera overlay)
+	cam_db_label = Label.new()
+	cam_db_label.text = "★  DRAGON BALL IS HERE!"
+	cam_db_label.set_position(Vector2(370, 310))
+	cam_db_label.add_theme_font_size_override("font_size", 24)
+	cam_db_label.add_theme_color_override("font_color", Color.ORANGE)
+	cam_db_label.visible = false
+	cam_overlay.add_child(cam_db_label)
+
+	db_collect_btn = Button.new()
+	db_collect_btn.text = "COLLECT"
+	db_collect_btn.set_position(Vector2(470, 356))
+	db_collect_btn.set_size(Vector2(190, 44))
+	db_collect_btn.add_theme_font_size_override("font_size", 18)
+	db_collect_btn.visible = false
+	db_collect_btn.pressed.connect(_collect_dragon_ball)
+	cam_overlay.add_child(db_collect_btn)
+
+	cam_db_counter = Label.new()
+	cam_db_counter.set_position(Vector2(540, 8))
+	cam_db_counter.add_theme_font_size_override("font_size", 16)
+	cam_db_counter.add_theme_color_override("font_color", Color.ORANGE)
+	cam_overlay.add_child(cam_db_counter)
+
+	# Owen flash button
+	owen_flash_btn = Button.new()
+	owen_flash_btn.text = "FLASH LIGHT"
+	owen_flash_btn.set_position(Vector2(460, 420))
+	owen_flash_btn.set_size(Vector2(210, 44))
+	owen_flash_btn.add_theme_font_size_override("font_size", 18)
+	owen_flash_btn.add_theme_color_override("font_color", Color.WHITE)
+	owen_flash_btn.visible = false
+	owen_flash_btn.pressed.connect(_flash_owen)
+	cam_overlay.add_child(owen_flash_btn)
+
+func _build_gameover_overlay():
+	gameover_overlay = Control.new()
+	gameover_overlay.set_anchors_preset(Control.PRESET_FULL_RECT)
+	gameover_overlay.visible = false
+	hud_layer.add_child(gameover_overlay)
+
+	var bg = ColorRect.new()
+	bg.set_anchors_preset(Control.PRESET_FULL_RECT)
+	bg.color = Color(0.45, 0.0, 0.0, 0.93)
+	gameover_overlay.add_child(bg)
+
+	var title = Label.new()
+	title.text = "GAME OVER"
+	title.set_position(Vector2(290, 170))
+	title.add_theme_font_size_override("font_size", 72)
+	title.add_theme_color_override("font_color", Color.RED)
+	gameover_overlay.add_child(title)
+
+	caught_label = Label.new()
+	caught_label.set_position(Vector2(340, 290))
+	caught_label.add_theme_font_size_override("font_size", 30)
+	gameover_overlay.add_child(caught_label)
+
+	var btn = Button.new()
+	btn.text = "TRY AGAIN"
+	btn.set_position(Vector2(335, 400))
+	btn.set_size(Vector2(200, 52))
+	btn.pressed.connect(_restart)
+	gameover_overlay.add_child(btn)
+
+	var menu_btn = Button.new()
+	menu_btn.text = "MAIN MENU"
+	menu_btn.set_position(Vector2(555, 400))
+	menu_btn.set_size(Vector2(200, 52))
+	menu_btn.pressed.connect(_go_to_menu)
+	gameover_overlay.add_child(menu_btn)
+
+func _build_win_overlay():
+	win_overlay = Control.new()
+	win_overlay.set_anchors_preset(Control.PRESET_FULL_RECT)
+	win_overlay.visible = false
+	hud_layer.add_child(win_overlay)
+
+	var bg = ColorRect.new()
+	bg.set_anchors_preset(Control.PRESET_FULL_RECT)
+	bg.color = Color(0.0, 0.22, 0.0, 0.93)
+	win_overlay.add_child(bg)
+
+	var title = Label.new()
+	title.text = "6 AM"
+	title.set_position(Vector2(400, 130))
+	title.add_theme_font_size_override("font_size", 90)
+	title.add_theme_color_override("font_color", Color.YELLOW)
+	win_overlay.add_child(title)
+
+	var sub = Label.new()
+	sub.text = "You survived the night!"
+	sub.set_position(Vector2(265, 270))
+	sub.add_theme_font_size_override("font_size", 38)
+	win_overlay.add_child(sub)
+
+	var next_btn = Button.new()
+	next_btn.text = "NEXT NIGHT"
+	next_btn.set_position(Vector2(290, 395))
+	next_btn.set_size(Vector2(190, 52))
+	next_btn.pressed.connect(_next_night)
+	win_overlay.add_child(next_btn)
+
+	var again_btn = Button.new()
+	again_btn.text = "PLAY AGAIN"
+	again_btn.set_position(Vector2(500, 395))
+	again_btn.set_size(Vector2(190, 52))
+	again_btn.pressed.connect(_restart)
+	win_overlay.add_child(again_btn)
+
+	var menu_btn = Button.new()
+	menu_btn.text = "MAIN MENU"
+	menu_btn.set_position(Vector2(395, 460))
+	menu_btn.set_size(Vector2(190, 48))
+	menu_btn.pressed.connect(_go_to_menu)
+	win_overlay.add_child(menu_btn)
