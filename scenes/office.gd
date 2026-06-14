@@ -504,8 +504,8 @@ func _flash_owen():
 	var state = anim_state.get("Owen", {})
 	if not state.get("active", false):
 		return
-	# Send Owen back to a random early position in his path
-	state["index"] = randi() % 3
+	# Send Owen back to the Show Stage
+	state["index"] = 0
 	state["timer"] = 0.0
 	owen_at_door   = false
 	owen_trapped   = false
