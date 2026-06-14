@@ -22,7 +22,8 @@ const CAM_ROOMS: Array = [
 	"East Hall",
 	"East Hall Corner",
 	"Pirate Cove",
-	"Music Room"
+	"Music Room",
+	"Jaces and Services"
 ]
 
 # ── UI nodes built at runtime ─────────────────────────────────────────────────
@@ -97,7 +98,7 @@ const ANIMATRONICS: Dictionary = {
 		"active_linear_hour": 0
 	},
 	"Jace": {
-		"path": ["Show Stage", "Backstage", "West Hall", "Left Hall Corner", "DOOR"],
+		"path": ["Jaces and Services", "Backstage", "West Hall", "Left Hall Corner", "DOOR"],
 		"base_time": 11.0,
 		"watch_cam": "",
 		"active_linear_hour": 1
