@@ -9,10 +9,10 @@ var night_number: int = 1
 var nights_completed: Array = [false, false, false, false, false, false]
 var is_custom_night: bool = false
 var custom_ai: Dictionary = {
-	"BonnieJake": 5,
-	"ChicaJasker": 5,
-	"FreddyMarcus": 5,
-	"FoxyBlitz": 5,
+	"Jake": 5,
+	"Jasker": 5,
+	"Marcus": 5,
+	"Blitz": 5,
 	"Doggie": 5,
 	"Astro": 5,
 	"BFB": 5,

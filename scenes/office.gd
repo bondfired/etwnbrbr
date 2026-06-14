@@ -23,7 +23,8 @@ const CAM_ROOMS: Array = [
 	"East Hall Corner",
 	"Pirate Cove",
 	"Music Room",
-	"Jaces and Services"
+	"Jaces and Services",
+	"Tung's Room"
 ]
 
 # ── UI nodes built at runtime ─────────────────────────────────────────────────
@@ -43,25 +44,25 @@ var win_overlay: Control
 # BOTH_DOORS = requires BOTH doors closed to repel (Doggie)
 # DOOR       = door side assigned randomly at runtime (Astro)
 const ANIMATRONICS: Dictionary = {
-	"BonnieJake": {
+	"Jake": {
 		"path": ["Show Stage", "Backstage", "West Hall", "Left Hall Corner", "LEFT_DOOR"],
 		"base_time": 9.0,
 		"watch_cam": "West Hall",
 		"active_linear_hour": 0
 	},
-	"ChicaJasker": {
+	"Jasker": {
 		"path": ["Show Stage", "Dining Hall", "East Hall", "East Hall Corner", "RIGHT_DOOR"],
 		"base_time": 12.0,
 		"watch_cam": "East Hall",
 		"active_linear_hour": 0
 	},
-	"FreddyMarcus": {
+	"Marcus": {
 		"path": ["Show Stage", "Dining Hall", "East Hall", "East Hall Corner", "RIGHT_DOOR"],
 		"base_time": 18.0,
 		"watch_cam": "",
 		"active_linear_hour": 2
 	},
-	"FoxyBlitz": {
+	"Blitz": {
 		"path": ["Pirate Cove", "West Hall", "LEFT_DOOR"],
 		"base_time": 5.0,
 		"watch_cam": "Pirate Cove",
@@ -92,7 +93,7 @@ const ANIMATRONICS: Dictionary = {
 		"active_linear_hour": 0
 	},
 	"Tung": {
-		"path": ["Show Stage", "Dining Hall", "East Hall", "East Hall Corner", "RIGHT_DOOR"],
+		"path": ["Tung's Room", "East Hall", "East Hall Corner", "RIGHT_DOOR"],
 		"base_time": 7.0,
 		"watch_cam": "",
 		"active_linear_hour": 0
@@ -264,8 +265,8 @@ func _tick_animatronics(delta: float):
 		var watching_now = camera_open and watch_cam != "" and CAM_ROOMS[current_cam] == watch_cam
 
 		if watching_now:
-			if anim_name == "FoxyBlitz":
-				state["timer"] = 0.0  # keep Foxy at bay while watched
+			if anim_name == "Blitz":
+				state["timer"] = 0.0  # keep Blitz at bay while watched
 				continue
 			else:
 				move_time *= 2.0  # other animatronics slow down when watched
@@ -423,7 +424,7 @@ func _power_out():
 	right_door.visible = false
 	# Freddy guaranteed attack after lights go out
 	await get_tree().create_timer(3.0).timeout
-	_game_over("FreddyMarcus")
+	_game_over("Marcus")
 
 func _game_over(anim_name: String):
 	if gameover_overlay.visible:

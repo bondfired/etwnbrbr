@@ -3,8 +3,8 @@ extends Control
 const W = 1152.0
 const H = 648.0
 
-const ANIM_KEYS   = ["BonnieJake", "ChicaJasker", "FreddyMarcus", "FoxyBlitz", "Doggie", "Astro", "BFB", "Goku", "Owen", "Tung", "Kolzaru", "Jace"]
-const ANIM_LABELS = ["BONNIE JAKE", "CHICA JASKER", "FREDDY MARCUS", "FOXY BLITZ", "DOGGIE", "ASTRO", "BFB", "GOKU", "OWEN", "TUNG", "KOLZARU", "JACE"]
+const ANIM_KEYS   = ["Jake", "Jasker", "Marcus", "Blitz", "Doggie", "Astro", "BFB", "Goku", "Owen", "Tung", "Kolzaru", "Jace"]
+const ANIM_LABELS = ["JAKE", "JASKER", "MARCUS", "BLITZ", "DOGGIE", "ASTRO", "BFB", "GOKU", "OWEN", "TUNG", "KOLZARU", "JACE"]
 
 var ai_displays: Dictionary = {}
 var static_overlay: ColorRect
