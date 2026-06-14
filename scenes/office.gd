@@ -236,6 +236,14 @@ func _on_cam_next():
 	current_cam = (current_cam + 1) % CAM_ROOMS.size()
 	_update_cam_display()
 
+func _input(event: InputEvent):
+	if not camera_open or is_game_over:
+		return
+	if event.is_action_pressed("ui_left") or event is InputEventKey and event.pressed and event.keycode == KEY_A:
+		_on_cam_prev()
+	elif event.is_action_pressed("ui_right") or event is InputEventKey and event.pressed and event.keycode == KEY_D:
+		_on_cam_next()
+
 # ── Hour / win / loss ─────────────────────────────────────────────────────────
 func _on_hour_passed():
 	GameManager.current_hour += 1
