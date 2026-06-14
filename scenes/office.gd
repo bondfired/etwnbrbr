@@ -86,7 +86,7 @@ const ANIMATRONICS: Dictionary = {
 	},
 	"Owen": {
 		"path": ["Show Stage", "Backstage", "West Hall", "Left Hall Corner", "LEFT_DOOR"],
-		"base_time": 8.0,
+		"base_time": 14.0,
 		"watch_cam": "",
 		"active_linear_hour": 0
 	}
@@ -111,6 +111,7 @@ var db_give_btn: Button
 var owen_at_door: bool  = false
 var owen_trapped: bool  = false
 var owen_flash_btn: Button
+var owen_door_label: Label
 
 func _is_goku_active() -> bool:
 	if GameManager.is_custom_night:
@@ -142,6 +143,7 @@ func _ready():
 	_build_power_warning()
 	_build_audio_warning()
 	_build_goku_ui()
+	_build_owen_ui()
 	_build_camera_overlay()
 	_build_gameover_overlay()
 	_build_win_overlay()
@@ -171,6 +173,8 @@ func _process(delta: float):
 	else:
 		db_hud_label.visible = false
 		db_give_btn.visible  = false
+
+	owen_door_label.visible = owen_at_door
 
 	if camera_open:
 		_update_cam_display()
@@ -456,6 +460,15 @@ func _build_goku_ui():
 	db_give_btn.visible = false
 	db_give_btn.pressed.connect(_give_dragon_balls)
 	hud_layer.add_child(db_give_btn)
+
+func _build_owen_ui():
+	owen_door_label = Label.new()
+	owen_door_label.text = "!! OWEN IS AT THE LEFT DOOR — DO NOT OPEN IT !!"
+	owen_door_label.set_position(Vector2(200, 58))
+	owen_door_label.add_theme_font_size_override("font_size", 18)
+	owen_door_label.add_theme_color_override("font_color", Color(1.0, 0.3, 0.0))
+	owen_door_label.visible = false
+	hud_layer.add_child(owen_door_label)
 
 func _collect_dragon_ball():
 	var room = CAM_ROOMS[current_cam]
