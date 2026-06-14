@@ -151,6 +151,21 @@ var jace_at_door: bool       = false
 var jace_door_timer: float   = 0.0
 var jace_door_label: Label
 
+# ── Sleep mechanic ─────────────────────────────────────────────────────────────
+const SLEEP_IDLE_THRESHOLD: float   = 15.0
+const SLEEP_DROWSY_WINDOW: float    = 5.0
+const SLEEP_CLICKS_NEEDED: int      = 8
+const SLEEP_BLACKOUT_DURATION: float = 15.0
+enum SleepState { AWAKE, DROWSY, ASLEEP }
+var sleep_state: SleepState         = SleepState.AWAKE
+var sleep_idle_timer: float         = 0.0
+var sleep_drowsy_timer: float       = 0.0
+var sleep_blackout_timer: float     = 0.0
+var sleep_clicks: int               = 0
+var sleep_top: ColorRect
+var sleep_bot: ColorRect
+var sleep_label: Label
+
 func _is_goku_active() -> bool:
 	if GameManager.is_custom_night:
 		return GameManager.custom_ai.get("Goku", 0) > 0
@@ -194,6 +209,7 @@ func _ready():
 	_build_camera_overlay()
 	_build_gameover_overlay()
 	_build_win_overlay()
+	_build_sleep_ui()  # must be last — renders on top of everything
 
 func _process(delta: float):
 	if is_game_over:
@@ -215,6 +231,7 @@ func _process(delta: float):
 	_process_tung_attack(delta)
 	_process_kolzaru(delta)
 	_process_jace(delta)
+	_process_sleep(delta)
 
 	if _is_goku_active():
 		db_hud_label.text   = "Dragon Balls: %d / 7" % db_found
@@ -395,6 +412,15 @@ func _on_cam_next():
 func _input(event: InputEvent):
 	if is_game_over:
 		return
+	# During full blackout, block all input until player wakes naturally
+	if sleep_state == SleepState.ASLEEP:
+		get_viewport().set_input_as_handled()
+		return
+	# Mouse clicks reset idle timer and count toward waking up
+	if event is InputEventMouseButton and event.pressed:
+		sleep_idle_timer = 0.0
+		if sleep_state == SleepState.DROWSY:
+			sleep_clicks += 1
 	if event is InputEventKey and event.pressed and event.keycode == KEY_SPACE:
 		_toggle_head_lower()
 	if not camera_open:
@@ -430,6 +456,7 @@ func _game_over(anim_name: String):
 	if gameover_overlay.visible:
 		return
 	is_game_over = true
+	_wake_up()
 	night_timer.stop()
 	cam_overlay.visible = false
 	camera_open = false
@@ -439,6 +466,7 @@ func _game_over(anim_name: String):
 
 func _win():
 	is_game_over = true
+	_wake_up()
 	night_timer.stop()
 	cam_overlay.visible = false
 	if not GameManager.is_custom_night:
@@ -699,6 +727,87 @@ func _process_jace(delta: float):
 		jace_at_door = false
 		jace_door_label.visible = false
 		_game_over("Jace")
+
+func _build_sleep_ui():
+	sleep_top = ColorRect.new()
+	sleep_top.set_position(Vector2(0, 0))
+	sleep_top.set_size(Vector2(1152, 0))
+	sleep_top.color = Color(0.04, 0.01, 0.01)
+	sleep_top.mouse_filter = Control.MOUSE_FILTER_IGNORE
+	hud_layer.add_child(sleep_top)
+
+	sleep_bot = ColorRect.new()
+	sleep_bot.set_position(Vector2(0, 648))
+	sleep_bot.set_size(Vector2(1152, 0))
+	sleep_bot.color = Color(0.04, 0.01, 0.01)
+	sleep_bot.mouse_filter = Control.MOUSE_FILTER_IGNORE
+	hud_layer.add_child(sleep_bot)
+
+	sleep_label = Label.new()
+	sleep_label.set_position(Vector2(176, 304))
+	sleep_label.set_size(Vector2(800, 40))
+	sleep_label.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
+	sleep_label.add_theme_font_size_override("font_size", 26)
+	sleep_label.add_theme_color_override("font_color", Color.WHITE)
+	sleep_label.visible = false
+	sleep_label.mouse_filter = Control.MOUSE_FILTER_IGNORE
+	hud_layer.add_child(sleep_label)
+
+func _process_sleep(delta: float):
+	match sleep_state:
+		SleepState.AWAKE:
+			sleep_idle_timer += delta
+			if sleep_idle_timer >= SLEEP_IDLE_THRESHOLD:
+				_enter_drowsy()
+		SleepState.DROWSY:
+			sleep_drowsy_timer += delta
+			var progress = min(sleep_drowsy_timer / SLEEP_DROWSY_WINDOW, 1.0)
+			var lid_h = (324 + 10) * progress  # H/2 + overlap
+			sleep_top.size.y = lid_h
+			sleep_bot.size.y = lid_h
+			sleep_bot.position.y = 648 - lid_h
+			var left = SLEEP_CLICKS_NEEDED - sleep_clicks
+			sleep_label.text = "YOU'RE FALLING ASLEEP — CLICK RAPIDLY!! (%d more)" % left
+			if sleep_clicks >= SLEEP_CLICKS_NEEDED:
+				_wake_up()
+			elif sleep_drowsy_timer >= SLEEP_DROWSY_WINDOW:
+				_fall_asleep()
+		SleepState.ASLEEP:
+			sleep_blackout_timer += delta
+			var t = SLEEP_BLACKOUT_DURATION - sleep_blackout_timer
+			sleep_label.text = "Zzz...  (%.0f)" % max(0.0, t)
+			if sleep_blackout_timer >= SLEEP_BLACKOUT_DURATION:
+				_wake_up()
+
+func _enter_drowsy():
+	sleep_state = SleepState.DROWSY
+	sleep_drowsy_timer = 0.0
+	sleep_clicks = 0
+	sleep_label.text = "YOU'RE FALLING ASLEEP — CLICK RAPIDLY!!"
+	sleep_label.visible = true
+
+func _fall_asleep():
+	sleep_state = SleepState.ASLEEP
+	sleep_blackout_timer = 0.0
+	var lid_h = 334.0
+	sleep_top.size.y = lid_h
+	sleep_bot.size.y = lid_h
+	sleep_bot.position.y = 648 - lid_h
+	sleep_label.text = "Zzz..."
+	sleep_label.visible = true
+
+func _wake_up():
+	sleep_state = SleepState.AWAKE
+	sleep_idle_timer = 0.0
+	sleep_drowsy_timer = 0.0
+	sleep_clicks = 0
+	if sleep_top != null:
+		sleep_top.size.y = 0
+	if sleep_bot != null:
+		sleep_bot.size.y = 0
+		sleep_bot.position.y = 648
+	if sleep_label != null:
+		sleep_label.visible = false
 
 func _build_power_warning():
 	power_warn_label = Label.new()
