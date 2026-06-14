@@ -12,7 +12,9 @@ var custom_ai: Dictionary = {
 	"BonnieJake": 5,
 	"ChicaJasker": 5,
 	"FreddyMarcus": 5,
-	"FoxyBlitz": 5
+	"FoxyBlitz": 5,
+	"Doggie": 5,
+	"Astro": 5
 }
 
 func get_power_drain() -> float:

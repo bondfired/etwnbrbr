@@ -21,12 +21,14 @@ const CAM_ROOMS: Array = [
 	"Left Hall Corner",
 	"East Hall",
 	"East Hall Corner",
-	"Pirate Cove"
+	"Pirate Cove",
+	"Music Room"
 ]
 
 # ── UI nodes built at runtime ─────────────────────────────────────────────────
 var hud_layer: CanvasLayer
 var power_warn_label: Label
+var audio_warn_label: Label
 var cam_overlay: Control
 var cam_title_label: Label
 var cam_anim_label: Label
@@ -36,10 +38,9 @@ var caught_label: Label
 var win_overlay: Control
 
 # ── Animatronic definitions ───────────────────────────────────────────────────
-# path: rooms to traverse; last entry is LEFT_DOOR or RIGHT_DOOR
-# base_time: seconds between moves (scales down as night progresses)
-# watch_cam: watching this room slows the animatronic (FoxyBlitz: resets timer)
-# active_linear_hour: 0=12AM, 1=1AM, 2=2AM …
+# path: rooms to traverse; last entry is LEFT_DOOR / RIGHT_DOOR / BOTH_DOORS / DOOR
+# BOTH_DOORS = requires BOTH doors closed to repel (Doggie)
+# DOOR       = door side assigned randomly at runtime (Astro)
 const ANIMATRONICS: Dictionary = {
 	"BonnieJake": {
 		"path": ["Show Stage", "Backstage", "West Hall", "Left Hall Corner", "LEFT_DOOR"],
@@ -63,6 +64,18 @@ const ANIMATRONICS: Dictionary = {
 		"path": ["Pirate Cove", "West Hall", "LEFT_DOOR"],
 		"base_time": 5.0,
 		"watch_cam": "Pirate Cove",
+		"active_linear_hour": 1
+	},
+	"Doggie": {
+		"path": ["Music Room", "BOTH_DOORS"],
+		"base_time": 6.0,
+		"watch_cam": "",
+		"active_linear_hour": 0
+	},
+	"Astro": {
+		"path": ["SHADOW", "SHADOW_NEAR", "DOOR"],
+		"base_time": 22.0,
+		"watch_cam": "",
 		"active_linear_hour": 1
 	}
 }
@@ -88,6 +101,7 @@ func _ready():
 	add_child(hud_layer)
 
 	_build_power_warning()
+	_build_audio_warning()
 	_build_camera_overlay()
 	_build_gameover_overlay()
 	_build_win_overlay()
@@ -108,6 +122,7 @@ func _process(delta: float):
 		return
 
 	_tick_animatronics(delta)
+	_update_astro_warning()
 
 	if camera_open:
 		_update_cam_display()
@@ -120,13 +135,16 @@ func _tick_animatronics(delta: float):
 		var state = anim_state[anim_name]
 
 		if not state["active"]:
+			var should_activate = false
 			if GameManager.is_custom_night:
-				if GameManager.custom_ai.get(anim_name, 0) > 0:
-					state["active"] = true
-				else:
-					continue
-			elif linear_hour >= data["active_linear_hour"]:
+				should_activate = GameManager.custom_ai.get(anim_name, 0) > 0
+			else:
+				should_activate = linear_hour >= data["active_linear_hour"]
+
+			if should_activate:
 				state["active"] = true
+				if anim_name == "Astro":
+					state["target_door"] = "LEFT_DOOR" if randi() % 2 == 0 else "RIGHT_DOOR"
 			else:
 				continue
 
@@ -170,13 +188,24 @@ func _advance_animatronic(anim_name: String):
 
 func _try_enter(anim_name: String):
 	var path = ANIMATRONICS[anim_name]["path"]
-	var door = path[-1]  # "LEFT_DOOR" or "RIGHT_DOOR"
+	var door = path[-1]
+
+	# Doggie: only retreats when BOTH doors are closed; slips through any open one
+	if door == "BOTH_DOORS":
+		if left_door_closed and right_door_closed:
+			anim_state[anim_name]["index"] = 0  # back to his desk
+		else:
+			_game_over(anim_name)
+		return
+
+	# Astro: door side was randomly assigned at activation
+	if door == "DOOR":
+		door = anim_state[anim_name].get("target_door", "LEFT_DOOR")
 
 	var blocked = (door == "LEFT_DOOR" and left_door_closed) or \
 				  (door == "RIGHT_DOOR" and right_door_closed)
 
 	if blocked:
-		# Bounce back one room — the door held
 		anim_state[anim_name]["index"] = max(0, anim_state[anim_name]["index"] - 1)
 	else:
 		_game_over(anim_name)
@@ -273,25 +302,42 @@ func _update_cam_display():
 	var room = CAM_ROOMS[current_cam]
 	cam_title_label.text = "CAM %d  —  %s" % [current_cam + 1, room]
 
+	# Collect visible animatronics (Astro is never shown on any camera)
 	var found: Array = []
 	for anim_name in ANIMATRONICS:
+		if anim_name == "Astro":
+			continue
 		var state = anim_state[anim_name]
 		if not state["active"]:
 			continue
 		var path = ANIMATRONICS[anim_name]["path"]
 		var idx  = state["index"]
 		if idx < path.size() and path[idx] == room:
-			found.append(anim_name)
+			var label = "Doggie (at desk)" if anim_name == "Doggie" else anim_name
+			found.append(label)
 
-	cam_anim_label.text = ">> " + ", ".join(found) + " <<" if found.size() > 0 else "(empty)"
+	# Special Music Room display: warn loudly when Doggie has left
+	var doggie_st    = anim_state.get("Doggie", {})
+	var doggie_gone  = doggie_st.get("active", false) and doggie_st.get("index", 0) > 0
+	if room == "Music Room" and doggie_gone:
+		cam_anim_label.text = "!! DOGGIE IS NOT AT HIS DESK !!"
+		cam_anim_label.add_theme_color_override("font_color", Color.RED)
+	elif found.size() > 0:
+		cam_anim_label.text = ">> " + ", ".join(found) + " <<"
+		cam_anim_label.add_theme_color_override("font_color", Color.YELLOW)
+	else:
+		cam_anim_label.text = "(empty)"
+		cam_anim_label.add_theme_color_override("font_color", Color.YELLOW)
 
-	# Room list with animatronic markers
+	# Room list
 	var list_text = ""
 	for i in range(CAM_ROOMS.size()):
 		var r        = CAM_ROOMS[i]
 		var selected = ">" if i == current_cam else " "
 		var occupied = false
 		for anim_name in ANIMATRONICS:
+			if anim_name == "Astro":
+				continue
 			var state = anim_state[anim_name]
 			if not state["active"]:
 				continue
@@ -300,7 +346,12 @@ func _update_cam_display():
 			if idx < path.size() and path[idx] == r:
 				occupied = true
 				break
-		list_text += "%s CAM %d - %s%s\n" % [selected, i + 1, r, "  (!)" if occupied else ""]
+		var marker = ""
+		if r == "Music Room" and doggie_gone:
+			marker = "  (!! GONE)"
+		elif occupied:
+			marker = "  (!)"
+		list_text += "%s CAM %d - %s%s\n" % [selected, i + 1, r, marker]
 	cam_list_label.text = list_text
 
 # ── UI builders ───────────────────────────────────────────────────────────────
@@ -312,6 +363,29 @@ func _build_power_warning():
 	power_warn_label.add_theme_color_override("font_color", Color.RED)
 	power_warn_label.visible = false
 	hud_layer.add_child(power_warn_label)
+
+func _build_audio_warning():
+	audio_warn_label = Label.new()
+	audio_warn_label.set_position(Vector2(300, 28))
+	audio_warn_label.add_theme_font_size_override("font_size", 20)
+	audio_warn_label.add_theme_color_override("font_color", Color(0.9, 0.75, 0.1))
+	audio_warn_label.visible = false
+	hud_layer.add_child(audio_warn_label)
+
+func _update_astro_warning():
+	var st = anim_state.get("Astro", {})
+	if not st.get("active", false):
+		audio_warn_label.visible = false
+		return
+	var idx  = st.get("index", 0)
+	var path = ANIMATRONICS["Astro"]["path"]
+	if idx >= path.size() - 2:  # SHADOW_NEAR or DOOR — he's close
+		var door = st.get("target_door", "LEFT_DOOR")
+		var side = "LEFT" if door == "LEFT_DOOR" else "RIGHT"
+		audio_warn_label.text = "[ You hear something near the %s door... ]" % side
+		audio_warn_label.visible = true
+	else:
+		audio_warn_label.visible = false
 
 func _build_camera_overlay():
 	cam_overlay = Control.new()
