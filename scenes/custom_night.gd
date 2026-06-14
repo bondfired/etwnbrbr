@@ -3,8 +3,8 @@ extends Control
 const W = 1152.0
 const H = 648.0
 
-const ANIM_KEYS   = ["BonnieJake", "ChicaJasker", "FreddyMarcus", "FoxyBlitz", "Doggie", "Astro", "BFB", "Goku", "Owen", "Tung"]
-const ANIM_LABELS = ["BONNIE JAKE", "CHICA JASKER", "FREDDY MARCUS", "FOXY BLITZ", "DOGGIE", "ASTRO", "BFB", "GOKU", "OWEN", "TUNG"]
+const ANIM_KEYS   = ["BonnieJake", "ChicaJasker", "FreddyMarcus", "FoxyBlitz", "Doggie", "Astro", "BFB", "Goku", "Owen", "Tung", "Kolzaru", "Jace"]
+const ANIM_LABELS = ["BONNIE JAKE", "CHICA JASKER", "FREDDY MARCUS", "FOXY BLITZ", "DOGGIE", "ASTRO", "BFB", "GOKU", "OWEN", "TUNG", "KOLZARU", "JACE"]
 
 var ai_displays: Dictionary = {}
 var static_overlay: ColorRect
@@ -144,10 +144,10 @@ func _build_presets():
 	add_child(hdr)
 
 	var presets = [
-		["ALL 0",  [0,  0,  0,  0,  0,  0,  0,  0,  0,  0]],
-		["ALL 5",  [5,  5,  5,  5,  5,  5,  5,  5,  5,  5]],
-		["ALL 10", [10, 10, 10, 10, 10, 10, 10, 10, 10, 10]],
-		["ALL 20", [20, 20, 20, 20, 20, 20, 20, 20, 20, 20]],
+		["ALL 0",  [0,  0,  0,  0,  0,  0,  0,  0,  0,  0,  0,  0]],
+		["ALL 5",  [5,  5,  5,  5,  5,  5,  5,  5,  5,  5,  5,  5]],
+		["ALL 10", [10, 10, 10, 10, 10, 10, 10, 10, 10, 10, 10, 10]],
+		["ALL 20", [20, 20, 20, 20, 20, 20, 20, 20, 20, 20, 20, 20]],
 	]
 
 	var btn_w   = 160.0

@@ -95,6 +95,12 @@ const ANIMATRONICS: Dictionary = {
 		"base_time": 7.0,
 		"watch_cam": "",
 		"active_linear_hour": 0
+	},
+	"Jace": {
+		"path": ["Show Stage", "Backstage", "West Hall", "Left Hall Corner", "DOOR"],
+		"base_time": 11.0,
+		"watch_cam": "",
+		"active_linear_hour": 1
 	}
 }
 
@@ -129,10 +135,29 @@ var head_lowered: bool     = false
 var head_lower_btn: Button
 var head_status_label: Label
 
+# ── Kolzaru (Golden Freddy style) ─────────────────────────────────────────────
+const KOLZARU_APPEAR_WINDOW: float = 3.0
+var kolzaru_triggered: bool      = false
+var kolzaru_appear_elapsed: float = 0.0
+var kolzaru_timer: float          = 0.0
+var kolzaru_next_appear: float    = 0.0
+var kolzaru_label: Label
+
+# ── Jace state ────────────────────────────────────────────────────────────────
+const JACE_DOOR_WINDOW: float = 5.0
+var jace_at_door: bool       = false
+var jace_door_timer: float   = 0.0
+var jace_door_label: Label
+
 func _is_goku_active() -> bool:
 	if GameManager.is_custom_night:
 		return GameManager.custom_ai.get("Goku", 0) > 0
 	return true
+
+func _is_kolzaru_active() -> bool:
+	if GameManager.is_custom_night:
+		return GameManager.custom_ai.get("Kolzaru", 0) > 0
+	return _get_linear_hour() >= 3
 
 # Runtime state per animatronic
 var anim_state: Dictionary = {}
@@ -148,6 +173,8 @@ func _ready():
 	for room in DB_ROOMS:
 		db_collected[room] = false
 
+	kolzaru_next_appear = randf_range(40.0, 90.0)
+
 	night_timer.wait_time = 45.0
 	night_timer.start()
 	night_timer.timeout.connect(_on_hour_passed)
@@ -161,6 +188,7 @@ func _ready():
 	_build_goku_ui()
 	_build_owen_ui()
 	_build_tung_ui()
+	_build_kolzaru_jace_ui()
 	_build_camera_overlay()
 	_build_gameover_overlay()
 	_build_win_overlay()
@@ -183,6 +211,8 @@ func _process(delta: float):
 	_tick_animatronics(delta)
 	_update_astro_warning()
 	_process_tung_attack(delta)
+	_process_kolzaru(delta)
+	_process_jace(delta)
 
 	if _is_goku_active():
 		db_hud_label.text   = "Dragon Balls: %d / 7" % db_found
@@ -213,7 +243,7 @@ func _tick_animatronics(delta: float):
 
 			if should_activate:
 				state["active"] = true
-				if anim_name == "Astro":
+				if anim_name == "Astro" or anim_name == "Jace":
 					state["target_door"] = "LEFT_DOOR" if randi() % 2 == 0 else "RIGHT_DOOR"
 			else:
 				continue
@@ -302,6 +332,16 @@ func _try_enter(anim_name: String):
 		tung_attack_label.visible = true
 		return
 
+	# Jace: needs BOTH doors open to walk through; gives a timed window to react
+	if anim_name == "Jace":
+		if jace_at_door:
+			return  # already waiting
+		jace_at_door = true
+		jace_door_timer = 0.0
+		jace_door_label.text = "!! JACE IS AT THE DOOR — OPEN BOTH DOORS !!"
+		jace_door_label.visible = true
+		return
+
 	var blocked = (door == "LEFT_DOOR" and left_door_closed) or \
 				  (door == "RIGHT_DOOR" and right_door_closed)
 
@@ -335,6 +375,12 @@ func _on_camera_button_pressed():
 	cam_overlay.visible = camera_open
 	if camera_open:
 		_update_cam_display()
+		if kolzaru_triggered:
+			# Raising the monitor dismisses Kolzaru
+			kolzaru_triggered = false
+			kolzaru_label.visible = false
+			kolzaru_timer = 0.0
+			kolzaru_next_appear = randf_range(40.0, 90.0)
 
 func _on_cam_prev():
 	current_cam = (current_cam - 1 + CAM_ROOMS.size()) % CAM_ROOMS.size()
@@ -588,6 +634,69 @@ func _flash_owen():
 	owen_trapped   = false
 	owen_door_preemptively_closed = false
 	_update_cam_display()
+
+func _build_kolzaru_jace_ui():
+	kolzaru_label = Label.new()
+	kolzaru_label.set_position(Vector2(176, 240))
+	kolzaru_label.set_size(Vector2(800, 64))
+	kolzaru_label.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
+	kolzaru_label.add_theme_font_size_override("font_size", 26)
+	kolzaru_label.add_theme_color_override("font_color", Color(1.0, 0.85, 0.0))
+	kolzaru_label.visible = false
+	hud_layer.add_child(kolzaru_label)
+
+	jace_door_label = Label.new()
+	jace_door_label.set_position(Vector2(176, 280))
+	jace_door_label.set_size(Vector2(800, 32))
+	jace_door_label.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
+	jace_door_label.add_theme_font_size_override("font_size", 20)
+	jace_door_label.add_theme_color_override("font_color", Color(0.4, 0.8, 1.0))
+	jace_door_label.visible = false
+	hud_layer.add_child(jace_door_label)
+
+func _process_kolzaru(delta: float):
+	if not _is_kolzaru_active():
+		kolzaru_label.visible = false
+		return
+	if kolzaru_triggered:
+		kolzaru_appear_elapsed += delta
+		var t = KOLZARU_APPEAR_WINDOW - kolzaru_appear_elapsed
+		kolzaru_label.text = "!! KOLZARU IS IN YOUR OFFICE — RAISE YOUR MONITOR!! (%.1f)" % max(0.0, t)
+		if kolzaru_appear_elapsed >= KOLZARU_APPEAR_WINDOW:
+			kolzaru_triggered = false
+			kolzaru_label.visible = false
+			_game_over("Kolzaru")
+	else:
+		kolzaru_timer += delta
+		if kolzaru_timer >= kolzaru_next_appear:
+			kolzaru_timer = 0.0
+			if GameManager.is_custom_night:
+				var ai = GameManager.custom_ai.get("Kolzaru", 0)
+				kolzaru_next_appear = lerpf(120.0, 15.0, float(ai - 1) / 19.0)
+			else:
+				kolzaru_next_appear = randf_range(40.0, 90.0)
+			kolzaru_triggered = true
+			kolzaru_appear_elapsed = 0.0
+			kolzaru_label.text = "!! KOLZARU IS IN YOUR OFFICE !!"
+			kolzaru_label.visible = true
+
+func _process_jace(delta: float):
+	if not jace_at_door:
+		return
+	if not left_door_closed and not right_door_closed:
+		# Both doors open — Jace walks through safely
+		jace_at_door = false
+		jace_door_label.visible = false
+		anim_state["Jace"]["index"] = 0
+		anim_state["Jace"]["timer"] = 0.0
+		return
+	jace_door_timer += delta
+	var t = JACE_DOOR_WINDOW - jace_door_timer
+	jace_door_label.text = "!! JACE IS AT THE DOOR — OPEN BOTH DOORS!! (%.1f)" % max(0.0, t)
+	if jace_door_timer >= JACE_DOOR_WINDOW:
+		jace_at_door = false
+		jace_door_label.visible = false
+		_game_over("Jace")
 
 func _build_power_warning():
 	power_warn_label = Label.new()
