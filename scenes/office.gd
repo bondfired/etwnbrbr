@@ -46,63 +46,53 @@ var win_overlay: Control
 const ANIMATRONICS: Dictionary = {
 	"Jake": {
 		"path": ["Show Stage", "Backstage", "West Hall", "Left Hall Corner", "LEFT_DOOR"],
-		"base_time": 9.0,
-		"watch_cam": "West Hall",
-		"active_linear_hour": 0
+		"base_time": 9.0, "watch_cam": "West Hall",
+		"active_linear_hour": 0, "min_night": 1
 	},
 	"Jasker": {
 		"path": ["Show Stage", "Dining Hall", "East Hall", "East Hall Corner", "RIGHT_DOOR"],
-		"base_time": 12.0,
-		"watch_cam": "East Hall",
-		"active_linear_hour": 0
+		"base_time": 12.0, "watch_cam": "East Hall",
+		"active_linear_hour": 0, "min_night": 1
 	},
 	"Marcus": {
 		"path": ["Show Stage", "Dining Hall", "East Hall", "East Hall Corner", "RIGHT_DOOR"],
-		"base_time": 18.0,
-		"watch_cam": "",
-		"active_linear_hour": 2
+		"base_time": 18.0, "watch_cam": "",
+		"active_linear_hour": 2, "min_night": 3
 	},
 	"Blitz": {
 		"path": ["Pirate Cove", "West Hall", "LEFT_DOOR"],
-		"base_time": 5.0,
-		"watch_cam": "Pirate Cove",
-		"active_linear_hour": 1
+		"base_time": 5.0, "watch_cam": "Pirate Cove",
+		"active_linear_hour": 1, "min_night": 2
 	},
 	"Doggie": {
 		"path": ["Music Room", "APPROACHING", "BOTH_DOORS"],
-		"base_time": 15.0,
-		"watch_cam": "",
-		"active_linear_hour": 0
+		"base_time": 15.0, "watch_cam": "",
+		"active_linear_hour": 0, "min_night": 2
 	},
 	"Astro": {
 		"path": ["SHADOW", "SHADOW_NEAR", "DOOR"],
-		"base_time": 22.0,
-		"watch_cam": "",
-		"active_linear_hour": 1
+		"base_time": 22.0, "watch_cam": "",
+		"active_linear_hour": 1, "min_night": 3
 	},
 	"BFB": {
 		"path": ["Dining Hall", "East Hall", "East Hall Corner", "RIGHT_DOOR"],
-		"base_time": 13.0,
-		"watch_cam": "",
-		"active_linear_hour": 0
+		"base_time": 13.0, "watch_cam": "",
+		"active_linear_hour": 0, "min_night": 2
 	},
 	"Owen": {
 		"path": ["Show Stage", "Backstage", "West Hall", "Left Hall Corner", "LEFT_DOOR"],
-		"base_time": 14.0,
-		"watch_cam": "",
-		"active_linear_hour": 0
+		"base_time": 14.0, "watch_cam": "",
+		"active_linear_hour": 0, "min_night": 4
 	},
 	"Tung": {
 		"path": ["Tung's Room", "East Hall", "East Hall Corner", "RIGHT_DOOR"],
-		"base_time": 7.0,
-		"watch_cam": "",
-		"active_linear_hour": 0
+		"base_time": 7.0, "watch_cam": "",
+		"active_linear_hour": 0, "min_night": 4
 	},
 	"Jace": {
 		"path": ["Jaces and Services", "Backstage", "West Hall", "Left Hall Corner", "DOOR"],
-		"base_time": 11.0,
-		"watch_cam": "",
-		"active_linear_hour": 1
+		"base_time": 11.0, "watch_cam": "",
+		"active_linear_hour": 1, "min_night": 5
 	}
 }
 
@@ -151,6 +141,20 @@ var jace_at_door: bool       = false
 var jace_door_timer: float   = 0.0
 var jace_door_label: Label
 
+# ── Night intro ───────────────────────────────────────────────────────────────
+const NIGHT_INTRO_DURATION: float = 3.5
+var night_intro_active: bool = true
+var night_intro_timer: float = 0.0
+var night_intro_overlay: ColorRect
+var night_intro_label: Label
+
+# ── Power bar ─────────────────────────────────────────────────────────────────
+var power_bar_bg: ColorRect
+var power_bar_fill: ColorRect
+
+# ── Per-night drain rates ──────────────────────────────────────────────────────
+const NIGHT_DRAIN: Array = [0.12, 0.18, 0.24, 0.30, 0.36, 0.44]
+
 # ── Sleep mechanic ─────────────────────────────────────────────────────────────
 const SLEEP_IDLE_THRESHOLD: float   = 15.0
 const SLEEP_DROWSY_WINDOW: float    = 5.0
@@ -169,12 +173,12 @@ var sleep_label: Label
 func _is_goku_active() -> bool:
 	if GameManager.is_custom_night:
 		return GameManager.custom_ai.get("Goku", 0) > 0
-	return true
+	return GameManager.night_number >= 3
 
 func _is_kolzaru_active() -> bool:
 	if GameManager.is_custom_night:
 		return GameManager.custom_ai.get("Kolzaru", 0) > 0
-	return _get_linear_hour() >= 3
+	return GameManager.night_number >= 4 and _get_linear_hour() >= 2
 
 # Runtime state per animatronic
 var anim_state: Dictionary = {}
@@ -190,10 +194,14 @@ func _ready():
 	for room in DB_ROOMS:
 		db_collected[room] = false
 
-	kolzaru_next_appear = randf_range(40.0, 90.0)
+	kolzaru_next_appear = randf_range(90.0, 180.0)
 
+	# Scale power drain and Kolzaru rarity to night number
+	var night_idx = clamp(GameManager.night_number - 1, 0, 5)
+	GameManager.power_drain_base = NIGHT_DRAIN[night_idx]
+
+	# Night timer starts after the intro finishes
 	night_timer.wait_time = 45.0
-	night_timer.start()
 	night_timer.timeout.connect(_on_hour_passed)
 
 	hud_layer = CanvasLayer.new()
@@ -202,6 +210,7 @@ func _ready():
 
 	_build_power_warning()
 	_build_audio_warning()
+	_build_power_bar()
 	_build_goku_ui()
 	_build_owen_ui()
 	_build_tung_ui()
@@ -209,18 +218,40 @@ func _ready():
 	_build_camera_overlay()
 	_build_gameover_overlay()
 	_build_win_overlay()
-	_build_sleep_ui()  # must be last — renders on top of everything
+	_build_sleep_ui()
+	_build_night_intro()  # must be absolute last — covers everything
 
 func _process(delta: float):
 	if is_game_over:
 		return
 
+	# Show night intro, then start the game
+	if night_intro_active:
+		night_intro_timer += delta
+		var fade = clamp((NIGHT_INTRO_DURATION - night_intro_timer) / 0.6, 0.0, 1.0)
+		night_intro_overlay.color.a = fade
+		if night_intro_timer >= NIGHT_INTRO_DURATION:
+			night_intro_active = false
+			night_intro_overlay.visible = false
+			night_timer.start()
+		return
+
 	GameManager.power -= GameManager.get_power_drain() * delta
 	GameManager.power = clamp(GameManager.power, 0.0, 100.0)
 
+	var pct = GameManager.power / 100.0
 	power_label.text = "Power: %d%%" % int(GameManager.power)
-	hour_label.text  = "%d AM" % GameManager.current_hour
+	hour_label.text  = "Night %d  —  %d AM" % [GameManager.night_number, GameManager.current_hour]
 	power_warn_label.visible = GameManager.power < 20.0
+
+	# Update power bar colour: green → yellow → red
+	power_bar_fill.size.x = 180.0 * pct
+	if pct > 0.5:
+		power_bar_fill.color = Color(0.1, 0.75, 0.1)
+	elif pct > 0.25:
+		power_bar_fill.color = Color(0.9, 0.65, 0.0)
+	else:
+		power_bar_fill.color = Color(0.85, 0.1, 0.1)
 
 	if GameManager.power <= 0.0:
 		_power_out()
@@ -258,6 +289,10 @@ func _tick_animatronics(delta: float):
 			if GameManager.is_custom_night:
 				should_activate = GameManager.custom_ai.get(anim_name, 0) > 0
 			else:
+				# Gate by both hour AND minimum night
+				var min_n = data.get("min_night", 1)
+				if GameManager.night_number < min_n:
+					continue
 				should_activate = linear_hour >= data["active_linear_hour"]
 
 			if should_activate:
@@ -267,7 +302,7 @@ func _tick_animatronics(delta: float):
 			else:
 				continue
 
-		# Move time: custom night uses AI level (0=never, 20=fastest)
+		# Move time: custom night uses AI level; standard scales with hour AND night
 		var move_time: float
 		if GameManager.is_custom_night:
 			var ai_lvl = GameManager.custom_ai.get(anim_name, 0)
@@ -275,7 +310,8 @@ func _tick_animatronics(delta: float):
 				continue
 			move_time = lerpf(45.0, 1.5, float(ai_lvl - 1) / 19.0)
 		else:
-			move_time = max(2.0, data["base_time"] - linear_hour * 0.35)
+			var night_scale = 1.0 - float(GameManager.night_number - 1) * 0.1
+			move_time = max(1.5, data["base_time"] * night_scale - linear_hour * 0.3)
 
 		# Camera watching effect
 		var watch_cam    = data["watch_cam"]
@@ -535,14 +571,14 @@ func _update_cam_display():
 	var doggie_st    = anim_state.get("Doggie", {})
 	var doggie_gone  = doggie_st.get("active", false) and doggie_st.get("index", 0) > 0
 	if room == "Music Room" and doggie_gone:
-		cam_anim_label.text = "!! DOGGIE IS NOT AT HIS DESK !!"
+		cam_anim_label.text = "!!! DOGGIE HAS LEFT HIS DESK !!!"
 		cam_anim_label.add_theme_color_override("font_color", Color.RED)
 	elif found.size() > 0:
-		cam_anim_label.text = ">> " + ", ".join(found) + " <<"
-		cam_anim_label.add_theme_color_override("font_color", Color.YELLOW)
+		cam_anim_label.text = "[ ALERT: %s ]" % ", ".join(found)
+		cam_anim_label.add_theme_color_override("font_color", Color(1.0, 0.85, 0.0))
 	else:
-		cam_anim_label.text = "(empty)"
-		cam_anim_label.add_theme_color_override("font_color", Color.YELLOW)
+		cam_anim_label.text = "[ NO ACTIVITY ]"
+		cam_anim_label.add_theme_color_override("font_color", Color(0.5, 1.0, 0.5))
 
 	# Room list
 	var list_text = ""
@@ -728,6 +764,47 @@ func _process_jace(delta: float):
 		jace_door_label.visible = false
 		_game_over("Jace")
 
+func _build_night_intro():
+	night_intro_overlay = ColorRect.new()
+	night_intro_overlay.set_anchors_preset(Control.PRESET_FULL_RECT)
+	night_intro_overlay.color = Color(0, 0, 0, 1)
+	night_intro_overlay.mouse_filter = Control.MOUSE_FILTER_STOP
+	hud_layer.add_child(night_intro_overlay)
+
+	var night_lbl = Label.new()
+	var is_custom = GameManager.is_custom_night
+	night_lbl.text = "Custom Night" if is_custom else "Night %d" % GameManager.night_number
+	night_lbl.set_position(Vector2(0, 224))
+	night_lbl.set_size(Vector2(1152, 90))
+	night_lbl.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
+	night_lbl.add_theme_font_size_override("font_size", 72)
+	night_lbl.add_theme_color_override("font_color", Color(0.96, 0.78, 0.08))
+	night_intro_overlay.add_child(night_lbl)
+
+	night_intro_label = Label.new()
+	night_intro_label.text = "Freddy Fazbear's Pizza"
+	night_intro_label.set_position(Vector2(0, 330))
+	night_intro_label.set_size(Vector2(1152, 30))
+	night_intro_label.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
+	night_intro_label.add_theme_font_size_override("font_size", 20)
+	night_intro_label.add_theme_color_override("font_color", Color(0.5, 0.35, 0.10))
+	night_intro_overlay.add_child(night_intro_label)
+
+func _build_power_bar():
+	var bar_x = 10.0
+	var bar_y = 556.0
+	power_bar_bg = ColorRect.new()
+	power_bar_bg.set_position(Vector2(bar_x, bar_y))
+	power_bar_bg.set_size(Vector2(180, 10))
+	power_bar_bg.color = Color(0.12, 0.10, 0.06)
+	hud_layer.add_child(power_bar_bg)
+
+	power_bar_fill = ColorRect.new()
+	power_bar_fill.set_position(Vector2(bar_x, bar_y))
+	power_bar_fill.set_size(Vector2(180, 10))
+	power_bar_fill.color = Color(0.1, 0.75, 0.1)
+	hud_layer.add_child(power_bar_fill)
+
 func _build_sleep_ui():
 	sleep_top = ColorRect.new()
 	sleep_top.set_position(Vector2(0, 0))
@@ -849,25 +926,36 @@ func _build_camera_overlay():
 
 	var bg = ColorRect.new()
 	bg.set_anchors_preset(Control.PRESET_FULL_RECT)
-	bg.color = Color(0.0, 0.0, 0.0, 0.88)
+	bg.color = Color(0.0, 0.04, 0.01, 0.92)  # slight green tint — security camera look
 	cam_overlay.add_child(bg)
+
+	var header = Label.new()
+	header.text = "FREDDY FAZBEAR'S PIZZA  —  SECURITY CAMERAS"
+	header.set_position(Vector2(0, 8))
+	header.set_size(Vector2(1152, 26))
+	header.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
+	header.add_theme_font_size_override("font_size", 14)
+	header.add_theme_color_override("font_color", Color(0.3, 0.8, 0.3))
+	cam_overlay.add_child(header)
 
 	cam_title_label = Label.new()
 	cam_title_label.text = "CAM 1 — Show Stage"
-	cam_title_label.set_position(Vector2(260, 70))
-	cam_title_label.add_theme_font_size_override("font_size", 36)
+	cam_title_label.set_position(Vector2(260, 54))
+	cam_title_label.add_theme_font_size_override("font_size", 34)
+	cam_title_label.add_theme_color_override("font_color", Color(0.8, 1.0, 0.8))
 	cam_overlay.add_child(cam_title_label)
 
 	cam_anim_label = Label.new()
-	cam_anim_label.text = "(empty)"
-	cam_anim_label.set_position(Vector2(280, 150))
-	cam_anim_label.add_theme_font_size_override("font_size", 28)
-	cam_anim_label.add_theme_color_override("font_color", Color.YELLOW)
+	cam_anim_label.text = "[ NO ACTIVITY ]"
+	cam_anim_label.set_position(Vector2(260, 130))
+	cam_anim_label.add_theme_font_size_override("font_size", 26)
+	cam_anim_label.add_theme_color_override("font_color", Color(0.5, 1.0, 0.5))
 	cam_overlay.add_child(cam_anim_label)
 
 	cam_list_label = Label.new()
-	cam_list_label.set_position(Vector2(30, 70))
-	cam_list_label.add_theme_font_size_override("font_size", 15)
+	cam_list_label.set_position(Vector2(18, 54))
+	cam_list_label.add_theme_font_size_override("font_size", 13)
+	cam_list_label.add_theme_color_override("font_color", Color(0.4, 0.8, 0.4))
 	cam_overlay.add_child(cam_list_label)
 
 	var prev_btn = Button.new()

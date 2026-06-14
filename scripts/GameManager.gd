@@ -26,7 +26,7 @@ var custom_ai: Dictionary = {
 func get_power_drain() -> float:
 	var drain = power_drain_base
 	if doors_open:
-		drain += 0.3
+		drain += 0.25
 	if camera_open:
-		drain += 0.2
+		drain += 0.10
 	return drain
