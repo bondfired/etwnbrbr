@@ -67,8 +67,8 @@ const ANIMATRONICS: Dictionary = {
 		"active_linear_hour": 1
 	},
 	"Doggie": {
-		"path": ["Music Room", "BOTH_DOORS"],
-		"base_time": 6.0,
+		"path": ["Music Room", "APPROACHING", "BOTH_DOORS"],
+		"base_time": 15.0,
 		"watch_cam": "",
 		"active_linear_hour": 0
 	},
