@@ -3,8 +3,8 @@ extends Control
 const W = 1152.0
 const H = 648.0
 
-const ANIM_KEYS   = ["BonnieJake", "ChicaJasker", "FreddyMarcus", "FoxyBlitz", "Doggie", "Astro"]
-const ANIM_LABELS = ["BONNIE JAKE", "CHICA JASKER", "FREDDY MARCUS", "FOXY BLITZ", "DOGGIE", "ASTRO"]
+const ANIM_KEYS   = ["BonnieJake", "ChicaJasker", "FreddyMarcus", "FoxyBlitz", "Doggie", "Astro", "BFB", "Goku"]
+const ANIM_LABELS = ["BONNIE JAKE", "CHICA JASKER", "FREDDY MARCUS", "FOXY BLITZ", "DOGGIE", "ASTRO", "BFB", "GOKU"]
 
 var ai_displays: Dictionary = {}
 var static_overlay: ColorRect
@@ -57,17 +57,17 @@ func _build_title():
 
 # ── Per-animatronic controls (2 rows of 3) ────────────────────────────────────
 func _build_animatronic_controls():
-	var col_w   = 340.0
-	var total_w = col_w * 3
+	var col_w   = 264.0
+	var total_w = col_w * 4
 	var start_x = (W - total_w) / 2.0
 
-	for i in range(6):
+	for i in range(8):
 		var key   = ANIM_KEYS[i]
 		var label = ANIM_LABELS[i]
-		var row   = i / 3       # 0 = top row, 1 = bottom row
-		var col   = i % 3
+		var row   = i / 4       # 0 = top row, 1 = bottom row
+		var col   = i % 4
 		var cx    = start_x + col * col_w
-		var cy    = 152.0 + row * 128.0
+		var cy    = 152.0 + row * 120.0
 
 		# Name
 		var name_lbl = Label.new()
@@ -109,7 +109,7 @@ func _build_animatronic_controls():
 		add_child(inc)
 
 		# Fill bar
-		var bar_w = col_w - 100.0
+		var bar_w = col_w - 80.0
 		var bar_bg = ColorRect.new()
 		bar_bg.set_position(Vector2(cx + 50, cy + 92))
 		bar_bg.set_size(Vector2(bar_w, 8))
@@ -138,10 +138,10 @@ func _build_presets():
 	add_child(hdr)
 
 	var presets = [
-		["ALL 0",  [0,  0,  0,  0,  0,  0]],
-		["ALL 5",  [5,  5,  5,  5,  5,  5]],
-		["ALL 10", [10, 10, 10, 10, 10, 10]],
-		["ALL 20", [20, 20, 20, 20, 20, 20]],
+		["ALL 0",  [0,  0,  0,  0,  0,  0,  0,  0]],
+		["ALL 5",  [5,  5,  5,  5,  5,  5,  5,  5]],
+		["ALL 10", [10, 10, 10, 10, 10, 10, 10, 10]],
+		["ALL 20", [20, 20, 20, 20, 20, 20, 20, 20]],
 	]
 
 	var btn_w   = 160.0

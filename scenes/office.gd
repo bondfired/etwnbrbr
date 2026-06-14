@@ -77,8 +77,34 @@ const ANIMATRONICS: Dictionary = {
 		"base_time": 22.0,
 		"watch_cam": "",
 		"active_linear_hour": 1
+	},
+	"BFB": {
+		"path": ["Dining Hall", "East Hall", "East Hall Corner", "RIGHT_DOOR"],
+		"base_time": 13.0,
+		"watch_cam": "",
+		"active_linear_hour": 0
 	}
 }
+
+# ── Dragon Ball system (Goku) ──────────────────────────────────────────────────
+const DB_ROOMS: Array = [
+	"Show Stage", "Dining Hall", "Backstage",
+	"West Hall", "Left Hall Corner", "East Hall", "East Hall Corner"
+]
+var db_collected: Dictionary = {}
+var db_found: int = 0
+var db_given: bool = false
+
+var db_hud_label: Label
+var cam_db_label: Label
+var cam_db_counter: Label
+var db_collect_btn: Button
+var db_give_btn: Button
+
+func _is_goku_active() -> bool:
+	if GameManager.is_custom_night:
+		return GameManager.custom_ai.get("Goku", 0) > 0
+	return true
 
 # Runtime state per animatronic
 var anim_state: Dictionary = {}
@@ -91,6 +117,8 @@ func _get_linear_hour() -> int:
 func _ready():
 	for name in ANIMATRONICS:
 		anim_state[name] = {"index": 0, "timer": 0.0, "active": false}
+	for room in DB_ROOMS:
+		db_collected[room] = false
 
 	night_timer.wait_time = 45.0
 	night_timer.start()
@@ -102,6 +130,7 @@ func _ready():
 
 	_build_power_warning()
 	_build_audio_warning()
+	_build_goku_ui()
 	_build_camera_overlay()
 	_build_gameover_overlay()
 	_build_win_overlay()
@@ -123,6 +152,14 @@ func _process(delta: float):
 
 	_tick_animatronics(delta)
 	_update_astro_warning()
+
+	if _is_goku_active():
+		db_hud_label.text   = "Dragon Balls: %d / 7" % db_found
+		db_hud_label.visible = not db_given
+		db_give_btn.visible  = db_found >= 7 and not db_given and not camera_open
+	else:
+		db_hud_label.visible = false
+		db_give_btn.visible  = false
 
 	if camera_open:
 		_update_cam_display()
@@ -247,8 +284,11 @@ func _input(event: InputEvent):
 # ── Hour / win / loss ─────────────────────────────────────────────────────────
 func _on_hour_passed():
 	GameManager.current_hour += 1
-	if GameManager.current_hour > 12:   # wrap 12 AM → 1 AM → 2 AM …
+	if GameManager.current_hour > 12:
 		GameManager.current_hour = 1
+	if GameManager.current_hour == 5 and _is_goku_active() and not db_given:
+		_game_over("Goku")
+		return
 	if GameManager.current_hour >= 6:
 		_win()
 
@@ -310,6 +350,12 @@ func _update_cam_display():
 	var room = CAM_ROOMS[current_cam]
 	cam_title_label.text = "CAM %d  —  %s" % [current_cam + 1, room]
 
+	# Dragon ball detection
+	var has_uncollected_db = _is_goku_active() and (room in DB_ROOMS) and not db_collected.get(room, true)
+	cam_db_label.visible   = has_uncollected_db
+	db_collect_btn.visible = has_uncollected_db
+	cam_db_counter.text    = "★ Dragon Balls: %d / 7" % db_found
+
 	# Collect visible animatronics (Astro is never shown on any camera)
 	var found: Array = []
 	for anim_name in ANIMATRONICS:
@@ -363,6 +409,34 @@ func _update_cam_display():
 	cam_list_label.text = list_text
 
 # ── UI builders ───────────────────────────────────────────────────────────────
+func _build_goku_ui():
+	db_hud_label = Label.new()
+	db_hud_label.set_position(Vector2(10, 32))
+	db_hud_label.add_theme_font_size_override("font_size", 16)
+	db_hud_label.add_theme_color_override("font_color", Color.ORANGE)
+	db_hud_label.visible = false
+	hud_layer.add_child(db_hud_label)
+
+	db_give_btn = Button.new()
+	db_give_btn.text = "GIVE DRAGON BALLS TO GOKU"
+	db_give_btn.set_position(Vector2(380, 565))
+	db_give_btn.set_size(Vector2(360, 48))
+	db_give_btn.add_theme_font_size_override("font_size", 17)
+	db_give_btn.visible = false
+	db_give_btn.pressed.connect(_give_dragon_balls)
+	hud_layer.add_child(db_give_btn)
+
+func _collect_dragon_ball():
+	var room = CAM_ROOMS[current_cam]
+	if room in DB_ROOMS and not db_collected.get(room, false):
+		db_collected[room] = true
+		db_found += 1
+		_update_cam_display()
+
+func _give_dragon_balls():
+	db_given = true
+	db_give_btn.visible = false
+
 func _build_power_warning():
 	power_warn_label = Label.new()
 	power_warn_label.text = "!! LOW POWER !!"
@@ -444,6 +518,30 @@ func _build_camera_overlay():
 	close_btn.set_size(Vector2(210, 44))
 	close_btn.pressed.connect(_on_camera_button_pressed)
 	cam_overlay.add_child(close_btn)
+
+	# Dragon Ball UI (inside camera overlay)
+	cam_db_label = Label.new()
+	cam_db_label.text = "★  DRAGON BALL IS HERE!"
+	cam_db_label.set_position(Vector2(370, 310))
+	cam_db_label.add_theme_font_size_override("font_size", 24)
+	cam_db_label.add_theme_color_override("font_color", Color.ORANGE)
+	cam_db_label.visible = false
+	cam_overlay.add_child(cam_db_label)
+
+	db_collect_btn = Button.new()
+	db_collect_btn.text = "COLLECT"
+	db_collect_btn.set_position(Vector2(470, 356))
+	db_collect_btn.set_size(Vector2(190, 44))
+	db_collect_btn.add_theme_font_size_override("font_size", 18)
+	db_collect_btn.visible = false
+	db_collect_btn.pressed.connect(_collect_dragon_ball)
+	cam_overlay.add_child(db_collect_btn)
+
+	cam_db_counter = Label.new()
+	cam_db_counter.set_position(Vector2(540, 8))
+	cam_db_counter.add_theme_font_size_override("font_size", 16)
+	cam_db_counter.add_theme_color_override("font_color", Color.ORANGE)
+	cam_overlay.add_child(cam_db_counter)
 
 func _build_gameover_overlay():
 	gameover_overlay = Control.new()
