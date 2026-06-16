@@ -12,21 +12,20 @@
       "$className": "ReplicatedStorage",
       "Modules": {
         "$className": "Folder",
-        "GridConfig": {
-          "$path": "src/ReplicatedStorage/Modules/GridConfig.lua"
-        },
-        "HazardTypes": {
-          "$path": "src/ReplicatedStorage/Modules/HazardTypes.lua"
-        }
+        "GridConfig":        { "$path": "src/ReplicatedStorage/Modules/GridConfig.lua" },
+        "HazardTypes":       { "$path": "src/ReplicatedStorage/Modules/HazardTypes.lua" },
+        "ProgressionConfig": { "$path": "src/ReplicatedStorage/Modules/ProgressionConfig.lua" },
+        "AbilityConfig":     { "$path": "src/ReplicatedStorage/Modules/AbilityConfig.lua" },
+        "ShopConfig":        { "$path": "src/ReplicatedStorage/Modules/ShopConfig.lua" }
       }
     },
     "StarterPlayer": {
       "$className": "StarterPlayer",
       "StarterPlayerScripts": {
         "$className": "StarterPlayerScripts",
-        "ClientController": {
-          "$path": "src/StarterPlayer/StarterPlayerScripts/ClientController.client.lua"
-        }
+        "ClientController":  { "$path": "src/StarterPlayer/StarterPlayerScripts/ClientController.client.lua" },
+        "LobbyController":   { "$path": "src/StarterPlayer/StarterPlayerScripts/LobbyController.client.lua" },
+        "AbilityController": { "$path": "src/StarterPlayer/StarterPlayerScripts/AbilityController.client.lua" }
       }
     }
   }
