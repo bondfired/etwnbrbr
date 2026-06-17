@@ -39389,7 +39389,7 @@ end
 
 local function fragmentLabel(result)
 	local cfg = Cards.ById and Cards.ById[result.collectibleId or result.id]
-	local cName = cfg and cfg.name or (result.collectibleId or result.id or "???")
+	local cName = cfg and cfg.name or (result.name or result.collectibleId or result.id or "???")
 	local fType = result.fragmentType or "Fragment"
 	local fRarity = result.fragmentRarity or result.rarity or "Common"
 	return cName, fType, fRarity
@@ -39397,6 +39397,62 @@ end
 
 local function rarityColor(r: string): Color3
 	return RARITY_COLORS[r] or Color3.fromRGB(180,180,180)
+end
+
+local function isPlaceholderImage(img: string?): boolean
+	if not img or img == "" then return true end
+	if img == "rbxassetid://0" or img == "rbxassetid://000" then return true end
+	return false
+end
+
+local _nameLabel: TextLabel? = nil
+local function getNameLabel(): TextLabel
+	if _nameLabel and _nameLabel.Parent then return _nameLabel end
+	local lbl = MainRoll:FindFirstChild("CardNameLabel")
+	if lbl then
+		_nameLabel = lbl
+		return lbl
+	end
+	lbl = Instance.new("TextLabel")
+	lbl.Name = "CardNameLabel"
+	lbl.AnchorPoint = Vector2.new(0.5, 0)
+	lbl.Position = UDim2.new(0.5, 0, 0.05, 0)
+	lbl.Size = UDim2.new(0.9, 0, 0.25, 0)
+	lbl.BackgroundTransparency = 1
+	lbl.Font = Enum.Font.GothamBold
+	lbl.TextColor3 = Color3.new(1,1,1)
+	lbl.TextScaled = true
+	lbl.TextStrokeTransparency = 0.4
+	lbl.TextStrokeColor3 = Color3.new(0,0,0)
+	lbl.ZIndex = 10
+	lbl.Parent = MainRoll
+	_nameLabel = lbl
+	return lbl
+end
+
+local _artistLabel: TextLabel? = nil
+local function getArtistLabel(): TextLabel
+	if _artistLabel and _artistLabel.Parent then return _artistLabel end
+	local lbl = MainRoll:FindFirstChild("ArtistNameLabel")
+	if lbl then
+		_artistLabel = lbl
+		return lbl
+	end
+	lbl = Instance.new("TextLabel")
+	lbl.Name = "ArtistNameLabel"
+	lbl.AnchorPoint = Vector2.new(0.5, 0)
+	lbl.Position = UDim2.new(0.5, 0, 0.30, 0)
+	lbl.Size = UDim2.new(0.8, 0, 0.15, 0)
+	lbl.BackgroundTransparency = 1
+	lbl.Font = Enum.Font.Gotham
+	lbl.TextColor3 = Color3.fromRGB(220, 220, 220)
+	lbl.TextScaled = true
+	lbl.TextStrokeTransparency = 0.6
+	lbl.TextStrokeColor3 = Color3.new(0,0,0)
+	lbl.ZIndex = 10
+	lbl.Parent = MainRoll
+	_artistLabel = lbl
+	return lbl
 end
 
 local function burstConfetti(parent: Instance, rarity: string)
@@ -39483,14 +39539,16 @@ local function safeScan(amount: number)
 	animating = true
 	awaiting = true
 	openOverlay()
-	task.delay(2.0, function()
+	task.delay(6.0, function()
 		if awaiting then
 			awaiting = false
+			warn("[RNGController] Roll timed out after 6 seconds")
 			closeOverlay(function()
 				setBusy(false); animating = false; kickAuto()
 			end)
 		end
 	end)
+	print("[RNGController] Firing RequestRoll amount=", amount)
 	GameCore.Fire("RNGService","RequestRoll", { amount = amount, rid = math.floor(t*1000) })
 end
 
@@ -39545,11 +39603,40 @@ local function animateMain(result)
 	local cfg = Cards.ById and Cards.ById[result.collectibleId or result.id]
 	local image = (cfg and cfg.image) or ""
 	local color = rarityColor(fRarity)
+	local artist = (cfg and cfg.artist) or result.artist or ""
+
+	print("[RNGController] Showing result:", cName, fType, fRarity)
+
+	local nameLabel = getNameLabel()
+	nameLabel.Text = cName
+	nameLabel.TextColor3 = color
+	nameLabel.Visible = true
+
+	local artistLbl = getArtistLabel()
+	artistLbl.Text = artist
+	artistLbl.Visible = artist ~= ""
+
+	if isPlaceholderImage(image) then
+		MainImage.Image = ""
+		MainImage.BackgroundColor3 = color
+		MainImage.BackgroundTransparency = 0.15
+	else
+		MainImage.Image = image
+		MainImage.BackgroundTransparency = 1
+	end
 
 	MainImage.ImageColor3 = color
-	MainImage.Image = image
 	MainImage.ImageTransparency = 1
 	MainRarity.Text = fType .. " — " .. fRarity
+	MainRarity.TextColor3 = color
+
+	if MainGrad then
+		local rcfg = Cards.Rarity[fRarity]
+		if rcfg and rcfg.uiGradient then
+			MainGrad.Color = rcfg.uiGradient.Color
+			MainGrad.Transparency = rcfg.uiGradient.Transparency
+		end
+	end
 
 	local s = MainRoll:FindFirstChildOfClass("UIScale") or Instance.new("UIScale", MainRoll)
 	s.Scale = 0.85
@@ -39566,8 +39653,8 @@ local function animateMain(result)
 	}):Play()
 	task.wait(0.18)
 
-	local shime = Shime.new(MainImage, 1, Enum.EasingStyle.Exponential, Enum.EasingDirection.InOut)
-	shime:Play()
+	local ok, shime = pcall(Shime.new, MainImage, 1, Enum.EasingStyle.Exponential, Enum.EasingDirection.InOut)
+	if ok and shime then pcall(function() shime:Play() end) end
 
 	tween(s, TweenInfo.new(0.12, Enum.EasingStyle.Quad, Enum.EasingDirection.InOut), { Scale = 1.00 }):Play()
 	tween(MainImage, TweenInfo.new(0.12, Enum.EasingStyle.Quad, Enum.EasingDirection.InOut), {
@@ -39576,6 +39663,14 @@ local function animateMain(result)
 	task.wait(0.12)
 
 	burstConfetti(MainRoll, fRarity)
+
+	task.wait(1.8)
+
+	nameLabel.Visible = false
+	artistLbl.Visible = false
+	if isPlaceholderImage(image) then
+		MainImage.BackgroundTransparency = 1
+	end
 
 	closeOverlay(function()
 		setBusy(false)
@@ -39590,42 +39685,53 @@ local function animateQuick(result)
 	MainRoll.Visible  = false
 	QuickRoll.Visible = true
 	QuickRoll.AnchorPoint = Vector2.new(0.5, 0.5)
-	QuickRoll.Position    = UDim2.fromScale(0.505, 0.67)
+	QuickRoll.Position    = UDim2.fromScale(0.5, 0.5)
 
 	local cName, fType, fRarity = fragmentLabel(result)
 	local cfg = Cards.ById and Cards.ById[result.collectibleId or result.id]
 	local image = (cfg and cfg.image) or ""
 	local color = rarityColor(fRarity)
 
+	if isPlaceholderImage(image) then
+		QuickImage.Image = ""
+		QuickImage.BackgroundColor3 = color
+		QuickImage.BackgroundTransparency = 0.15
+	else
+		QuickImage.Image = image
+		QuickImage.BackgroundTransparency = 1
+	end
+
 	QuickImage.ImageColor3 = color
-	QuickImage.Image = image
 	QuickImage.ImageTransparency = 1
-	QuickRarity.Text = fType .. " — " .. fRarity
+	QuickRarity.Text = cName .. " · " .. fType .. " — " .. fRarity
+	QuickRarity.TextColor3 = color
+
+	if QuickGrad then
+		local rcfg = Cards.Rarity[fRarity]
+		if rcfg and rcfg.uiGradient then
+			QuickGrad.Color = rcfg.uiGradient.Color
+			QuickGrad.Transparency = rcfg.uiGradient.Transparency
+		end
+	end
 
 	local s = QuickRoll:FindFirstChildOfClass("UIScale") or Instance.new("UIScale", QuickRoll)
-	s.Scale = 0.92
-	tween(s, TweenInfo.new(0.12, Enum.EasingStyle.Back, Enum.EasingDirection.Out), { Scale = 1.03 }):Play()
-
-	QuickImage.Size = UDim2.fromOffset(18, 22)
-	tween(QuickImage, TweenInfo.new(0.12, Enum.EasingStyle.Quad, Enum.EasingDirection.Out), {
-		Size = UDim2.fromOffset(161, 194), ImageTransparency = 0
+	s.Scale = 0.9
+	tween(s, TweenInfo.new(0.12, Enum.EasingStyle.Back, Enum.EasingDirection.Out), { Scale = 1.05 }):Play()
+	tween(QuickImage, TweenInfo.new(0.14, Enum.EasingStyle.Quad, Enum.EasingDirection.Out), {
+		ImageTransparency = 0
 	}):Play()
-	task.wait(0.12)
+	task.wait(0.14)
 
-	tween(QuickImage, TweenInfo.new(0.08, Enum.EasingStyle.Back, Enum.EasingDirection.Out), {
-		Size = UDim2.fromOffset(170, 204)
-	}):Play()
+	tween(s, TweenInfo.new(0.08, Enum.EasingStyle.Quad, Enum.EasingDirection.InOut), { Scale = 1.00 }):Play()
 	task.wait(0.08)
 
-	local shime = Shime.new(QuickImage, 1, Enum.EasingStyle.Exponential, Enum.EasingDirection.InOut)
-	shime:Play()
-
-	tween(QuickImage, TweenInfo.new(0.06, Enum.EasingStyle.Quad, Enum.EasingDirection.Out), {
-		Size = UDim2.fromOffset(161, 194)
-	}):Play()
-	task.wait(0.06)
-
 	burstConfetti(QuickRoll, fRarity)
+
+	task.wait(0.6)
+
+	if isPlaceholderImage(image) then
+		QuickImage.BackgroundTransparency = 1
+	end
 
 	closeOverlay(function()
 		setBusy(false)
@@ -39634,20 +39740,9 @@ local function animateQuick(result)
 	end)
 end
 
-RF.InputBegan:Connect(function(input, gp)
-	if gp then return end
-	if input.UserInputType == Enum.UserInputType.MouseButton1
-		or input.UserInputType == Enum.UserInputType.Touch then
-		if animating then return end
-		closeOverlay()
-	end
-end)
-
 local function clearMulti()
-	for _, child in ipairs(MultiRoll:GetChildren()) do
-		if child:IsA("Frame") and child.Name ~= "Template" then
-			child:Destroy()
-		end
+	for _,c in ipairs(MultiRoll:GetChildren()) do
+		if c:IsA("Frame") and c.Name ~= "Template" then c:Destroy() end
 	end
 end
 
@@ -39663,16 +39758,25 @@ local function showMulti(results: {any})
 		local img = f:FindFirstChild("Icon")
 		if img and img:IsA("ImageLabel") then
 			local cfg = Cards.ById[res.collectibleId or res.id]
-			img.Image = (cfg and cfg.image) or ""
-			img.ImageColor3 = rarityColor(res.fragmentRarity or res.rarity or "Common")
+			local color = rarityColor(res.fragmentRarity or res.rarity or "Common")
+			if isPlaceholderImage((cfg and cfg.image) or "") then
+				img.Image = ""
+				img.BackgroundColor3 = color
+				img.BackgroundTransparency = 0.2
+			else
+				img.Image = (cfg and cfg.image) or ""
+				img.BackgroundTransparency = 1
+			end
+			img.ImageColor3 = color
 		end
 		local rar = f:FindFirstChild("RarityText")
 		if rar and rar:IsA("TextLabel") then
-			rar.Text = (res.fragmentType or "Fragment") .. " — " .. (res.fragmentRarity or "Common")
+			local cName = res.name or (res.collectibleId or res.id or "???")
+			rar.Text = cName .. " · " .. (res.fragmentType or "Fragment") .. " — " .. (res.fragmentRarity or "Common")
 		end
 		f.Parent = MultiRoll
 	end
-	task.delay(2.0, function()
+	task.delay(3.0, function()
 		if MultiRoll.Visible then
 			closeOverlay(function()
 				setBusy(false)
@@ -39703,6 +39807,7 @@ function C:OnRoute(route, method, payload)
 
 	elseif route == "RNGService" and method == "Results" then
 		awaiting = false
+		print("[RNGController] Received Results from server")
 		local list
 		if typeof(payload) == "table" and payload[1] then
 			list = payload
@@ -39714,13 +39819,16 @@ function C:OnRoute(route, method, payload)
 			list = {}
 		end
 
+		print("[RNGController] Result count:", #list)
+
 		if #list > 1 then
 			showMulti(list)
 		elseif #list == 1 then
 			local last = list[1]
+			print("[RNGController] Displaying:", last.id or last.collectibleId, last.fragmentType, last.fragmentRarity)
 			if quickOn then animateQuick(last) else animateMain(last) end
 		else
-			warn("[RNGController] Empty Results payload:", payload)
+			warn("[RNGController] Empty Results payload:", tostring(payload))
 			closeOverlay(function()
 				setBusy(false); animating = false; kickAuto()
 			end)
@@ -39770,6 +39878,7 @@ function C:Init()
 		while not GameCore.Ready() do task.wait(0.1) end
 		task.wait(0.4)
 		fullyLoaded = true
+		print("[RNGController] Fully loaded, scan button active")
 		updateLocks()
 		setBusy(false)
 		kickAuto()
@@ -39811,8 +39920,10 @@ function C:Start()
 		end
 		setAuto(not autoOn)
 		updateLocks()
-		if autoOn then kickAuto() end
+		kickAuto()
 	end)
+
+	print("[RNGController] Started, buttons connected")
 end
 
 return C
@@ -42542,9 +42653,10 @@ local function drawerByRarityWithLuck(r: string, mult: number)
 end
 
 Svc.Routes.RequestRoll = function(plr: Player, payload)
-	if type(payload) ~= "table" then return false, "bad payload" end
+	print("[RNGService] RequestRoll received from", plr.Name)
+	if type(payload) ~= "table" then warn("[RNGService] bad payload type:", type(payload)); return false, "bad payload" end
 	local amount = tonumber(payload.amount)
-	if not amount then return false, "bad amount" end
+	if not amount then warn("[RNGService] bad amount"); return false, "bad amount" end
 	amount = math.clamp(math.floor(amount), 1, 50)
 
 	local zone = tostring(payload.zone or "City")
@@ -42615,6 +42727,7 @@ Svc.Routes.RequestRoll = function(plr: Player, payload)
 	pcall(function() Svc.Net:Send(plr, "Ack", { ok = true, amount = amount }) end)
 	pcall(function() GameCore.Fire("UpgradeService", "RequestStatus", {}, plr) end)
 
+	print("[RNGService] Sending", #results, "results to", plr.Name)
 	Svc.Net:Send(plr, "Results", results)
 
 	pcall(function() QuestService:Increment(plr, "Rolls", amount) end)
