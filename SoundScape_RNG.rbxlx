@@ -1474,20 +1474,22 @@ local Promise  = require(RS.Main.GameCore.Promise)
 local Async    = require(RS.Main.GameCore.AsyncTasks)
 local MathX    = require(RS.Main.GameCore.MathX)
 
-GameCore.Configure({ 	
+local remotesFolder = RS:WaitForChild("GameCore_Remotes", 30)
+
+GameCore.Configure({
+	RemotesFolder = remotesFolder,
 	Roots = {
 		Services = RS.Main.Services,
 		Controllers = RS.Main.Controllers,
 	},
 	Promise = Promise,
 	Async   = Async,
-	
 })
 
 task.spawn(function()
 	GameCore.PingTimes = require(RS.Main.Modules.PingTimes)
 	GameCore.Auto()
-	print("[Client] Gamecore Started")
+	print("[Client] GameCore Started")
 end)]]></ProtectedString>
 					<bool name="Disabled">false</bool>
 					<Content name="LinkedSource"><null></null></Content>
@@ -52008,6 +52010,26 @@ else
 	end
 end
 
+local SERVICE_NAMES = {
+	"DataService", "EconomyService", "RNGService", "CardService",
+	"BackpackService", "LeaderboardService", "UpgradeService",
+	"QuestService", "MarketService", "AudioService", "CardPetService",
+	"CodesService",
+}
+for _, name in ipairs(SERVICE_NAMES) do
+	if not GC_REMOTES:FindFirstChild(name) then
+		local re = Instance.new("RemoteEvent")
+		re.Name = name
+		re.Parent = GC_REMOTES
+	end
+	if not GC_REMOTES:FindFirstChild(name .. "_fn") then
+		local rf = Instance.new("RemoteFunction")
+		rf.Name = name .. "_fn"
+		rf.Parent = GC_REMOTES
+	end
+end
+print("[Server] RemoteEvents pre-created for", #SERVICE_NAMES, "services")
+
 local GameCore = require(RS.Main.GameCore)
 local Promise  = require(RS.Main.GameCore.Promise)
 local Async    = require(RS.Main.GameCore.AsyncTasks)
@@ -52017,8 +52039,8 @@ GameCore.PingTimes = require(RS.Main.Modules.PingTimes)
 
 GameCore.Configure({
 	RemotesFolder = GC_REMOTES,
-	Roots = { 
-		Services    = RS.Main.Services, 
+	Roots = {
+		Services    = RS.Main.Services,
 		Controllers = RS.Main.Controllers
 	},
 	Promise = Promise,
