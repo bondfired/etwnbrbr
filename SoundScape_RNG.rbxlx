@@ -52303,65 +52303,83 @@ end
 print("[Server] RemoteEvents pre-created for", #SERVICE_NAMES, "services")
 
 local ok1, GameCore = pcall(require, RS.Main.GameCore)
-if not ok1 then warn("[Server] FATAL: GameCore failed to load:", GameCore); return end
+if not ok1 then print("[Server] FATAL: GameCore failed to load:", tostring(GameCore)); return end
+print("[Server] GameCore loaded OK")
 
 local ok2, Promise = pcall(require, RS.Main.GameCore.Promise)
-if not ok2 then warn("[Server] FATAL: Promise failed to load:", Promise); return end
+if not ok2 then print("[Server] FATAL: Promise failed to load:", tostring(Promise)); return end
+print("[Server] Promise loaded OK")
 
 local ok3, Async = pcall(require, RS.Main.GameCore.AsyncTasks)
-if not ok3 then warn("[Server] FATAL: AsyncTasks failed to load:", Async); return end
+if not ok3 then print("[Server] FATAL: AsyncTasks failed to load:", tostring(Async)); return end
+print("[Server] AsyncTasks loaded OK")
 
 local ok4, MathX = pcall(require, RS.Main.GameCore.MathX)
-if not ok4 then warn("[Server] FATAL: MathX failed to load:", MathX); return end
+if not ok4 then print("[Server] FATAL: MathX failed to load:", tostring(MathX)); return end
+print("[Server] MathX loaded OK")
 
 local okPT, PingTimes = pcall(require, RS.Main.Modules.PingTimes)
-if okPT then GameCore.PingTimes = PingTimes end
+if okPT then
+	GameCore.PingTimes = PingTimes
+	print("[Server] PingTimes loaded OK")
+else
+	print("[Server] PingTimes skipped:", tostring(PingTimes))
+end
 
-GameCore.Configure({
-	RemotesFolder = GC_REMOTES,
-	Roots = {
-		Services    = RS.Main.Services,
-		Controllers = RS.Main.Controllers,
-	},
-	Promise = Promise,
-	Async   = Async,
-	AC = { Whitelist = { [797399348] = true } },
-	AntiCheat = {
-		Enabled  = true,
-		Mode     = "enforce",
-		LogLevel = "warn",
-		Network  = {
-			MaxPayloadBytes = 8 * 1024,
-			ReplayWindow    = 8,
-			Rate = {
-				Default  = { calls = 20, window = 1.0 },
-				PerRoute = {
-					RNGService    = { calls = 8, window = 0.5 },
-					RNGService_fn = { calls = 8, window = 0.5 },
+local okC, errC = pcall(function()
+	GameCore.Configure({
+		RemotesFolder = GC_REMOTES,
+		Roots = {
+			Services    = RS.Main.Services,
+			Controllers = RS.Main.Controllers,
+		},
+		Promise = Promise,
+		Async   = Async,
+		AC = { Whitelist = { [797399348] = true } },
+		AntiCheat = {
+			Enabled  = true,
+			Mode     = "enforce",
+			LogLevel = "warn",
+			Network  = {
+				MaxPayloadBytes = 8 * 1024,
+				ReplayWindow    = 8,
+				Rate = {
+					Default  = { calls = 20, window = 1.0 },
+					PerRoute = {
+						RNGService    = { calls = 8, window = 0.5 },
+						RNGService_fn = { calls = 8, window = 0.5 },
+					},
 				},
 			},
+			Movement = {
+				BaseWalkSpeed  = 16,
+				MaxSprintSpeed = 50,
+				SpeedTolerance = 15,
+				MaxTP          = 100,
+				TPWindow       = 0.25,
+				CheckNoclip    = false,
+			},
+			Integrity = {
+				LockHumanoidProps      = true,
+				BlockDescendantScripts = true,
+				DisallowSetHiddenProps = true,
+			},
 		},
-		Movement = {
-			BaseWalkSpeed  = 16,
-			MaxSprintSpeed = 50,
-			SpeedTolerance = 15,
-			MaxTP          = 100,
-			TPWindow       = 0.25,
-			CheckNoclip    = false,
-		},
-		Integrity = {
-			LockHumanoidProps      = true,
-			BlockDescendantScripts = true,
-			DisallowSetHiddenProps = true,
-		},
-	},
-})
-
+	})
+end)
+if not okC then print("[Server] FATAL: GameCore.Configure failed:", tostring(errC)); return end
 print("[Server] GameCore configured")
 
-MathX.setGameCore(GameCore)
-GameCore.AC.Start()
-GameCore.AC.AttachNetGuards()
+local okM, errM = pcall(function()
+	MathX.setGameCore(GameCore)
+end)
+if not okM then print("[Server] FATAL: MathX.setGameCore failed:", tostring(errM)); return end
+
+local okAC, errAC = pcall(function()
+	GameCore.AC.Start()
+	GameCore.AC.AttachNetGuards()
+end)
+if not okAC then print("[Server] FATAL: AC start failed:", tostring(errAC)); return end
 
 print("[Server] AC started, calling GameCore.Auto()...")
 
@@ -52381,8 +52399,8 @@ end)
 if autoOk then
 	print("[Server] SoundScape RNG - GameCore Started successfully")
 else
-	warn("[Server] GameCore.Auto() FAILED:", tostring(autoErr))
-	warn("[Server] Game will run with limited functionality")
+	print("[Server] FATAL: GameCore.Auto() FAILED:", tostring(autoErr))
+	print("[Server] Game will run with limited functionality")
 end
 
 ]]></ProtectedString>
