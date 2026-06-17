@@ -1467,21 +1467,40 @@ local Promise  = require(RS.Main.GameCore.Promise)
 local Async    = require(RS.Main.GameCore.AsyncTasks)
 local MathX    = require(RS.Main.GameCore.MathX)
 
-GameCore.Configure({ 	
+GameCore.Configure({
 	Roots = {
 		Services = RS.Main.Services,
 		Controllers = RS.Main.Controllers,
 	},
 	Promise = Promise,
 	Async   = Async,
-	
 })
 
 task.spawn(function()
-	GameCore.PingTimes = require(RS.Main.Modules.PingTimes)
-	GameCore.Auto()
-	print("[Client] Gamecore Started")
-end)]]></ProtectedString>
+	local okPT, PingTimes = pcall(require, RS.Main.Modules.PingTimes)
+	if okPT then GameCore.PingTimes = PingTimes end
+
+	local ok, err = pcall(function()
+		GameCore.Auto()
+	end)
+
+	if ok then
+		print("[Client] GameCore Started")
+	else
+		warn("[Client] GameCore.Auto() error:", tostring(err))
+		warn("[Client] Retrying in 2 seconds...")
+		task.wait(2)
+		local ok2, err2 = pcall(function()
+			GameCore.Auto()
+		end)
+		if ok2 then
+			print("[Client] GameCore Started (retry)")
+		else
+			warn("[Client] GameCore.Auto() retry failed:", tostring(err2))
+		end
+	end
+end)
+]]></ProtectedString>
 					<bool name="Disabled">false</bool>
 					<Content name="LinkedSource"><null></null></Content>
 					<token name="RunContext">0</token>
@@ -52148,12 +52167,42 @@ else
 	end
 end
 
-local GameCore = require(RS.Main.GameCore)
-local Promise  = require(RS.Main.GameCore.Promise)
-local Async    = require(RS.Main.GameCore.AsyncTasks)
-local MathX    = require(RS.Main.GameCore.MathX)
+local SERVICE_NAMES = {
+	"DataService", "EconomyService", "RNGService", "CardService",
+	"BackpackService", "LeaderboardService", "UpgradeService",
+	"QuestService", "MarketService", "AudioService", "CardPetService",
+	"CodesService",
+}
 
-GameCore.PingTimes = require(RS.Main.Modules.PingTimes)
+for _, name in ipairs(SERVICE_NAMES) do
+	if not GC_REMOTES:FindFirstChild(name) then
+		local re = Instance.new("RemoteEvent")
+		re.Name = name
+		re.Parent = GC_REMOTES
+	end
+	if not GC_REMOTES:FindFirstChild(name .. "_fn") then
+		local rf = Instance.new("RemoteFunction")
+		rf.Name = name .. "_fn"
+		rf.Parent = GC_REMOTES
+	end
+end
+
+print("[Server] RemoteEvents pre-created for", #SERVICE_NAMES, "services")
+
+local ok1, GameCore = pcall(require, RS.Main.GameCore)
+if not ok1 then warn("[Server] FATAL: GameCore failed to load:", GameCore); return end
+
+local ok2, Promise = pcall(require, RS.Main.GameCore.Promise)
+if not ok2 then warn("[Server] FATAL: Promise failed to load:", Promise); return end
+
+local ok3, Async = pcall(require, RS.Main.GameCore.AsyncTasks)
+if not ok3 then warn("[Server] FATAL: AsyncTasks failed to load:", Async); return end
+
+local ok4, MathX = pcall(require, RS.Main.GameCore.MathX)
+if not ok4 then warn("[Server] FATAL: MathX failed to load:", MathX); return end
+
+local okPT, PingTimes = pcall(require, RS.Main.Modules.PingTimes)
+if okPT then GameCore.PingTimes = PingTimes end
 
 GameCore.Configure({
 	RemotesFolder = GC_REMOTES,
@@ -52195,9 +52244,13 @@ GameCore.Configure({
 	},
 })
 
+print("[Server] GameCore configured")
+
 MathX.setGameCore(GameCore)
 GameCore.AC.Start()
 GameCore.AC.AttachNetGuards()
+
+print("[Server] AC started, calling GameCore.Auto()...")
 
 local lastReq = {}
 GameCore.UseMiddleware("RNGService", function(ctx, next)
@@ -52208,8 +52261,16 @@ GameCore.UseMiddleware("RNGService", function(ctx, next)
 	next(ctx)
 end)
 
-GameCore.Auto()
-print("[Server] SoundScape RNG - GameCore Started")
+local autoOk, autoErr = pcall(function()
+	GameCore.Auto()
+end)
+
+if autoOk then
+	print("[Server] SoundScape RNG - GameCore Started successfully")
+else
+	warn("[Server] GameCore.Auto() FAILED:", tostring(autoErr))
+	warn("[Server] Game will run with limited functionality")
+end
 
 ]]></ProtectedString>
 				<bool name="Disabled">false</bool>
