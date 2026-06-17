@@ -5,15 +5,26 @@ const H = 648.0
 
 var static_overlay: ColorRect
 var static_timer: Timer
+var sfx_menu_theme: AudioStreamPlayer
 
 func _ready():
 	set_anchors_preset(Control.PRESET_FULL_RECT)
+	_build_audio()
 	_build_background()
 	_build_title()
 	_build_night_selector()
 	_build_new_game_button()
 	_build_footer()
 	_build_static_overlay()
+
+func _build_audio():
+	sfx_menu_theme = AudioStreamPlayer.new()
+	sfx_menu_theme.stream = load("res://sounds/menu_theme.ogg")
+	if sfx_menu_theme.stream is AudioStreamOGGVorbis:
+		sfx_menu_theme.stream.loop = true
+	sfx_menu_theme.volume_db = -6.0
+	add_child(sfx_menu_theme)
+	sfx_menu_theme.play()
 
 # ── Background ─────────────────────────────────────────────────────────────────
 func _build_background():

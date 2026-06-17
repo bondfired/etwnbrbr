@@ -170,6 +170,23 @@ var sleep_top: ColorRect
 var sleep_bot: ColorRect
 var sleep_label: Label
 
+# ── Audio ─────────────────────────────────────────────────────────────────────
+var sfx_ambient: AudioStreamPlayer
+var sfx_door: AudioStreamPlayer
+var sfx_camera_up: AudioStreamPlayer
+var sfx_camera_down: AudioStreamPlayer
+var sfx_flash: AudioStreamPlayer
+var sfx_jumpscare: AudioStreamPlayer
+var sfx_kolzaru: AudioStreamPlayer
+var sfx_phone_ring: AudioStreamPlayer
+var sfx_power_down: AudioStreamPlayer
+var sfx_power_warning: AudioStreamPlayer
+var sfx_six_am: AudioStreamPlayer
+var sfx_sleep_snore: AudioStreamPlayer
+var sfx_tung_swing: AudioStreamPlayer
+var sfx_wake_up: AudioStreamPlayer
+var _power_warn_playing: bool = false
+
 func _is_goku_active() -> bool:
 	if GameManager.is_custom_night:
 		return GameManager.custom_ai.get("Goku", 0) > 0
@@ -219,6 +236,7 @@ func _ready():
 	_build_gameover_overlay()
 	_build_win_overlay()
 	_build_sleep_ui()
+	_build_audio()
 	_build_night_intro()  # must be absolute last — covers everything
 
 func _process(delta: float):
@@ -234,6 +252,8 @@ func _process(delta: float):
 			night_intro_active = false
 			night_intro_overlay.visible = false
 			night_timer.start()
+			sfx_phone_ring.play()
+			sfx_ambient.play()
 		return
 
 	GameManager.power -= GameManager.get_power_drain() * delta
@@ -243,6 +263,9 @@ func _process(delta: float):
 	power_label.text = "Power: %d%%" % int(GameManager.power)
 	hour_label.text  = "Night %d  —  %d AM" % [GameManager.night_number, GameManager.current_hour]
 	power_warn_label.visible = GameManager.power < 20.0
+	if GameManager.power < 20.0 and not _power_warn_playing:
+		_power_warn_playing = true
+		sfx_power_warning.play()
 
 	# Update power bar colour: green → yellow → red
 	power_bar_fill.size.x = 180.0 * pct
@@ -385,6 +408,7 @@ func _try_enter(anim_name: String):
 		tung_attack_timer = 0.0
 		tung_attack_label.text = "!! TUNG IS SWINGING !!"
 		tung_attack_label.visible = true
+		sfx_tung_swing.play()
 		return
 
 	# Jace: needs BOTH doors open to walk through; gives a timed window to react
@@ -418,17 +442,20 @@ func _on_left_door_button_pressed():
 	left_door_closed  = !left_door_closed
 	left_door.visible = left_door_closed
 	GameManager.doors_open = left_door_closed or right_door_closed
+	sfx_door.play()
 
 func _on_right_door_button_pressed():
 	right_door_closed  = !right_door_closed
 	right_door.visible = right_door_closed
 	GameManager.doors_open = left_door_closed or right_door_closed
+	sfx_door.play()
 
 func _on_camera_button_pressed():
 	camera_open = !camera_open
 	GameManager.camera_open = camera_open
 	cam_overlay.visible = camera_open
 	if camera_open:
+		sfx_camera_up.play()
 		_update_cam_display()
 		if kolzaru_triggered:
 			# Raising the monitor dismisses Kolzaru
@@ -436,6 +463,9 @@ func _on_camera_button_pressed():
 			kolzaru_label.visible = false
 			kolzaru_timer = 0.0
 			kolzaru_next_appear = randf_range(40.0, 90.0)
+			sfx_kolzaru.stop()
+	else:
+		sfx_camera_down.play()
 
 func _on_cam_prev():
 	current_cam = (current_cam - 1 + CAM_ROOMS.size()) % CAM_ROOMS.size()
@@ -479,6 +509,8 @@ func _on_hour_passed():
 
 func _power_out():
 	is_game_over = true
+	sfx_ambient.stop()
+	sfx_power_down.play()
 	night_timer.stop()
 	left_door_closed  = false
 	right_door_closed = false
@@ -492,6 +524,8 @@ func _game_over(anim_name: String):
 	if gameover_overlay.visible:
 		return
 	is_game_over = true
+	sfx_ambient.stop()
+	sfx_jumpscare.play()
 	_wake_up()
 	night_timer.stop()
 	cam_overlay.visible = false
@@ -502,6 +536,8 @@ func _game_over(anim_name: String):
 
 func _win():
 	is_game_over = true
+	sfx_ambient.stop()
+	sfx_six_am.play()
 	_wake_up()
 	night_timer.stop()
 	cam_overlay.visible = false
@@ -693,6 +729,7 @@ func _flash_owen():
 	var state = anim_state.get("Owen", {})
 	if not state.get("active", false):
 		return
+	sfx_flash.play()
 	# Send Owen back to the Show Stage
 	state["index"] = 0
 	state["timer"] = 0.0
@@ -745,6 +782,7 @@ func _process_kolzaru(delta: float):
 			kolzaru_appear_elapsed = 0.0
 			kolzaru_label.text = "!! KOLZARU IS IN YOUR OFFICE !!"
 			kolzaru_label.visible = true
+			sfx_kolzaru.play()
 
 func _process_jace(delta: float):
 	if not jace_at_door:
@@ -866,6 +904,7 @@ func _enter_drowsy():
 func _fall_asleep():
 	sleep_state = SleepState.ASLEEP
 	sleep_blackout_timer = 0.0
+	sfx_sleep_snore.play()
 	var lid_h = 334.0
 	sleep_top.size.y = lid_h
 	sleep_bot.size.y = lid_h
@@ -878,6 +917,10 @@ func _wake_up():
 	sleep_idle_timer = 0.0
 	sleep_drowsy_timer = 0.0
 	sleep_clicks = 0
+	if sfx_sleep_snore != null:
+		sfx_sleep_snore.stop()
+	if sfx_wake_up != null:
+		sfx_wake_up.play()
 	if sleep_top != null:
 		sleep_top.size.y = 0
 	if sleep_bot != null:
@@ -885,6 +928,31 @@ func _wake_up():
 		sleep_bot.position.y = 648
 	if sleep_label != null:
 		sleep_label.visible = false
+
+func _make_sfx(path: String, loop: bool = false, vol: float = 0.0) -> AudioStreamPlayer:
+	var player = AudioStreamPlayer.new()
+	player.stream = load(path)
+	if loop and player.stream is AudioStreamOGGVorbis:
+		player.stream.loop = true
+	player.volume_db = vol
+	add_child(player)
+	return player
+
+func _build_audio():
+	sfx_ambient       = _make_sfx("res://sounds/ambient_loop.ogg", true, -12.0)
+	sfx_door          = _make_sfx("res://sounds/door_open_close.ogg")
+	sfx_camera_up     = _make_sfx("res://sounds/cam_open.ogg")
+	sfx_camera_down   = _make_sfx("res://sounds/cam_down.ogg")
+	sfx_flash         = _make_sfx("res://sounds/flash_light.ogg")
+	sfx_jumpscare     = _make_sfx("res://sounds/jump_scare.ogg")
+	sfx_kolzaru       = _make_sfx("res://sounds/kolzaru_appear.ogg")
+	sfx_phone_ring    = _make_sfx("res://sounds/phone_ring.ogg")
+	sfx_power_down    = _make_sfx("res://sounds/power_down.ogg")
+	sfx_power_warning = _make_sfx("res://sounds/power_warning.ogg")
+	sfx_six_am        = _make_sfx("res://sounds/six_am.ogg")
+	sfx_sleep_snore   = _make_sfx("res://sounds/sleep_snore.ogg")
+	sfx_tung_swing    = _make_sfx("res://sounds/tung_swing.ogg")
+	sfx_wake_up       = _make_sfx("res://sounds/wake_up.ogg")
 
 func _build_power_warning():
 	power_warn_label = Label.new()

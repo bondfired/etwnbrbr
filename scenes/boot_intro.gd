@@ -33,10 +33,18 @@ var _logo_label    : Label
 var _sub_label     : Label
 var _prompt_label  : Label
 var _static_overlay: ColorRect
+var _sfx_beep      : AudioStreamPlayer
 
 func _ready():
 	set_anchors_preset(Control.PRESET_FULL_RECT)
+	_build_audio()
 	_build_ui()
+
+func _build_audio():
+	_sfx_beep = AudioStreamPlayer.new()
+	_sfx_beep.stream = load("res://sounds/boot_beep.ogg")
+	add_child(_sfx_beep)
+	_sfx_beep.play()
 
 func _build_ui():
 	# Dark CRT background
