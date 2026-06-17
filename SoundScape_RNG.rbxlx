@@ -39269,7 +39269,7 @@ local RS = game:GetService("ReplicatedStorage")
 local GameCore = require(RS.Main.GameCore)
 local Cards    = require(RS.Main.Configs.Cards)
 local Admin    = require(RS.Main.Configs.Admin)
-local Monet    = require(RS.Main.Configs.Monetization)
+local Monetization = require(RS.Main.Configs.Monetization)
 local Shime    = require(RS.Main.Modules.Shime)
 
 local L  = Players.LocalPlayer
