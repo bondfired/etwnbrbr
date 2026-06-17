@@ -206,8 +206,8 @@ func _get_linear_hour() -> int:
 
 # ── Lifecycle ─────────────────────────────────────────────────────────────────
 func _ready():
-	for name in ANIMATRONICS:
-		anim_state[name] = {"index": 0, "timer": 0.0, "active": false}
+	for anim_name in ANIMATRONICS:
+		anim_state[anim_name] = {"index": 0, "timer": 0.0, "active": false}
 	for room in DB_ROOMS:
 		db_collected[room] = false
 
