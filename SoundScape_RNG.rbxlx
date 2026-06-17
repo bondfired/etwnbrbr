@@ -39269,7 +39269,7 @@ local RS = game:GetService("ReplicatedStorage")
 local GameCore = require(RS.Main.GameCore)
 local Cards    = require(RS.Main.Configs.Cards)
 local Admin    = require(RS.Main.Configs.Admin)
-local Monet    = require(RS.Main.Configs.Monet)
+local Monet    = require(RS.Main.Configs.Monetization)
 local Shime    = require(RS.Main.Modules.Shime)
 
 local L  = Players.LocalPlayer
@@ -39325,8 +39325,8 @@ local RARITY_COLORS = {
 }
 
 local REQUIRE = {
-	AutoScan  = { rolls = 150,   gamepassId = (Monet.Gamepasses.AutoRoll  and Monet.Gamepasses.AutoRoll.id  or 0) },
-	QuickScan = { rolls = 10000, gamepassId = (Monet.Gamepasses.QuickRoll and Monet.Gamepasses.QuickRoll.id or 0) },
+	AutoScan  = { rolls = 150,   gamepassId = (Monetization.Gamepasses.AutoRoll  and Monetization.Gamepasses.AutoRoll.id  or 0) },
+	QuickScan = { rolls = 10000, gamepassId = (Monetization.Gamepasses.QuickRoll and Monetization.Gamepasses.QuickRoll.id or 0) },
 }
 
 local scans, ready, busy = 0, false, false
