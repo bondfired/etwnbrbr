@@ -968,10 +968,10 @@ func _setup_office_pan():
 
 	# Stretch background to cover the full panning range
 	var bg = $Background
-	var tex_w = bg.texture.get_width()
+	var tex_w = bg.texture.get_width() * bg.scale.x
 	var needed_w = 1152.0 + PAN_MAX * 2.0
-	bg.scale.x = needed_w / float(tex_w)
-	bg.position.x = needed_w / 2.0
+	bg.scale.x *= needed_w / tex_w
+	bg.position.x = 576.0
 
 	left_door.position.x -= PAN_MAX
 	right_door.position.x += PAN_MAX
