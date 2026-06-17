@@ -187,6 +187,17 @@ var sfx_tung_swing: AudioStreamPlayer
 var sfx_wake_up: AudioStreamPlayer
 var _power_warn_playing: bool = false
 
+# ── Office flashlight ─────────────────────────────────────────────────────────
+var flashlight_btn_left: Button
+var flashlight_btn_right: Button
+var flashlight_reveal_label: Label
+var flashlight_overlay: ColorRect
+var sfx_appear: AudioStreamPlayer
+const FLASHLIGHT_DURATION: float = 1.5
+var flashlight_timer: float = 0.0
+var flashlight_active: bool = false
+const FLASHLIGHT_IMMUNE: Array = ["Jace", "Blitz", "Doggie", "Kolzaru", "Tung"]
+
 func _is_goku_active() -> bool:
 	if GameManager.is_custom_night:
 		return GameManager.custom_ai.get("Goku", 0) > 0
@@ -236,6 +247,7 @@ func _ready():
 	_build_gameover_overlay()
 	_build_win_overlay()
 	_build_sleep_ui()
+	_build_flashlight_ui()
 	_build_audio()
 	_build_night_intro()  # must be absolute last — covers everything
 
@@ -286,6 +298,7 @@ func _process(delta: float):
 	_process_kolzaru(delta)
 	_process_jace(delta)
 	_process_sleep(delta)
+	_process_flashlight(delta)
 
 	if _is_goku_active():
 		db_hud_label.text   = "Dragon Balls: %d / 7" % db_found
@@ -454,6 +467,8 @@ func _on_camera_button_pressed():
 	camera_open = !camera_open
 	GameManager.camera_open = camera_open
 	cam_overlay.visible = camera_open
+	flashlight_btn_left.visible = not camera_open
+	flashlight_btn_right.visible = not camera_open
 	if camera_open:
 		sfx_camera_up.play()
 		_update_cam_display()
@@ -929,6 +944,91 @@ func _wake_up():
 		sleep_bot.position.y = 648
 	if sleep_label != null:
 		sleep_label.visible = false
+
+# ── Office flashlight ─────────────────────────────────────────────────────────
+func _build_flashlight_ui():
+	sfx_appear = AudioStreamPlayer.new()
+	sfx_appear.stream = load("res://sounds/appear.ogg")
+	add_child(sfx_appear)
+
+	flashlight_btn_left = Button.new()
+	flashlight_btn_left.text = "FLASH LEFT DOOR"
+	flashlight_btn_left.set_position(Vector2(10, 576))
+	flashlight_btn_left.set_size(Vector2(180, 40))
+	flashlight_btn_left.add_theme_font_size_override("font_size", 14)
+	flashlight_btn_left.pressed.connect(_flash_door.bind("LEFT_DOOR"))
+	hud_layer.add_child(flashlight_btn_left)
+
+	flashlight_btn_right = Button.new()
+	flashlight_btn_right.text = "FLASH RIGHT DOOR"
+	flashlight_btn_right.set_position(Vector2(962, 576))
+	flashlight_btn_right.set_size(Vector2(180, 40))
+	flashlight_btn_right.add_theme_font_size_override("font_size", 14)
+	flashlight_btn_right.pressed.connect(_flash_door.bind("RIGHT_DOOR"))
+	hud_layer.add_child(flashlight_btn_right)
+
+	flashlight_overlay = ColorRect.new()
+	flashlight_overlay.set_anchors_preset(Control.PRESET_FULL_RECT)
+	flashlight_overlay.color = Color(1, 1, 1, 0.08)
+	flashlight_overlay.mouse_filter = Control.MOUSE_FILTER_IGNORE
+	flashlight_overlay.visible = false
+	hud_layer.add_child(flashlight_overlay)
+
+	flashlight_reveal_label = Label.new()
+	flashlight_reveal_label.set_position(Vector2(176, 340))
+	flashlight_reveal_label.set_size(Vector2(800, 40))
+	flashlight_reveal_label.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
+	flashlight_reveal_label.add_theme_font_size_override("font_size", 28)
+	flashlight_reveal_label.add_theme_color_override("font_color", Color(1.0, 0.85, 0.0))
+	flashlight_reveal_label.visible = false
+	hud_layer.add_child(flashlight_reveal_label)
+
+func _flash_door(door_side: String):
+	if camera_open or flashlight_active:
+		return
+	flashlight_active = true
+	flashlight_timer = 0.0
+	flashlight_overlay.visible = true
+	sfx_flash.play()
+
+	var found: Array = []
+	for anim_name in ANIMATRONICS:
+		if anim_name in FLASHLIGHT_IMMUNE:
+			continue
+		var state = anim_state[anim_name]
+		if not state.get("active", false):
+			continue
+		var path = ANIMATRONICS[anim_name]["path"]
+		var door = path[-1]
+		if door == "DOOR":
+			door = state.get("target_door", "LEFT_DOOR")
+		if door != door_side:
+			continue
+		if state["index"] >= path.size() - 1:
+			found.append(anim_name)
+
+	if owen_at_door and door_side == "LEFT_DOOR" and "Owen" not in FLASHLIGHT_IMMUNE:
+		if "Owen" not in found:
+			found.append("Owen")
+
+	if found.size() > 0:
+		flashlight_reveal_label.text = "!! %s !!" % " & ".join(found)
+		flashlight_reveal_label.visible = true
+		sfx_appear.play()
+	else:
+		flashlight_reveal_label.text = "[ Clear ]"
+		flashlight_reveal_label.visible = true
+
+func _process_flashlight(delta: float):
+	if not flashlight_active:
+		return
+	flashlight_timer += delta
+	if flashlight_timer >= FLASHLIGHT_DURATION:
+		flashlight_active = false
+		flashlight_overlay.visible = false
+		flashlight_reveal_label.visible = false
+	flashlight_btn_left.visible = not camera_open and not flashlight_active
+	flashlight_btn_right.visible = not camera_open and not flashlight_active
 
 func _make_sfx(path: String, loop: bool = false, vol: float = 0.0) -> AudioStreamPlayer:
 	var player = AudioStreamPlayer.new()
