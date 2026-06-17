@@ -744,7 +744,7 @@ local function tween(i, ti, props) return TweenService:Create(i, ti, props) end
 local function setPercent(p)
 	p = math.clamp(p or 0, 0, 1)
 	Fill.Size = UDim2.fromScale(p, 1)
-	PercentLabel.Text = (math.floor(p * 100 + 0.5)) .. "%"
+	PercentLabel.Text = (math.floor(p*100 + 0.5)) .. "%"
 end
 
 local shimmer
@@ -792,6 +792,15 @@ local function preloadUI()
 	for _, inst in ipairs(collectImages(LoadingScreen)) do table.insert(assets, inst) end
 	for _, inst in ipairs(collectImages(GUI)) do table.insert(assets, inst) end
 	if #assets > 0 then pcall(function() ContentProvider:PreloadAsync(assets) end) end
+end
+
+local function preloadItemIcons()
+	if not okItems or type(ItemsCfg) ~= "table" then return end
+	local icons = {}
+	for _, def in pairs(ItemsCfg) do
+		if typeof(def) == "table" and def.icon then table.insert(icons, def.icon) end
+	end
+	if #icons > 0 then pcall(function() ContentProvider:PreloadAsync(icons) end) end
 end
 
 local function isClientSafe(mod: ModuleScript): boolean
@@ -871,7 +880,7 @@ end
 
 task.spawn(function()
 	setPercent(0)
-	LoadText.Text = "Loading SoundScape..."
+	LoadText.Text = "Loading…"
 	logoIntro()
 
 	requestProgress(0.06); preloadUI()
@@ -885,17 +894,15 @@ task.spawn(function()
 	end
 	requestProgress(0.36)
 
-	LoadText.Text = "Connecting..."; waitForCore(8); requestProgress(0.46)
-	LoadText.Text = "Syncing data..."; warmRoutes(); requestProgress(0.62)
+	LoadText.Text = "Connecting…"; waitForCore(8); requestProgress(0.46)
+	LoadText.Text = "Syncing data…"; warmRoutes(); requestProgress(0.62)
 	waitForDataLoaded(12); requestProgress(0.80)
 
-	LoadText.Text = "Tuning frequencies..."; task.wait(0.25); requestProgress(0.92)
-	LoadText.Text = "Ready to drop..."; task.wait(0.25); requestProgress(0.98)
+	LoadText.Text = "Caching assets…"; preloadItemIcons(); requestProgress(0.92)
+	LoadText.Text = "Finalizing…"; task.wait(0.25); requestProgress(0.98)
 
 	finishAndHide()
-end)
-
-]]></ProtectedString>
+end)]]></ProtectedString>
 				<bool name="Disabled">false</bool>
 				<Content name="LinkedSource"><null></null></Content>
 				<token name="RunContext">0</token>
@@ -1467,40 +1474,21 @@ local Promise  = require(RS.Main.GameCore.Promise)
 local Async    = require(RS.Main.GameCore.AsyncTasks)
 local MathX    = require(RS.Main.GameCore.MathX)
 
-GameCore.Configure({
+GameCore.Configure({ 	
 	Roots = {
 		Services = RS.Main.Services,
 		Controllers = RS.Main.Controllers,
 	},
 	Promise = Promise,
 	Async   = Async,
+	
 })
 
 task.spawn(function()
-	local okPT, PingTimes = pcall(require, RS.Main.Modules.PingTimes)
-	if okPT then GameCore.PingTimes = PingTimes end
-
-	local ok, err = pcall(function()
-		GameCore.Auto()
-	end)
-
-	if ok then
-		print("[Client] GameCore Started")
-	else
-		warn("[Client] GameCore.Auto() error:", tostring(err))
-		warn("[Client] Retrying in 2 seconds...")
-		task.wait(2)
-		local ok2, err2 = pcall(function()
-			GameCore.Auto()
-		end)
-		if ok2 then
-			print("[Client] GameCore Started (retry)")
-		else
-			warn("[Client] GameCore.Auto() retry failed:", tostring(err2))
-		end
-	end
-end)
-]]></ProtectedString>
+	GameCore.PingTimes = require(RS.Main.Modules.PingTimes)
+	GameCore.Auto()
+	print("[Client] Gamecore Started")
+end)]]></ProtectedString>
 					<bool name="Disabled">false</bool>
 					<Content name="LinkedSource"><null></null></Content>
 					<token name="RunContext">0</token>
@@ -39286,10 +39274,11 @@ local MarketplaceService = game:GetService("MarketplaceService")
 local RS = game:GetService("ReplicatedStorage")
 
 local GameCore = require(RS.Main.GameCore)
-local Cards    = require(RS.Main.Configs.Cards)
+local Monet    = require(RS.Main.Configs.Monetization)
+local MarketClient = require(RS.Main.Modules.MarketClient)
+local Shime = require(RS.Main.Modules.Shime)
 local Admin    = require(RS.Main.Configs.Admin)
-local Monetization = require(RS.Main.Configs.Monetization)
-local Shime    = require(RS.Main.Modules.Shime)
+local Cards    = require(RS.Main.Configs.Cards)
 
 local L  = Players.LocalPlayer
 local PG = L:WaitForChild("PlayerGui")
@@ -39298,8 +39287,8 @@ local GUI = PG:WaitForChild("Main")
 local C = { Name = "RNGController", AutoRoutes = {"EconomyService","RNGService","MarketService","UpgradeService"} }
 
 local Buttons      = GUI.Bottom.RollButtonsHolder
-local ScanBtn      = Buttons.RollButton:WaitForChild("TextButton") :: TextButton
-local ScanMain     = Buttons.RollButton.Main
+local RollBtn      = Buttons.RollButton:WaitForChild("TextButton") :: TextButton
+local RollMain     = Buttons.RollButton.Main
 local QuickBtn     = Buttons.QuickRollButton:WaitForChild("TextButton") :: TextButton
 local QuickMain    = Buttons.QuickRollButton.Main
 local QuickText    = QuickMain.QuickRollText
@@ -39312,7 +39301,7 @@ local AutoStroke   = AutoMain.UIStroke
 local LevelBar     = GUI.Bottom.LevelBar
 local Fill         = LevelBar.Fill
 local LevelText    = LevelBar.LevelText
-local ScanText     = LevelBar.RollText
+local RollText     = LevelBar.RollText
 
 local RF           = GUI.RollFrame
 local MainRoll     = RF.MainRoll
@@ -39333,131 +39322,110 @@ MRTemplate.Visible = false
 
 local GREEN = Color3.fromRGB(0,189,13)
 local RED   = Color3.fromRGB(230,60,60)
-local SCANS_CAP = 1000
-
-local RARITY_COLORS = {
-	Common   = Color3.fromRGB(180,180,180),
-	Uncommon = Color3.fromRGB(80,200,80),
-	Rare     = Color3.fromRGB(60,120,255),
-	Epic     = Color3.fromRGB(180,60,255),
-	Mythic   = Color3.fromRGB(255,200,40),
-}
+local ROLLS_CAP = 1000
 
 local REQUIRE = {
-	AutoScan  = { rolls = 150,   gamepassId = (Monetization.Gamepasses.AutoRoll  and Monetization.Gamepasses.AutoRoll.id  or 0) },
-	QuickScan = { rolls = 10000, gamepassId = (Monetization.Gamepasses.QuickRoll and Monetization.Gamepasses.QuickRoll.id or 0) },
+	AutoRoll  = { rolls = 150,   gamepassId = (Monet.Gamepasses.AutoRoll  and Monet.Gamepasses.AutoRoll.id  or 0) },
+	QuickRoll = { rolls = 10000, gamepassId = (Monet.Gamepasses.QuickRoll and Monet.Gamepasses.QuickRoll.id or 0) },
 }
 
-local scans, ready, busy = 0, false, false
+local rolls, ready, busy = 0, false, false
 local autoOn, quickOn = false, false
 local fullyLoaded = false
 local ownsQuick, ownsAuto = false, false
 local autoTickerRunning = false
+
 local animating = false
 local awaiting = false
 
-local BASE_MIN_SCAN_GAP   = 0.25
+local BASE_MIN_ROLL_GAP   = 0.25
 local BASE_AUTO_GAP_MAIN  = 0.75
 local BASE_AUTO_GAP_QUICK = 0.40
 
-local effMinGap   = BASE_MIN_SCAN_GAP
+local effMinGap   = BASE_MIN_ROLL_GAP
 local effAutoMain = BASE_AUTO_GAP_MAIN
 local effAutoQuick= BASE_AUTO_GAP_QUICK
 
-local function applyScanSpeed(lv:number)
+local function applyRollSpeed(lv:number)
 	local mult = 1 + 0.03 * math.max(0, lv or 0)
-	effMinGap    = math.max(0.08, BASE_MIN_SCAN_GAP   / mult)
+	effMinGap    = math.max(0.08, BASE_MIN_ROLL_GAP   / mult)
 	effAutoMain  = math.max(0.18, BASE_AUTO_GAP_MAIN  / mult)
 	effAutoQuick = math.max(0.12, BASE_AUTO_GAP_QUICK / mult)
 end
-applyScanSpeed(0)
+applyRollSpeed(0)
 
-local lastScanT  = 0
+local lastRollT  = 0
 local nextAutoAt = 0
 
 local function tween(i:Instance, ti:TweenInfo, props:any) return TweenService:Create(i, ti, props) end
-local function setBusy(b:boolean) busy = b; ScanBtn.Active = not b and fullyLoaded end
-local function setAuto(on:boolean) autoOn = on; AutoText.Text = on and "Auto Scan: On" or "Auto Scan: Off"; AutoStroke.Color = on and GREEN or RED end
-local function setQuick(on:boolean) quickOn = on; QuickText.Text = on and "Quick Scan: On" or "Quick Scan: Off"; QuickStroke.Color = on and GREEN or RED end
+local function setBusy(b:boolean) busy = b; RollBtn.Active = not b and fullyLoaded end
+local function setAuto(on:boolean) autoOn = on; AutoText.Text = on and "Auto Roll: On" or "Auto Roll: Off"; AutoStroke.Color = on and GREEN or RED end
+local function setQuick(on:boolean) quickOn = on; QuickText.Text = on and "Quick Roll: On" or "Quick Roll: Off"; QuickStroke.Color = on and GREEN or RED end
 local function promptPass(key:string) GameCore.Fire("MarketService","PromptPass",{ key = key }) end
 
-local function asNumberScans(v:any): number
+local function asProb(n:number?): number?
+	if not n or n <= 0 then return nil end
+	if n > 1 then return 1 / n end
+	return n
+end
+
+local function normalizeWeight(id: string, raw: number?): number?
+	local cfg = Cards.ById and Cards.ById[id]
+	if cfg and tonumber(cfg.rollPower) and cfg.rollPower > 0 then
+		return 1 / cfg.rollPower
+	end
+	if Cards.RollWeights and Cards.RollWeights[id] then
+		return Cards.RollWeights[id]
+	end
+	return asProb(raw)
+end
+
+local function visualsFor(result)
+	local cfg   = Cards.ById and Cards.ById[result.id]
+	local image = result.image or (cfg and cfg.image) or ""
+	local color = result.color or (cfg and cfg.color) or nil
+	local raw   = result.weight or result.chance or result.rollPower
+	local w     = normalizeWeight(result.id, raw)
+	return image, color, w
+end
+
+local function oneInTextFromWeight(w:number?)
+	if not w or w <= 0 then return "" end
+	local denom = math.max(1, math.floor((1 / w) + 0.5))
+	local s = tostring(denom):reverse():gsub("(%d%d%d)","%1,"):reverse():gsub("^,","")
+	return ("1 in %s"):format(s)
+end
+
+local function norm(s) return (string.lower((s or ""):match("^%s*(.-)%s*$"))) end
+local function sanitizeRarity(r)
+	if not r or r == "" then return nil end
+	r = norm(r); if r == "all blue" then r = "allblue" end
+	for k,_ in pairs(Cards.Rarity) do if norm(k) == r then return k end end
+	return nil
+end
+
+local function buildForcePayload()
+	local forceRarity = sanitizeRarity(L:GetAttribute("ForceNextRarity"))
+	local forceCard   = L:GetAttribute("ForceNextCard")
+	if forceCard and Cards.ById[norm(forceCard)] then forceCard = Cards.ById[norm(forceCard)].id end
+	if forceRarity or forceCard then return { rarity = forceRarity, id = forceCard } end
+	return nil
+end
+
+local function clearForce()
+	L:SetAttribute("ForceNextCard", nil)
+	L:SetAttribute("ForceNextRarity", nil)
+end
+
+local function asNumberRolls(v:any): number
 	if type(v) == "number" then return v end
 	if type(v) == "table" then return tonumber(v.rolls or v.current or v.value) or 0 end
 	return tonumber(v) or 0
 end
 
-local function fragmentLabel(result)
-	local cfg = Cards.ById and Cards.ById[result.collectibleId or result.id]
-	local cName = cfg and cfg.name or (result.name or result.collectibleId or result.id or "???")
-	local fType = result.fragmentType or "Fragment"
-	local fRarity = result.fragmentRarity or result.rarity or "Common"
-	return cName, fType, fRarity
-end
-
-local function rarityColor(r: string): Color3
-	return RARITY_COLORS[r] or Color3.fromRGB(180,180,180)
-end
-
-local function isPlaceholderImage(img: string?): boolean
-	if not img or img == "" then return true end
-	if img == "rbxassetid://0" or img == "rbxassetid://000" then return true end
-	return false
-end
-
-local _nameLabel: TextLabel? = nil
-local function getNameLabel(): TextLabel
-	if _nameLabel and _nameLabel.Parent then return _nameLabel end
-	local lbl = MainRoll:FindFirstChild("CardNameLabel")
-	if lbl then
-		_nameLabel = lbl
-		return lbl
-	end
-	lbl = Instance.new("TextLabel")
-	lbl.Name = "CardNameLabel"
-	lbl.AnchorPoint = Vector2.new(0.5, 0)
-	lbl.Position = UDim2.new(0.5, 0, 0.05, 0)
-	lbl.Size = UDim2.new(0.9, 0, 0.25, 0)
-	lbl.BackgroundTransparency = 1
-	lbl.Font = Enum.Font.GothamBold
-	lbl.TextColor3 = Color3.new(1,1,1)
-	lbl.TextScaled = true
-	lbl.TextStrokeTransparency = 0.4
-	lbl.TextStrokeColor3 = Color3.new(0,0,0)
-	lbl.ZIndex = 10
-	lbl.Parent = MainRoll
-	_nameLabel = lbl
-	return lbl
-end
-
-local _artistLabel: TextLabel? = nil
-local function getArtistLabel(): TextLabel
-	if _artistLabel and _artistLabel.Parent then return _artistLabel end
-	local lbl = MainRoll:FindFirstChild("ArtistNameLabel")
-	if lbl then
-		_artistLabel = lbl
-		return lbl
-	end
-	lbl = Instance.new("TextLabel")
-	lbl.Name = "ArtistNameLabel"
-	lbl.AnchorPoint = Vector2.new(0.5, 0)
-	lbl.Position = UDim2.new(0.5, 0, 0.30, 0)
-	lbl.Size = UDim2.new(0.8, 0, 0.15, 0)
-	lbl.BackgroundTransparency = 1
-	lbl.Font = Enum.Font.Gotham
-	lbl.TextColor3 = Color3.fromRGB(220, 220, 220)
-	lbl.TextScaled = true
-	lbl.TextStrokeTransparency = 0.6
-	lbl.TextStrokeColor3 = Color3.new(0,0,0)
-	lbl.ZIndex = 10
-	lbl.Parent = MainRoll
-	_artistLabel = lbl
-	return lbl
-end
-
 local function burstConfetti(parent: Instance, rarity: string)
-	if rarity ~= "Epic" and rarity ~= "Mythic" then return end
-	local count = (rarity == "Mythic") and 26 or 14
+	if rarity ~= "AllBlue" and rarity ~= "All Blue" and rarity ~= "Secret" then return end
+	local count = (rarity == "Secret") and 26 or 14
 	for i = 1, count do
 		local p = Instance.new("Frame")
 		p.Name = "Confetti"
@@ -39514,13 +39482,13 @@ local function canBypassQuick() return Admin.CanBypassQuick(L.UserId, L.Name) ==
 
 local function hasAccessQuick(): boolean
 	if Admin and (Admin.CanBypassQuick and Admin.CanBypassQuick(L.UserId, L.Name)) then return true end
-	if REQUIRE.QuickScan.gamepassId > 0 and ownsQuick then return true end
-	return asNumberScans(scans) >= (REQUIRE.QuickScan.rolls or 0)
+	if REQUIRE.QuickRoll.gamepassId > 0 and ownsQuick then return true end
+	return asNumberRolls(rolls) >= (REQUIRE.QuickRoll.rolls or 0)
 end
 local function hasAccessAuto(): boolean
 	if Admin and (Admin.CanBypassAuto and Admin.CanBypassAuto(L.UserId, L.Name)) then return true end
-	if REQUIRE.AutoScan.gamepassId > 0 and ownsAuto then return true end
-	return asNumberScans(scans) >= (REQUIRE.AutoScan.rolls or 0)
+	if REQUIRE.AutoRoll.gamepassId > 0 and ownsAuto then return true end
+	return asNumberRolls(rolls) >= (REQUIRE.AutoRoll.rolls or 0)
 end
 
 local function kickAuto()
@@ -39530,25 +39498,26 @@ local function kickAuto()
 	end
 end
 
-local function safeScan(amount: number)
+local function safeRoll(amount: number)
 	if not fullyLoaded then return end
 	local t = os.clock()
-	if busy or animating or (t - lastScanT) < effMinGap then return end
-	lastScanT = t
+	if busy or animating or (t - lastRollT) < effMinGap then return end
+	lastRollT = t
+
 	setBusy(true)
 	animating = true
 	awaiting = true
 	openOverlay()
-	task.delay(6.0, function()
+
+	task.delay(2.0, function()
 		if awaiting then
 			awaiting = false
-			warn("[RNGController] Roll timed out after 6 seconds")
 			closeOverlay(function()
 				setBusy(false); animating = false; kickAuto()
 			end)
 		end
 	end)
-	print("[RNGController] Firing RequestRoll amount=", amount)
+
 	GameCore.Fire("RNGService","RequestRoll", { amount = amount, rid = math.floor(t*1000) })
 end
 
@@ -39558,7 +39527,7 @@ function startAutoTicker()
 	task.spawn(function()
 		while autoOn do
 			if fullyLoaded and hasAccessAuto() and os.clock() >= nextAutoAt then
-				safeScan(1)
+				safeRoll(1)
 				nextAutoAt = os.clock() + (quickOn and effAutoQuick or effAutoMain)
 			end
 			task.wait(0.05)
@@ -39572,71 +39541,40 @@ local function updateLocks()
 	QuickBtn:SetAttribute("Unlocked", qHas)
 	QuickStroke.Color = (qHas and quickOn) and GREEN or RED
 	if qHas then
-		QuickText.Text = quickOn and "Quick Scan: On" or "Quick Scan: Off"
+		QuickText.Text = quickOn and "Quick Roll: On" or "Quick Roll: Off"
 	else
-		QuickText.Text = (REQUIRE.QuickScan.gamepassId > 0 and not canBypassQuick())
-			and "Quick Scan: Buy"
-			or ("Quick Scan: "..tostring(REQUIRE.QuickScan.rolls).." Scans")
+		QuickText.Text = (REQUIRE.QuickRoll.gamepassId > 0 and not canBypassQuick())
+			and "Quick Roll: Buy"
+			or ("Quick Roll: "..tostring(REQUIRE.QuickRoll.rolls).." Rolls")
 	end
+
 	local aHas = hasAccessAuto()
 	AutoBtn:SetAttribute("Unlocked", aHas)
 	AutoBtn.AutoButtonColor = aHas
 	AutoStroke.Color = (aHas and autoOn) and GREEN or RED
 	if aHas then
-		AutoText.Text = autoOn and "Auto Scan: On" or "Auto Scan: Off"
+		AutoText.Text = autoOn and "Auto Roll: On" or "Auto Roll: Off"
 	else
-		AutoText.Text = (REQUIRE.AutoScan.gamepassId > 0 and not canBypassAuto())
-			and "Auto Scan: Buy"
-			or ("Auto Scan: "..tostring(REQUIRE.AutoScan.rolls).." Scans")
+		AutoText.Text = (REQUIRE.AutoRoll.gamepassId > 0 and not canBypassAuto())
+			and "Auto Roll: Buy"
+			or ("Auto Roll: "..tostring(REQUIRE.AutoRoll.rolls).." Rolls")
 	end
 end
 
 local function animateMain(result)
 	openOverlay()
 	MultiRoll.Visible = false
+
 	MainRoll.Visible  = true
 	QuickRoll.Visible = false
 	MainRoll.AnchorPoint = Vector2.new(0.5, 0.5)
 	MainRoll.Position    = UDim2.fromScale(0.5, 0.5)
 
-	local cName, fType, fRarity = fragmentLabel(result)
-	local cfg = Cards.ById and Cards.ById[result.collectibleId or result.id]
-	local image = (cfg and cfg.image) or ""
-	local color = rarityColor(fRarity)
-	local artist = (cfg and cfg.artist) or result.artist or ""
-
-	print("[RNGController] Showing result:", cName, fType, fRarity)
-
-	local nameLabel = getNameLabel()
-	nameLabel.Text = cName
-	nameLabel.TextColor3 = color
-	nameLabel.Visible = true
-
-	local artistLbl = getArtistLabel()
-	artistLbl.Text = artist
-	artistLbl.Visible = artist ~= ""
-
-	if isPlaceholderImage(image) then
-		MainImage.Image = ""
-		MainImage.BackgroundColor3 = color
-		MainImage.BackgroundTransparency = 0.15
-	else
-		MainImage.Image = image
-		MainImage.BackgroundTransparency = 1
-	end
-
-	MainImage.ImageColor3 = color
+	local image, color, w = visualsFor(result)
+	if color then MainImage.ImageColor3 = color end
+	MainImage.Image = image or ""
 	MainImage.ImageTransparency = 1
-	MainRarity.Text = fType .. " — " .. fRarity
-	MainRarity.TextColor3 = color
-
-	if MainGrad then
-		local rcfg = Cards.Rarity[fRarity]
-		if rcfg and rcfg.uiGradient then
-			MainGrad.Color = rcfg.uiGradient.Color
-			MainGrad.Transparency = rcfg.uiGradient.Transparency
-		end
-	end
+	MainRarity.Text = oneInTextFromWeight(w)
 
 	local s = MainRoll:FindFirstChildOfClass("UIScale") or Instance.new("UIScale", MainRoll)
 	s.Scale = 0.85
@@ -39653,8 +39591,8 @@ local function animateMain(result)
 	}):Play()
 	task.wait(0.18)
 
-	local ok, shime = pcall(Shime.new, MainImage, 1, Enum.EasingStyle.Exponential, Enum.EasingDirection.InOut)
-	if ok and shime then pcall(function() shime:Play() end) end
+	local shime = Shime.new(MainImage, 1, Enum.EasingStyle.Exponential, Enum.EasingDirection.InOut)
+	shime:Play()
 
 	tween(s, TweenInfo.new(0.12, Enum.EasingStyle.Quad, Enum.EasingDirection.InOut), { Scale = 1.00 }):Play()
 	tween(MainImage, TweenInfo.new(0.12, Enum.EasingStyle.Quad, Enum.EasingDirection.InOut), {
@@ -39662,15 +39600,9 @@ local function animateMain(result)
 	}):Play()
 	task.wait(0.12)
 
-	burstConfetti(MainRoll, fRarity)
-
-	task.wait(1.8)
-
-	nameLabel.Visible = false
-	artistLbl.Visible = false
-	if isPlaceholderImage(image) then
-		MainImage.BackgroundTransparency = 1
-	end
+	local cfg = Cards.ById and Cards.ById[result.id]
+	local rar = cfg and (cfg.rarity == "All Blue" and "AllBlue" or cfg.rarity) or "Basic"
+	burstConfetti(MainRoll, rar)
 
 	closeOverlay(function()
 		setBusy(false)
@@ -39682,56 +39614,44 @@ end
 local function animateQuick(result)
 	openOverlay()
 	MultiRoll.Visible = false
+
 	MainRoll.Visible  = false
 	QuickRoll.Visible = true
 	QuickRoll.AnchorPoint = Vector2.new(0.5, 0.5)
-	QuickRoll.Position    = UDim2.fromScale(0.5, 0.5)
+	QuickRoll.Position    = UDim2.fromScale(0.505, 0.67)
 
-	local cName, fType, fRarity = fragmentLabel(result)
-	local cfg = Cards.ById and Cards.ById[result.collectibleId or result.id]
-	local image = (cfg and cfg.image) or ""
-	local color = rarityColor(fRarity)
-
-	if isPlaceholderImage(image) then
-		QuickImage.Image = ""
-		QuickImage.BackgroundColor3 = color
-		QuickImage.BackgroundTransparency = 0.15
-	else
-		QuickImage.Image = image
-		QuickImage.BackgroundTransparency = 1
-	end
-
-	QuickImage.ImageColor3 = color
+	local image, color, w = visualsFor(result)
+	if color then QuickImage.ImageColor3 = color end
+	QuickImage.Image = image or ""
 	QuickImage.ImageTransparency = 1
-	QuickRarity.Text = cName .. " · " .. fType .. " — " .. fRarity
-	QuickRarity.TextColor3 = color
-
-	if QuickGrad then
-		local rcfg = Cards.Rarity[fRarity]
-		if rcfg and rcfg.uiGradient then
-			QuickGrad.Color = rcfg.uiGradient.Color
-			QuickGrad.Transparency = rcfg.uiGradient.Transparency
-		end
-	end
+	QuickRarity.Text = oneInTextFromWeight(w)
 
 	local s = QuickRoll:FindFirstChildOfClass("UIScale") or Instance.new("UIScale", QuickRoll)
-	s.Scale = 0.9
-	tween(s, TweenInfo.new(0.12, Enum.EasingStyle.Back, Enum.EasingDirection.Out), { Scale = 1.05 }):Play()
-	tween(QuickImage, TweenInfo.new(0.14, Enum.EasingStyle.Quad, Enum.EasingDirection.Out), {
-		ImageTransparency = 0
-	}):Play()
-	task.wait(0.14)
+	s.Scale = 0.92
+	tween(s, TweenInfo.new(0.12, Enum.EasingStyle.Back, Enum.EasingDirection.Out), { Scale = 1.03 }):Play()
 
-	tween(s, TweenInfo.new(0.08, Enum.EasingStyle.Quad, Enum.EasingDirection.InOut), { Scale = 1.00 }):Play()
+	QuickImage.Size = UDim2.fromOffset(18, 22)
+	tween(QuickImage, TweenInfo.new(0.12, Enum.EasingStyle.Quad, Enum.EasingDirection.Out), {
+		Size = UDim2.fromOffset(161, 194), ImageTransparency = 0
+	}):Play()
+	task.wait(0.12)
+
+	tween(QuickImage, TweenInfo.new(0.08, Enum.EasingStyle.Back, Enum.EasingDirection.Out), {
+		Size = UDim2.fromOffset(170, 204)
+	}):Play()
 	task.wait(0.08)
 
-	burstConfetti(QuickRoll, fRarity)
+	local shime = Shime.new(QuickImage, 1, Enum.EasingStyle.Exponential, Enum.EasingDirection.InOut)
+	shime:Play()
 
-	task.wait(0.6)
+	tween(QuickImage, TweenInfo.new(0.06, Enum.EasingStyle.Quad, Enum.EasingDirection.Out), {
+		Size = UDim2.fromOffset(161, 194)
+	}):Play()
+	task.wait(0.06)
 
-	if isPlaceholderImage(image) then
-		QuickImage.BackgroundTransparency = 1
-	end
+	local cfg = Cards.ById and Cards.ById[result.id]
+	local rar = cfg and (cfg.rarity == "All Blue" and "AllBlue" or cfg.rarity) or "Basic"
+	burstConfetti(QuickRoll, rar)
 
 	closeOverlay(function()
 		setBusy(false)
@@ -39740,9 +39660,20 @@ local function animateQuick(result)
 	end)
 end
 
+RF.InputBegan:Connect(function(input, gp)
+	if gp then return end
+	if input.UserInputType == Enum.UserInputType.MouseButton1
+		or input.UserInputType == Enum.UserInputType.Touch then
+		if animating then return end 
+		closeOverlay()
+	end
+end)
+
 local function clearMulti()
-	for _,c in ipairs(MultiRoll:GetChildren()) do
-		if c:IsA("Frame") and c.Name ~= "Template" then c:Destroy() end
+	for _, child in ipairs(MultiRoll:GetChildren()) do
+		if child:IsA("Frame") and child.Name ~= "Template" then
+			child:Destroy()
+		end
 	end
 end
 
@@ -39751,32 +39682,26 @@ local function showMulti(results: {any})
 	MainRoll.Visible = false
 	QuickRoll.Visible = false
 	MultiRoll.Visible = true
+
 	clearMulti()
+
 	for _,res in ipairs(results) do
 		local f = MRTemplate:Clone()
 		f.Visible = true
 		local img = f:FindFirstChild("Icon")
 		if img and img:IsA("ImageLabel") then
-			local cfg = Cards.ById[res.collectibleId or res.id]
-			local color = rarityColor(res.fragmentRarity or res.rarity or "Common")
-			if isPlaceholderImage((cfg and cfg.image) or "") then
-				img.Image = ""
-				img.BackgroundColor3 = color
-				img.BackgroundTransparency = 0.2
-			else
-				img.Image = (cfg and cfg.image) or ""
-				img.BackgroundTransparency = 1
-			end
-			img.ImageColor3 = color
+			local cfg = Cards.ById[res.id]
+			img.Image = (res.image or (cfg and cfg.image)) or ""
 		end
 		local rar = f:FindFirstChild("RarityText")
 		if rar and rar:IsA("TextLabel") then
-			local cName = res.name or (res.collectibleId or res.id or "???")
-			rar.Text = cName .. " · " .. (res.fragmentType or "Fragment") .. " — " .. (res.fragmentRarity or "Common")
+			local w = normalizeWeight(res.id, res.weight or res.chance or res.rollPower)
+			rar.Text = oneInTextFromWeight(w)
 		end
 		f.Parent = MultiRoll
 	end
-	task.delay(3.0, function()
+
+	task.delay(2.0, function()
 		if MultiRoll.Visible then
 			closeOverlay(function()
 				setBusy(false)
@@ -39791,9 +39716,9 @@ function C:OnRoute(route, method, payload)
 	if route == "EconomyService" then
 		if method == "RollsUpdate" then
 			ready = true
-			scans = payload
-			local n = asNumberScans(payload)
-			ScanText.Text = ("%d/%d scans"):format(math.min(n, SCANS_CAP), SCANS_CAP)
+			rolls = payload
+			local n = asNumberRolls(payload)
+			RollText.Text = ("%d/%d rolls"):format(math.min(n, ROLLS_CAP), ROLLS_CAP)
 			updateLocks()
 			setBusy(busy)
 			kickAuto()
@@ -39807,32 +39732,31 @@ function C:OnRoute(route, method, payload)
 
 	elseif route == "RNGService" and method == "Results" then
 		awaiting = false
-		print("[RNGController] Received Results from server")
+
 		local list
 		if typeof(payload) == "table" and payload[1] then
 			list = payload
 		elseif typeof(payload) == "table" and payload.results and payload.results[1] then
 			list = payload.results
-		elseif typeof(payload) == "table" and (payload.collectibleId or payload.id) then
+		elseif typeof(payload) == "table" and payload.id then
 			list = { payload }
 		else
 			list = {}
 		end
 
-		print("[RNGController] Result count:", #list)
-
 		if #list > 1 then
 			showMulti(list)
 		elseif #list == 1 then
 			local last = list[1]
-			print("[RNGController] Displaying:", last.id or last.collectibleId, last.fragmentType, last.fragmentRarity)
 			if quickOn then animateQuick(last) else animateMain(last) end
 		else
-			warn("[RNGController] Empty Results payload:", tostring(payload))
+			warn("[RNGController] Empty Results payload:", payload)
 			closeOverlay(function()
 				setBusy(false); animating = false; kickAuto()
 			end)
 		end
+
+		clearForce()
 		updateLocks()
 		setBusy(false)
 		kickAuto()
@@ -39846,9 +39770,9 @@ function C:OnRoute(route, method, payload)
 	elseif route == "UpgradeService" then
 		if method == "UpgradesSnapshot" then
 			local levels = payload.levels or payload.Levels or {}
-			applyScanSpeed(tonumber(levels.ScanSpeed or levels.RollSpeed or 0) or 0)
-		elseif method == "Upgraded" and (tostring(payload.id) == "ScanSpeed" or tostring(payload.id) == "RollSpeed") then
-			applyScanSpeed(tonumber(payload.level or payload.Level or 0) or 0)
+			applyRollSpeed(tonumber(levels.RollSpeed or 0) or 0)
+		elseif method == "Upgraded" and tostring(payload.id) == "RollSpeed" then
+			applyRollSpeed(tonumber(payload.level or payload.Level or 0) or 0)
 		end
 	end
 end
@@ -39861,15 +39785,15 @@ end
 
 function C:Init()
 	task.defer(function()
-		if REQUIRE.QuickScan.gamepassId > 0 then GameCore.Fire("MarketService","CheckPass",{ key="QuickRoll", rid=os.clock() }) end
-		if REQUIRE.AutoScan.gamepassId > 0  then GameCore.Fire("MarketService","CheckPass",{ key="AutoRoll",  rid=os.clock() }) end
+		if REQUIRE.QuickRoll.gamepassId > 0 then GameCore.Fire("MarketService","CheckPass",{ key="QuickRoll", rid=os.clock() }) end
+		if REQUIRE.AutoRoll.gamepassId > 0  then GameCore.Fire("MarketService","CheckPass",{ key="AutoRoll",  rid=os.clock() }) end
 	end)
 
 	MarketplaceService.PromptGamePassPurchaseFinished:Connect(function(player, passId, purchased)
 		if player ~= L then return end
-		if passId == REQUIRE.QuickScan.gamepassId and purchased then
+		if passId == REQUIRE.QuickRoll.gamepassId and purchased then
 			GameCore.Fire("MarketService","CheckPass",{ key="QuickRoll", rid=os.clock() })
-		elseif passId == REQUIRE.AutoScan.gamepassId and purchased then
+		elseif passId == REQUIRE.AutoRoll.gamepassId and purchased then
 			GameCore.Fire("MarketService","CheckPass",{ key="AutoRoll", rid=os.clock() })
 		end
 	end)
@@ -39878,7 +39802,6 @@ function C:Init()
 		while not GameCore.Ready() do task.wait(0.1) end
 		task.wait(0.4)
 		fullyLoaded = true
-		print("[RNGController] Fully loaded, scan button active")
 		updateLocks()
 		setBusy(false)
 		kickAuto()
@@ -39889,15 +39812,15 @@ function C:Start()
 	setAuto(false); setQuick(false)
 	updateLocks()
 
-	ScanBtn.MouseButton1Click:Connect(function()
+	RollBtn.MouseButton1Click:Connect(function()
 		if not fullyLoaded then return end
-		safeScan(1)
+		safeRoll(1)
 	end)
 
 	QuickBtn.MouseButton1Click:Connect(function()
 		if animating then return end
 		if not hasAccessQuick() then
-			if REQUIRE.QuickScan.gamepassId > 0 and not canBypassQuick() then
+			if REQUIRE.QuickRoll.gamepassId > 0 and not canBypassQuick() then
 				promptPass("QuickRoll")
 			else
 				nudge(QuickMain)
@@ -39911,7 +39834,7 @@ function C:Start()
 	AutoBtn.MouseButton1Click:Connect(function()
 		if animating then return end
 		if not hasAccessAuto() then
-			if REQUIRE.AutoScan.gamepassId > 0 and not canBypassAuto() then
+			if REQUIRE.AutoRoll.gamepassId > 0 and not canBypassAuto() then
 				promptPass("AutoRoll")
 			else
 				nudge(AutoMain)
@@ -39920,10 +39843,8 @@ function C:Start()
 		end
 		setAuto(not autoOn)
 		updateLocks()
-		kickAuto()
+		if autoOn then kickAuto() end
 	end)
-
-	print("[RNGController] Started, buttons connected")
 end
 
 return C
@@ -39953,7 +39874,7 @@ local GUI = L:WaitForChild("PlayerGui"):WaitForChild("Main")
 local Bar       = GUI.Bottom.LevelBar
 local Fill      = Bar:WaitForChild("Fill") :: Frame
 local LevelText = Bar:WaitForChild("LevelText") :: TextLabel
-local ScanText  = Bar:WaitForChild("RollText") :: TextLabel
+local RollText  = Bar:WaitForChild("RollText") :: TextLabel
 
 local C = { Name = "LevelController", AutoRoutes = { "EconomyService" } }
 
@@ -39994,7 +39915,7 @@ function C:OnRoute(route, method, payload)
 	local req = math.max(1, (payload.req :: number) or 1)
 
 	LevelText.Text = ("Lv. %d"):format(lvl)
-	ScanText.Text  = ("%d/%d scans"):format(math.clamp(prog, 0, req), req)
+	RollText.Text  = ("%d/%d rolls"):format(math.clamp(prog, 0, req), req)
 
 	tweenFill(prog / req)
 
@@ -40114,7 +40035,7 @@ local function buildRow(rank:number, row:any)
 
 	local rollLabel = f:FindFirstChild("RollingText")
 	if rollLabel and rollLabel:IsA("TextLabel") then
-		rollLabel.Text = ("Power: %s"):format(fmtComma(tonumber(row.power or row.rolled or 0)))
+		rollLabel.Text = ("Rolls: %s"):format(fmtComma(tonumber(row.rolled or 0)))
 	end
 end
 
@@ -40149,8 +40070,7 @@ end)
 
 Template.Visible = false
 
-return C
-]]></ProtectedString>
+return C]]></ProtectedString>
 						<string name="ScriptGuid">{CE616A97-9D30-4BBE-A7F7-17C0C4185BE4}</string>
 						<BinaryString name="AttributesSerialize"></BinaryString>
 						<SecurityCapabilities name="Capabilities">0</SecurityCapabilities>
@@ -40188,50 +40108,86 @@ local TemplateMain = MainContainer:WaitForChild("Template") :: ImageButton
 TemplateMain.Visible = false
 TemplateMain.AutoButtonColor = false
 
+local NewText = TemplateMain.NewText
+
 for _,c in ipairs({AttackContainer, SupportContainer}) do
 	local t = c:FindFirstChild("Template")
 	if t and t:IsA("GuiObject") then t.Visible = false end
 end
 
 local Filters     = InventoryFrame.Main.FiltersContainer
-local BtnAllKinds = (Filters:FindFirstChild("AllButton") or Filters:FindFirstChild("Allbutton")) :: GuiButton?
 local BtnAttack   = Filters:FindFirstChild("AttackButton")  :: GuiButton?
 local BtnSupport  = Filters:FindFirstChild("SupportButton") :: GuiButton?
+local BtnAllKinds = (Filters:FindFirstChild("AllButton") or Filters:FindFirstChild("Allbutton")) :: GuiButton?
 local BtnBasic    = Filters:FindFirstChild("BasicButton")   :: GuiButton?
 local BtnGold     = Filters:FindFirstChild("GoldButton")    :: GuiButton?
 local BtnAllBlue  = Filters:FindFirstChild("AllBlueButton"):: GuiButton?
 local BtnSecret   = Filters:FindFirstChild("SecretButton")  :: GuiButton?
 
 local SearchBox = InventoryFrame.Main.SearchBox
+
 local EmptyState: TextLabel = InventoryFrame.Main.CanvasGroup:FindFirstChild("EmptyState") :: TextLabel
 
-local RARITY_COLORS = {
-	Common   = Color3.fromRGB(180,180,180),
-	Uncommon = Color3.fromRGB(80,200,80),
-	Rare     = Color3.fromRGB(60,120,255),
-	Epic     = Color3.fromRGB(180,60,255),
-	Mythic   = Color3.fromRGB(255,200,40),
+type CardView = {
+	id: string, name: string?, count: number, equipped: boolean,
+	rarity: string, unitType: string, power: number,
+	image: string?, color: Color3?
 }
 
-local FRAG_TYPES = {"Beat","Melody","Bass","Vocal"}
-local MAX_EQUIPPED = 4
-
-type CollectibleView = {
-	id: string, name: string?, image: string?,
-	collectibleType: string, fragments: {[string]: {count: number, bestRarity: string}},
-	complete: boolean, fusionLevel: number, equipped: boolean,
-	trackRarity: string?,
-}
-
-local _items: {[string]: CollectibleView} = {}
+local _cards: {[string]: CardView} = {}
 local _ui   : {[string]: ImageButton} = {}
-local _fragments = {}
-local _completed = {}
-local _equipped  = {}
 
-local currentTab  : "Fragments"|"Completed" = "Fragments"
-local currentRarity: string = "All"
+local currentKind   : "All"|"Attack"|"Support" = "All"
+local currentRarity : "All"|"Basic"|"Gold"|"All Blue"|"Secret" = "All"
+local MAX_EQUIPPED = 1
+
 local searchQuery = ""
+
+-- ===== Helpers =====
+local function rarityKeyForUI(r:string): string
+	if r == "AllBlue" then return "All Blue" end
+	return r
+end
+local function rarityKeyForCfg(r:string): string
+	return (r == "All Blue") and "AllBlue" or r
+end
+
+local function applyRarityGradient(target: Instance, rarity: string)
+	local rk = rarityKeyForCfg(rarity)
+	local r = Cards.Rarity[rk]
+	if not r or not r.uiGradient then return end
+	local g = target:FindFirstChildOfClass("UIGradient") or Instance.new("UIGradient")
+	g.Rotation     = r.uiGradient.Rotation or 0
+	g.Color        = r.uiGradient.Color
+	g.Transparency = r.uiGradient.Transparency or NumberSequence.new(0)
+	g.Parent = target
+end
+
+local function shimmerIfFancy(target: GuiObject, rarity: string)
+	local rk = rarityKeyForCfg(rarity)
+	if rk == "AllBlue" or rk == "Secret" then
+		local sh = Shime.new(target, 0.8, Enum.EasingStyle.Linear, Enum.EasingDirection.InOut, -1, false, 0)
+		sh:Play()
+	end
+end
+
+local function addHoverTweensButton(btn: GuiButton)
+	btn.AutoButtonColor = false
+	local scale = btn:FindFirstChildOfClass("UIScale") or Instance.new("UIScale")
+	scale.Scale = 1; scale.Parent = btn
+	btn.MouseEnter:Connect(function()
+		TweenService:Create(scale, TweenInfo.new(0.12, Enum.EasingStyle.Quad, Enum.EasingDirection.Out), {Scale = 1.06}):Play()
+	end)
+	btn.MouseLeave:Connect(function()
+		TweenService:Create(scale, TweenInfo.new(0.12, Enum.EasingStyle.Quad, Enum.EasingDirection.Out), {Scale = 1.00}):Play()
+	end)
+	btn.MouseButton1Down:Connect(function()
+		TweenService:Create(scale, TweenInfo.new(0.06, Enum.EasingStyle.Quad, Enum.EasingDirection.Out), {Scale = 0.96}):Play()
+	end)
+	btn.MouseButton1Up:Connect(function()
+		TweenService:Create(scale, TweenInfo.new(0.10, Enum.EasingStyle.Back, Enum.EasingDirection.Out), {Scale = 1.06}):Play()
+	end)
+end
 
 local function addHoverTweensTile(tile: ImageButton)
 	tile.AutoButtonColor = false
@@ -40253,17 +40209,17 @@ end
 
 local function equippedCount(): number
 	local n = 0
-	for _, _ in pairs(_equipped) do n += 1 end
+	for _,cv in pairs(_cards) do if cv.equipped then n += 1 end end
 	return n
 end
 
 local function shakeMain()
 	local f = InventoryFrame.Main
-	TweenService:Create(f, TweenInfo.new(0.05, Enum.EasingStyle.Quad, Enum.EasingDirection.Out), {Position = f.Position + UDim2.fromOffset(4,0)}):Play()
+	TweenService:Create(f, TweenInfo.new(0.05, Enum.EasingStyle.Quad, Enum.EasingDirection.Out), {Position = f.Position + UDim2.fromOffset( 4, 0)}):Play()
 	task.wait(0.05)
-	TweenService:Create(f, TweenInfo.new(0.05, Enum.EasingStyle.Quad, Enum.EasingDirection.Out), {Position = f.Position + UDim2.fromOffset(-8,0)}):Play()
+	TweenService:Create(f, TweenInfo.new(0.05, Enum.EasingStyle.Quad, Enum.EasingDirection.Out), {Position = f.Position + UDim2.fromOffset(-8, 0)}):Play()
 	task.wait(0.05)
-	TweenService:Create(f, TweenInfo.new(0.06, Enum.EasingStyle.Quad, Enum.EasingDirection.Out), {Position = f.Position + UDim2.fromOffset(4,0)}):Play()
+	TweenService:Create(f, TweenInfo.new(0.06, Enum.EasingStyle.Quad, Enum.EasingDirection.Out), {Position = f.Position + UDim2.fromOffset( 4, 0)}):Play()
 end
 
 local function pingNew(tile: Instance)
@@ -40282,167 +40238,152 @@ local function pingNew(tile: Instance)
 	end)
 end
 
-local function matchesText(id, name)
+local function placeCardUI(cv: CardView, btn: ImageButton)
+	if cv.equipped then
+		if cv.unitType == "Support" then
+			btn.Parent = SupportContainer
+		else
+			btn.Parent = AttackContainer
+		end
+	else
+		btn.Parent = MainContainer
+	end
+end
+
+local function slower(v:any): string
+	return string.lower(tostring(v or ""))
+end
+
+local function matchesFilters(cv: CardView): boolean
+	if currentKind ~= "All" and cv.unitType ~= currentKind then return false end
+	if currentRarity ~= "All" and rarityKeyForUI(cv.rarity) ~= currentRarity then return false end
+	return true
+end
+
+local function matchesText(cv)
+	if not cv then return false end
 	local q = (searchQuery or ""):lower()
 	if q == "" then return true end
-	return (string.find((id or ""):lower(), q, 1, true) ~= nil)
-		or (string.find((name or ""):lower(), q, 1, true) ~= nil)
+	local idHit   = string.find((cv.id or ""):lower(), q, 1, true) ~= nil
+	local nameHit = string.find((cv.name or ""):lower(), q, 1, true) ~= nil
+	return idHit or nameHit
 end
 
-local function clearAll()
-	for id, btn in pairs(_ui) do
-		btn:Destroy()
+local function matchesAll(cv)
+	if not cv then return false end
+	if currentKind ~= "All"   and cv.unitType ~= currentKind then return false end
+	if currentRarity ~= "All" and ((cv.rarity == "AllBlue") and "All Blue" or cv.rarity) ~= currentRarity then
+		return false
 	end
-	_ui = {}
+	return matchesText(cv)
 end
 
-local function fragProgress(collectibleId: string): (number, number, string)
-	local cfg = Cards.ById and Cards.ById[collectibleId]
-	if not cfg then return 0, 4, "Common" end
-	local needed = cfg.fragments or FRAG_TYPES
-	local have = 0
-	local worst = "Mythic"
-	local rarityOrder = {Common=1, Uncommon=2, Rare=3, Epic=4, Mythic=5}
-	local fragData = _fragments[collectibleId] or {}
-	for _, ft in ipairs(needed) do
-		local fd = fragData[ft]
-		if fd and fd.count and fd.count > 0 then
-			have += 1
-			local r = fd.bestRarity or "Common"
-			if (rarityOrder[r] or 1) < (rarityOrder[worst] or 5) then
-				worst = r
-			end
-		end
-	end
-	return have, #needed, worst
-end
-
-local function rebuildUI()
-	clearAll()
-
-	if currentTab == "Fragments" then
-		for collectibleId, fragData in pairs(_fragments) do
-			local cfg = Cards.ById and Cards.ById[collectibleId]
-			if not cfg then continue end
-			local name = cfg.name or collectibleId
-			if not matchesText(collectibleId, name) then continue end
-
-			local have, total, worst = fragProgress(collectibleId)
-			if have == 0 then continue end
-
-			local tile = TemplateMain:Clone()
-			tile.Name = collectibleId
-			tile.Visible = true
-			_ui[collectibleId] = tile
-			addHoverTweensTile(tile)
-
-			tile.Image = cfg.image or ""
-			tile.ImageColor3 = RARITY_COLORS[worst] or Color3.fromRGB(180,180,180)
-
-			local dup = tile:FindFirstChild("DuplicationText")
-			if dup and dup:IsA("TextLabel") then
-				dup.Text = ("%d/%d"):format(have, total)
-			end
-			local rt = tile:FindFirstChild("RarityText")
-			if rt and rt:IsA("TextLabel") then
-				rt.Text = have >= total and "READY" or worst
-			end
-
-			tile.MouseButton1Click:Connect(function()
-				if have >= total then
-					GameCore.Fire("CardService","RequestFuse",{collectibleId = collectibleId})
-				end
-			end)
-
-			tile.Parent = MainContainer
-		end
-
-	elseif currentTab == "Completed" then
-		for collectibleId, trackData in pairs(_completed) do
-			local cfg = Cards.ById and Cards.ById[collectibleId]
-			if not cfg then continue end
-			local name = cfg.name or collectibleId
-			if not matchesText(collectibleId, name) then continue end
-
-			local rarity = trackData.rarity or "Common"
-
-			local tile = TemplateMain:Clone()
-			tile.Name = collectibleId
-			tile.Visible = true
-			_ui[collectibleId] = tile
-			addHoverTweensTile(tile)
-
-			tile.Image = cfg.image or ""
-			tile.ImageColor3 = RARITY_COLORS[rarity] or Color3.fromRGB(180,180,180)
-
-			local dup = tile:FindFirstChild("DuplicationText")
-			if dup and dup:IsA("TextLabel") then
-				local fl = trackData.fusionLevel or 0
-				dup.Text = fl > 0 and ("Lv."..tostring(fl)) or rarity
-			end
-			local rt = tile:FindFirstChild("RarityText")
-			if rt and rt:IsA("TextLabel") then
-				rt.Text = tostring(cfg.power or 0)
-			end
-
-			local isEquipped = false
-			for _, eqId in pairs(_equipped) do
-				if eqId == collectibleId then isEquipped = true; break end
-			end
-
-			tile.MouseButton1Click:Connect(function()
-				if isEquipped then
-					GameCore.Fire("CardService","RequestUnequip",{id=collectibleId})
-				else
-					if equippedCount() >= MAX_EQUIPPED then
-						shakeMain(); return
-					end
-					GameCore.Fire("CardService","RequestEquip",{id=collectibleId})
-				end
-			end)
-
-			if isEquipped then
-				tile.Parent = AttackContainer
-			else
-				tile.Parent = MainContainer
-			end
-		end
-	end
-
+local function refreshAllVisibility()
 	local any = false
-	for _ in pairs(_ui) do any = true; break end
+	for id, btn in pairs(_ui) do
+		local cv = _cards[id]
+		local vis = matchesAll(cv)
+		btn.Visible = vis
+		if vis then any = true end
+	end
 	if EmptyState then EmptyState.Visible = not any end
 end
 
 if SearchBox then
 	SearchBox:GetPropertyChangedSignal("Text"):Connect(function()
 		searchQuery = (SearchBox.Text or ""):lower()
-		rebuildUI()
+		refreshAllVisibility()
 	end)
 end
+
+local function upsertCard(cv: CardView)
+	local prev = _cards[cv.id]
+	local prevCount = prev and (prev.count or 0) or 0
+	local existed = _ui[cv.id] ~= nil
+
+	local tile = _ui[cv.id]
+	if not tile then
+		tile = TemplateMain:Clone()
+		tile.Name = cv.id
+		tile.Visible = true
+		_ui[cv.id] = tile
+		addHoverTweensTile(tile)
+		tile.MouseButton1Click:Connect(function()
+			local cur = _cards[cv.id]; if not cur then return end
+			if cur.equipped then
+				GameCore.Fire("CardService","RequestUnequip",{id=cv.id})
+				GameCore.Fire("CardPetService","Unequip",{id=cv.id})
+			else
+				if equippedCount() >= MAX_EQUIPPED then
+					shakeMain(); return
+				end
+				GameCore.Fire("CardService","RequestEquip",{id=cv.id})
+				GameCore.Fire("CardPetService","Equip",{id=cv.id})
+			end
+		end)
+	end
+
+	_cards[cv.id] = cv
+
+	tile.Image = cv.image or ""
+	local dup = tile:FindFirstChild("DuplicationText")
+	if dup and dup:IsA("TextLabel") then dup.Text = "x"..tostring(cv.count or 1) end
+	local rt = tile:FindFirstChild("RarityText")
+	if rt and rt:IsA("TextLabel") then rt.Text = tostring(cv.power or 0) end
+
+	local stroke = tile:FindFirstChild("RarityStroke")
+	if stroke then applyRarityGradient(stroke, rarityKeyForUI(cv.rarity)) end
+	shimmerIfFancy(tile, cv.rarity)
+
+	placeCardUI(cv, tile)
+
+	tile.Visible = matchesAll(cv)
+
+	if (not existed) or ((cv.count or 0) > prevCount) then
+		pingNew(tile)
+	end
+end
+
 
 local function wireFilter(btn: GuiButton?, setState: ()->())
 	if not btn then return end
+	addHoverTweensButton(btn)
 	btn.MouseButton1Click:Connect(function()
 		setState()
-		rebuildUI()
+		refreshAllVisibility()
 	end)
+	local pretty = btn.Name:gsub("Button","")
+	if pretty == "Basic" or pretty == "Gold" or pretty == "AllBlue" or pretty == "Secret" then
+		applyRarityGradient(btn, (pretty == "AllBlue") and "All Blue" or pretty)
+		shimmerIfFancy(btn :: any, (pretty == "AllBlue") and "AllBlue" or pretty)
+	end
 end
 
-wireFilter(BtnAllKinds, function() currentTab = "Fragments"; currentRarity = "All" end)
-wireFilter(BtnAttack,   function() currentTab = "Fragments" end)
-wireFilter(BtnSupport,  function() currentTab = "Completed" end)
-wireFilter(BtnBasic,    function() currentRarity = "Common" end)
-wireFilter(BtnGold,     function() currentRarity = "Rare" end)
-wireFilter(BtnAllBlue,  function() currentRarity = "Epic" end)
-wireFilter(BtnSecret,   function() currentRarity = "Mythic" end)
+wireFilter(BtnAllKinds, function()
+	currentKind   = "All"
+	currentRarity = "All"
+end)
+
+wireFilter(BtnAttack,  function() currentKind = "Attack"  end)
+wireFilter(BtnSupport, function() currentKind = "Support" end)
+
+-- Rarity
+wireFilter(BtnBasic,   function() currentRarity = "Basic"    end)
+wireFilter(BtnGold,    function() currentRarity = "Gold"     end)
+wireFilter(BtnAllBlue, function() currentRarity = "All Blue" end)
+wireFilter(BtnSecret,  function() currentRarity = "Secret"   end)
 
 function C:OnRoute(route, method, payload)
 	if route == "CardService" and method == "CardsUpdate" then
-		if payload.fragments then _fragments = payload.fragments end
-		if payload.completed then _completed = payload.completed end
-		if payload.equipped  then _equipped  = payload.equipped  end
-		rebuildUI()
+		local keep: {[string]: boolean} = {}
+		for _,cv in ipairs(payload) do
+			upsertCard(cv)
+			keep[cv.id] = true
+		end
+		for id, btn in pairs(_ui) do
+			if not keep[id] then btn:Destroy(); _ui[id]=nil; _cards[id]=nil end
+		end
+		refreshAllVisibility()
 	end
 end
 
@@ -40868,10 +40809,10 @@ Template.Visible = false
 
 local UIGradient = Template.RarityStroke.UIGradient
 
-local BoosterHUD = GUI.Bottom:WaitForChild("PotionsContainer")
-local BoosterIcon = BoosterHUD:WaitForChild("PotionIcon") :: ImageLabel
-local TimeLeft   = BoosterIcon:WaitForChild("TimeLeftText") :: TextLabel
-BoosterHUD.Visible = false
+local PotionsHUD = GUI.Bottom:WaitForChild("PotionsContainer")
+local PotionIcon = PotionsHUD:WaitForChild("PotionIcon") :: ImageLabel
+local TimeLeft   = PotionIcon:WaitForChild("TimeLeftText") :: TextLabel
+PotionsHUD.Visible = false
 
 local counts: {[string]: number} = {}
 local tiles : {[string]: Frame} = {}
@@ -40879,7 +40820,7 @@ local selectedId: string? = nil
 type Filter = "All"|"Potions"|"Cards"
 local curFilter: Filter = "All"
 
-local expireAtEpoch: number = 0
+local expireAtEpoch: number = 0 
 
 local PanelScale = Panel:FindFirstChildOfClass("UIScale") or Instance.new("UIScale", Panel)
 Panel.Visible = false
@@ -40913,10 +40854,10 @@ local function pulseStroke(stroke: UIStroke, base: number)
 end
 
 local function categoryOf(id: string): Filter
-	if id == "FragmentScanner" then
+	if id == "InstantRoll" then
 		return "Cards"
 	end
-	if id and (id:lower():find("booster", 1, true) or id:lower():find("potion", 1, true)) then
+	if id and id:lower():find("potion", 1, true) then
 		return "Potions"
 	end
 	return "Potions"
@@ -40952,6 +40893,7 @@ local function select(id: string?)
 	elseif not show and Panel.Visible then
 		Panel.Visible = false
 	end
+
 	local def = id and ItemsCfg[id]
 	if def then
 		NameText.Text = def.name or id
@@ -40959,6 +40901,7 @@ local function select(id: string?)
 	else
 		NameText.Text = ""; Desc.Text = ""
 	end
+
 	local n = (id and counts[id]) or 0
 	Use1.Visible  = show and n >= 1
 	Use10.Visible = show and n >= 10
@@ -40969,6 +40912,7 @@ local function popInTile(tile: Frame)
 	local s = tile:FindFirstChildOfClass("UIScale") or Instance.new("UIScale", tile)
 	s.Scale = 0.82
 	TweenService:Create(s, TweenInfo.new(0.22, Enum.EasingStyle.Back, Enum.EasingDirection.Out), {Scale = 1}):Play()
+
 	if tile.BackgroundTransparency then
 		local bt0 = tile.BackgroundTransparency
 		tile.BackgroundTransparency = 1
@@ -40979,31 +40923,42 @@ end
 local function wireTileButton(tile: Frame, btn: GuiButton)
 	btn.AutoButtonColor = false
 	btn.Active = true
+
 	local s = tile:FindFirstChildOfClass("UIScale") or Instance.new("UIScale", tile)
 	if s.Scale == 0 then s.Scale = 1 end
+
 	local hoverT, leaveT, downT, upT
 	local function kill(t) if t and t.PlaybackState == Enum.PlaybackState.Playing then t:Cancel() end end
+
 	local strokeHolder  = tile:FindFirstChild("RarityStroke")
 	local tileStroke    = strokeHolder and strokeHolder:FindFirstChildOfClass("UIStroke")
 	local baseThickness = tileStroke and tileStroke.Thickness or 2
+
 	btn.MouseEnter:Connect(function()
 		kill(leaveT); kill(hoverT)
 		hoverT = TweenService:Create(s, TweenInfo.new(0.10, Enum.EasingStyle.Quad, Enum.EasingDirection.Out), {Scale = 1.04})
 		hoverT:Play()
-		if tileStroke then TweenService:Create(tileStroke, TweenInfo.new(0.10), {Thickness = baseThickness + 1}):Play() end
+		if tileStroke then
+			TweenService:Create(tileStroke, TweenInfo.new(0.10), {Thickness = baseThickness + 1}):Play()
+		end
 	end)
+
 	local function leave()
 		kill(hoverT); kill(leaveT)
 		leaveT = TweenService:Create(s, TweenInfo.new(0.10, Enum.EasingStyle.Quad, Enum.EasingDirection.Out), {Scale = 1})
 		leaveT:Play()
-		if tileStroke then TweenService:Create(tileStroke, TweenInfo.new(0.10), {Thickness = baseThickness}):Play() end
+		if tileStroke then
+			TweenService:Create(tileStroke, TweenInfo.new(0.10), {Thickness = baseThickness}):Play()
+		end
 	end
 	btn.MouseLeave:Connect(leave)
+
 	btn.MouseButton1Down:Connect(function()
 		kill(downT)
 		downT = TweenService:Create(s, TweenInfo.new(0.06, Enum.EasingStyle.Quad, Enum.EasingDirection.Out), {Scale = 0.96})
 		downT:Play()
 	end)
+
 	btn.MouseButton1Up:Connect(function()
 		kill(upT)
 		upT = TweenService:Create(s, TweenInfo.new(0.10, Enum.EasingStyle.Back, Enum.EasingDirection.Out), {Scale = 1.05})
@@ -41023,13 +40978,14 @@ local function applyTileFX(tile: Frame, id: string)
 	local stroke = tile:FindFirstChild("RarityStroke")
 	if not stroke then return end
 	local grad = stroke:FindFirstChildOfClass("UIGradient")
-	if id == "RarityBooster" then
+
+	if id == "LuckPotion" then
 		setGradient(grad, ColorSequence.new{
 			ColorSequenceKeypoint.new(0.00, Color3.fromRGB( 34, 220, 120)),
 			ColorSequenceKeypoint.new(0.50, Color3.fromRGB(  2, 180,  90)),
 			ColorSequenceKeypoint.new(1.00, Color3.fromRGB( 34, 220, 120)),
 		})
-	elseif id == "FragmentScanner" then
+	elseif id == "InstantRoll" then
 		setGradient(grad, ColorSequence.new{
 			ColorSequenceKeypoint.new(0.00, Color3.fromRGB(120,  60, 255)),
 			ColorSequenceKeypoint.new(0.50, Color3.fromRGB( 55, 140, 255)),
@@ -41038,9 +40994,13 @@ local function applyTileFX(tile: Frame, id: string)
 	else
 		return
 	end
+
 	spinGradient(grad, 2.4)
 	local uiStroke = stroke:FindFirstChildOfClass("UIStroke") or stroke:FindFirstChildWhichIsA("UIStroke")
-	if uiStroke then pulseStroke(uiStroke, uiStroke.Thickness) end
+	if uiStroke then
+		local base = uiStroke.Thickness
+		pulseStroke(uiStroke, base)
+	end
 end
 
 local function makeTile(id: string)
@@ -41049,17 +41009,31 @@ local function makeTile(id: string)
 	t.Name = id
 	t.Visible = true
 	t.Parent = List
+	
 	popInTile(t)
+
 	local icon = t:FindFirstChild("Icon")
 	if icon and icon:IsA("ImageLabel") then icon.Image = def.icon or "" end
+
 	applyTileFX(t, id)
+
 	local btn = t:FindFirstChild("TextButton") :: GuiButton
 	if btn then
 		wireTileButton(t, btn)
 		btn.MouseButton1Click:Connect(function()
 			select(id)
+			local s = t:FindFirstChildOfClass("UIScale") or Instance.new("UIScale", t)
+			s.Scale = s.Scale == 0 and 1 or s.Scale
+			TweenService:Create(s, TweenInfo.new(0.08, Enum.EasingStyle.Quad, Enum.EasingDirection.Out), {Scale = (s.Scale or 1) * 0.96}):Play()
+			task.delay(0.09, function()
+				TweenService:Create(s, TweenInfo.new(0.10, Enum.EasingStyle.Back, Enum.EasingDirection.Out), {Scale = 1.04}):Play()
+				task.delay(0.10, function()
+					TweenService:Create(s, TweenInfo.new(0.08, Enum.EasingStyle.Quad, Enum.EasingDirection.Out), {Scale = 1}):Play()
+				end)
+			end)
 		end)
 	end
+
 	tiles[id] = t
 	setQty(t, counts[id] or 0)
 end
@@ -41090,12 +41064,27 @@ local function fireUse(times: number)
 	if useDebounce then return end
 	useDebounce = true
 	task.delay(0.15, function() useDebounce = false end)
+
 	if not selectedId then return end
 	local id   = selectedId
 	local have = counts[id] or 0
 	if have <= 0 then return end
+
+	if id == "InstantRoll" then
+		GameCore.Fire("BackpackService","RequestUse",{ id = id, amount = times })
+		return
+	end
+
+	if id:lower():find("potion",1,true) then
+		local toSend = math.min(times, have)
+		GameCore.Fire("BackpackService","RequestUse",{ id = id, amount = toSend })
+		return
+	end
+
 	local toSend = math.min(times, have)
-	GameCore.Fire("BackpackService","RequestUse",{ id = id, amount = toSend })
+	for _ = 1, toSend do
+		GameCore.Fire("BackpackService","RequestUse",{ id = id })
+	end
 end
 
 Use1.MouseButton1Click:Connect(function() fireUse(1)  end)
@@ -41122,25 +41111,25 @@ local function formatTime(sec: number): string
 	return (m > 0) and string.format("%d:%02d", m, s) or (tostring(s).."s")
 end
 
-local function setBoosterHUDActive(icon: string?, expAt: number)
+local function setPotionHUDActive(icon: string?, expAt: number)
 	expireAtEpoch = expAt
-	if icon then BoosterIcon.Image = icon end
-	BoosterHUD.Visible = true
+	if icon then PotionIcon.Image = icon end
+	PotionsHUD.Visible = true
 end
 
-local function setBoosterHUDInactive()
-	BoosterHUD.Visible = false
+local function setPotionHUDInactive()
+	PotionsHUD.Visible = false
 	expireAtEpoch = 0
 	TimeLeft.Text = ""
 end
 
 task.spawn(function()
 	while true do
-		if BoosterHUD.Visible and expireAtEpoch and expireAtEpoch > 0 then
+		if PotionsHUD.Visible and expireAtEpoch and expireAtEpoch > 0 then
 			local remain = math.max(0, expireAtEpoch - os.time())
 			TimeLeft.Text = formatTime(remain)
 			if remain <= 0 then
-				setBoosterHUDInactive()
+				setPotionHUDInactive()
 			end
 		end
 		task.wait(0.2)
@@ -41166,25 +41155,26 @@ function C:OnRoute(route, method, payload)
 		refreshFilter()
 
 	elseif method == "Used" then
-		if payload and payload.id == "RarityBooster" then
-			GameCore.Fire("QuestService","Increment",{ statKey = "BoostersUsed", amount = 1 })
+		if payload and payload.id == "LuckPotion" then
+			GameCore.Fire("QuestService","Increment",{ statKey = "PotionsUsed", amount = 1 })
 		end
 
-	elseif method == "TriggerScan" or method == "TriggerRoll" then
+	elseif method == "TriggerRoll" then
 		select(nil)
 		if _G.UIManager then
 			_G.UIManager.Close("Backpack")
 		else
 			Frame.Visible = false
 		end
-		local amt = tonumber(payload.amount or 5) or 5
+
+		local amt = tonumber(payload.amount or 10) or 10
 		GameCore.Fire("RNGService","RequestRoll",{ amount = amt, rid = os.clock() })
 
-	elseif method == "BoosterStatus" or method == "PotionStatus" then
+	elseif method == "PotionStatus" then
 		if payload.active then
-			setBoosterHUDActive(payload.icon, tonumber(payload.expireAt) or 0)
+			setPotionHUDActive(payload.icon, tonumber(payload.expireAt) or 0)
 		else
-			setBoosterHUDInactive()
+			setPotionHUDInactive()
 		end
 	end
 end
@@ -41192,15 +41182,18 @@ end
 function C:Start()
 	select(nil)
 	refreshFilter()
-	local expireAttr = tonumber(L:GetAttribute("BoosterExpire") or L:GetAttribute("LuckExpire") or 0) or 0
+
+	local expireAttr = tonumber(L:GetAttribute("LuckExpire") or 0) or 0
 	if expireAttr > os.time() then
-		local icon = (ItemsCfg.RarityBooster and ItemsCfg.RarityBooster.icon) or nil
-		setBoosterHUDActive(icon, expireAttr)
+		local icon = (ItemsCfg.LuckPotion and ItemsCfg.LuckPotion.icon) or nil
+		setPotionHUDActive(icon, expireAttr)
 	else
-		setBoosterHUDInactive()
+		setPotionHUDInactive()
 	end
+
 	GameCore.Fire("BackpackService","RequestStatus",{})
 end
+
 
 return C
 ]]></ProtectedString>
@@ -41524,6 +41517,7 @@ local NotePointsText = Main:WaitForChild("NotePointsText")
 local GREEN = Color3.fromRGB(60,200,80)
 
 local PER_POINT = tonumber(UpgCfg.PointsPerRolls) or 1000
+local lastRolls = 0
 
 local function applyStrokeFX(stroke: UIStroke?)
 	if not stroke then return end
@@ -41604,10 +41598,16 @@ local function setBar(progress: number)
 	end
 end
 
-local function _renderMeta(points, scansToNextVal)
+local function rollsToNext(n:number)
+	if PER_POINT <= 0 then return 0 end
+	local rem = n % PER_POINT
+	return (rem == 0) and PER_POINT or (PER_POINT - rem)
+end
+
+local function _renderMeta(points, rollsToNextVal)
 	PointsText.Text     = ("You have %d Upgrade Points remaining!"):format(points or 0)
-	NotePointsText.Text = ("%d scans until you earn more Upgrade Points!"):format(scansToNextVal or 0)
-	local progress = 1 - ((scansToNextVal or 0) / PER_POINT)
+	NotePointsText.Text = ("%d rolls until you earn more Upgrade Points!"):format(rollsToNextVal or 0)
+	local progress = 1 - ((rollsToNextVal or 0) / PER_POINT)
 	setBar(progress)
 end
 
@@ -41634,10 +41634,10 @@ function C:OnRoute(route, method, payload)
 
 	if method == "UpgradesSnapshot" then
 		local points      = tonumber(payload.points or 0)
-		local scansToNext = tonumber(payload.rollsToNext or payload.scansToNext or 0)
+		local rollsToNext = tonumber(payload.rollsToNext or 0)
 		local levels      = payload.levels or {}
 
-		_renderMeta(points, scansToNext)
+		_renderMeta(points, rollsToNext)
 
 		for _,c in ipairs(Scroll:GetChildren()) do
 			if c:IsA("Frame") and c.Name ~= "Template" then c:Destroy() end
@@ -41651,10 +41651,10 @@ function C:OnRoute(route, method, payload)
 		local id          = payload.id
 		local newLevel    = tonumber(payload.level or 0)
 		local points      = tonumber(payload.points or 0)
-		local scansToNext = tonumber(payload.rollsToNext or payload.scansToNext or 0)
+		local rollsToNext = tonumber(payload.rollsToNext or 0)
 
 		_updateRowText(id, newLevel)
-		_renderMeta(points, scansToNext)
+		_renderMeta(points, rollsToNext)
 	end
 end
 
@@ -42239,8 +42239,8 @@ local GameCore = require(RS.Main.GameCore)
 local KVStore  = require(RS.Main.Modules.KVStore)
 local Schema   = require(RS.Main.Configs.DataSchema)
 
-local STORE_NAME = "SoundScape_Data_v1"
-local LOCK_NAME  = "SoundScape_Locks_v1"
+local STORE_NAME = "RNG_Data_v1"
+local LOCK_NAME  = "RNG_Locks_v1"
 local SAVE_INTERVAL_MIN, SAVE_INTERVAL_MAX = 35, 65
 local SHUTDOWN_TIMEOUT = 8
 
@@ -42255,9 +42255,10 @@ local Svc = {
 	Routes = {},
 	Functions = {},
 	Schemas = { Functions = {} },
+
 	_profiles = {},
 	_nextSave = {},
-	_ev = Instance.new("BindableEvent"),
+	_ev = Instance.new("BindableEvent")
 }
 
 local function deepget(t, path)
@@ -42268,12 +42269,11 @@ local function deepget(t, path)
 	end
 	return cur
 end
-
 local function deepset(t, path, v)
 	local segs = {}
 	for s in string.gmatch(path, "[^%.]+") do table.insert(segs, s) end
 	local cur = t
-	for i = 1, #segs - 1 do
+	for i = 1, #segs-1 do
 		local k = segs[i]
 		cur[k] = cur[k] or {}
 		cur = cur[k]
@@ -42283,9 +42283,13 @@ end
 
 local function loadFor(plr: Player)
 	local key = keyFor(plr)
+	
 	local session = game.JobId .. ":" .. plr.UserId
+
 	local locked = Store:acquireLock(key, session, 90)
+
 	local raw = Store:get(key)
+	
 	local data
 	if type(raw) == "table" then
 		data = Schema.migrate(raw)
@@ -42312,7 +42316,7 @@ local function loadFor(plr: Player)
 			iv.Name = name; iv.Value = v or 0; iv.Parent = ls
 		end
 		setInt("Level", data.Level or 1)
-		setInt("Scans", data.Rolls or 0)
+		setInt("Rolls", data.Rolls or 0)
 	end)
 
 	return true
@@ -42336,15 +42340,18 @@ local function saveFor(plr: Player, releaseLock: boolean?)
 end
 
 function Svc:Init()
-	for _, plr in ipairs(Players:GetPlayers()) do
+	for _,plr in ipairs(Players:GetPlayers()) do
 		task.spawn(function() self:InitPlayer(plr) end)
 	end
+
 	Players.PlayerAdded:Connect(function(plr)
 		task.spawn(function() self:InitPlayer(plr) end)
 	end)
+
 	Players.PlayerRemoving:Connect(function(plr)
 		pcall(function() self:_release(plr, true) end)
 	end)
+
 	GameCore.Sched.every("ds-autosave", 1, function()
 		local t = now()
 		for plr, prof in pairs(self._profiles) do
@@ -42354,9 +42361,12 @@ function Svc:Init()
 			end
 		end
 	end)
+
 	GameCore.OnShutdown(function()
 		local deadline = now() + SHUTDOWN_TIMEOUT
-		for plr in pairs(self._profiles) do saveFor(plr, true) end
+		for plr in pairs(self._profiles) do
+			saveFor(plr, true)
+		end
 		while now() < deadline do task.wait(0.05) end
 	end)
 end
@@ -42384,10 +42394,10 @@ end
 function Svc:WaitLoaded(plr, timeout)
 	if self:IsLoaded(plr) then return true end
 	local done = false
-	local cn = self._ev.Event:Connect(function(p) if p == plr then done = true end end)
+	local c = self._ev.Event:Connect(function(p) if p == plr then done = true end end)
 	local t0 = now()
 	repeat task.wait(0.05) until done or (now() - t0) > (timeout or 15)
-	cn:Disconnect()
+	c:Disconnect()
 	return done or self:IsLoaded(plr)
 end
 
@@ -42434,15 +42444,12 @@ function Svc.Functions:GetPublic(player, _payload)
 		Level = d.Level,
 		Xp = d.Xp,
 		Rolls = d.Rolls,
-		Fragments = d.Fragments,
-		CompletedTracks = d.CompletedTracks,
-		Equipped = d.Equipped,
+		Pity = { misses = d.Pity.misses, boost = d.Pity.boost },
+		Equip = { Attack = d.Equip.Attack, Support = d.Equip.Support },
 	}
 end
 
-return Svc
-
-]]></ProtectedString>
+return Svc]]></ProtectedString>
 						<string name="ScriptGuid">{3A754FFB-B9EE-4BF6-B65B-DD798A2FC336}</string>
 						<BinaryString name="AttributesSerialize"></BinaryString>
 						<SecurityCapabilities name="Capabilities">0</SecurityCapabilities>
@@ -42481,9 +42488,9 @@ local Svc = {
 	DependsOn = { "DataService" },
 }
 
-local function reqFor(lvl: number)
+local function reqFor(lvl:number)
 	local L = require(RS.Main.Configs.Leveling)
-	local spec = L.RollsPerLevel or { base = 500, pow = 1.15 }
+	local spec = L.RollsPerLevel or { base = 1000, pow = 1.18 }
 	return math.floor(spec.base * (lvl ^ spec.pow))
 end
 
@@ -42497,6 +42504,7 @@ function Svc:SendLevel(plr)
 	local lvl = d.Level or 1
 	local prog = d.Progress or 0
 	local req = reqFor(lvl)
+
 	self.Net:Send(plr, "LevelUpdate", {
 		level    = lvl,
 		xp       = prog,
@@ -42506,7 +42514,7 @@ function Svc:SendLevel(plr)
 	})
 end
 
-function Svc:AddRolls(plr, amount: number)
+function Svc:AddRolls(plr, amount:number)
 	if amount <= 0 then return end
 	local d = self.Data:GetData(plr); if not d then return end
 
@@ -42538,12 +42546,15 @@ function Svc:Init()
 end
 
 function Svc:Start()
-	for _, plr in ipairs(Players:GetPlayers()) do self:SafeSendAll(plr) end
-	Players.PlayerAdded:Connect(function(plr) self:SafeSendAll(plr) end)
+	for _,plr in ipairs(Players:GetPlayers()) do
+		self:SafeSendAll(plr)
+	end
+	Players.PlayerAdded:Connect(function(plr)
+		self:SafeSendAll(plr)
+	end)
 end
 
 return Svc
-
 ]]></ProtectedString>
 						<string name="ScriptGuid">{521E35BB-ED57-41D6-816E-251F93249E3F}</string>
 						<BinaryString name="AttributesSerialize"></BinaryString>
@@ -42562,13 +42573,13 @@ return Svc
 						<ProtectedString name="Source"><![CDATA[local Players   = game:GetService("Players")
 local RS        = game:GetService("ReplicatedStorage")
 
-local GameCore       = require(RS.Main.GameCore)
-local CardsCfg       = require(RS.Main.Configs.Cards)
-local DataService    = require(RS.Main.Services.DataService)
-local CardService    = require(RS.Main.Services.CardService)
-local QuestService   = require(RS.Main.Services.QuestService)
+local GameCore     = require(RS.Main.GameCore)
+local CardsCfg     = require(RS.Main.Configs.Cards)
+local DataService  = require(RS.Main.Services.DataService)
+local CardService  = require(RS.Main.Services.CardService)
+local QuestService = require(RS.Main.Services.QuestService)
 local EconomyService = require(RS.Main.Services.EconomyService)
-local UpgCfg         = require(RS.Main.Configs.Upgrades)
+local UpgCfg = require(RS.Main.Configs.Upgrades)
 
 local Svc = {
 	Name = "RNGService",
@@ -42578,37 +42589,42 @@ local Svc = {
 
 local function sanitizeRarity(s: any): string?
 	if typeof(s) ~= "string" then return nil end
-	local n = s:lower():gsub("^%s*(.-)%s*$", "%1")
-	for key, _ in pairs(CardsCfg.Rarity) do
+	local n = s:lower():gsub("^%s*(.-)%s*$","%1")
+	if n == "all blue" then n = "allblue" end
+	for key,_ in pairs(CardsCfg.Rarity) do
 		if key:lower() == n then return key end
 	end
 	return nil
 end
 
 local function getLuckMult(plr: Player): number
-	local exp  = tonumber(plr:GetAttribute("LuckExpire")) or 0
-	local mult = tonumber(plr:GetAttribute("LuckMult")) or 1
+	local exp   = tonumber(plr:GetAttribute("LuckExpire")) or 0
+	local mult  = tonumber(plr:GetAttribute("LuckMult"))   or 1
 	if exp <= os.time() then mult = 1 end
 
 	local prof = DataService:Get(plr)
 	if prof and prof.Data and prof.Data.Upgrades and prof.Data.Upgrades.Levels then
-		local luckLv = tonumber(prof.Data.Upgrades.Levels.Luck or 0) or 0
+		local levels = prof.Data.Upgrades.Levels
+		local luckLv = tonumber(levels.Luck or 0) or 0
 		if luckLv > 0 then
 			local cfg = UpgCfg.Upgrades.Luck
-			if cfg then mult *= 1 + (luckLv * (cfg.perLevel / 100)) end
+			if cfg then
+				local upgMult = 1 + (luckLv * (cfg.perLevel/100)) 
+				mult *= upgMult
+			end
 		end
 	end
 
 	return mult
 end
 
-local function buildWeightedDrawer(pool)
+local function buildWeightedDrawer(pool: { {id:string, weight:number} })
 	local cum, total = {}, 0
 	for i, e in ipairs(pool) do
 		local w = tonumber(e.weight) or 0
 		if w > 0 then
 			total += w
-			cum[#cum + 1] = { t = total, id = e.id }
+			cum[i] = { t = total, id = e.id }
 		end
 	end
 	local rng = Random.new()
@@ -42624,18 +42640,10 @@ local function buildWeightedDrawer(pool)
 	end
 end
 
-local function drawerWithLuck(mult: number, zoneFilter: string?)
+local function drawerAllWithLuck(mult: number)
 	local pool = {}
 	for _, e in ipairs(CardsCfg.RollPool) do
-		local def = CardsCfg.ById[e.id]
-		if def and (not zoneFilter or def.zone == zoneFilter) then
-			table.insert(pool, { id = e.id, weight = (e.weight or 0) * (mult or 1) })
-		end
-	end
-	if #pool == 0 then
-		for _, e in ipairs(CardsCfg.RollPool) do
-			table.insert(pool, { id = e.id, weight = (e.weight or 0) * (mult or 1) })
-		end
+		table.insert(pool, { id = e.id, weight = (e.weight or 0) * (mult or 1) })
 	end
 	return buildWeightedDrawer(pool)
 end
@@ -42653,13 +42661,10 @@ local function drawerByRarityWithLuck(r: string, mult: number)
 end
 
 Svc.Routes.RequestRoll = function(plr: Player, payload)
-	print("[RNGService] RequestRoll received from", plr.Name)
-	if type(payload) ~= "table" then warn("[RNGService] bad payload type:", type(payload)); return false, "bad payload" end
+	if type(payload) ~= "table" then return false, "bad payload" end
 	local amount = tonumber(payload.amount)
-	if not amount then warn("[RNGService] bad amount"); return false, "bad amount" end
+	if not amount then return false, "bad amount" end
 	amount = math.clamp(math.floor(amount), 1, 50)
-
-	local zone = tostring(payload.zone or "City")
 
 	local forceCard = plr:GetAttribute("ForceNextCard")
 	if type(forceCard) ~= "string" or not CardsCfg.ById[forceCard] then forceCard = nil end
@@ -42671,73 +42676,80 @@ Svc.Routes.RequestRoll = function(plr: Player, payload)
 	end
 
 	local luck     = getLuckMult(plr)
-	local drawAll  = drawerWithLuck(luck, zone)
+	local drawAll  = drawerAllWithLuck(luck)
 	local drawRare = forceRarity and drawerByRarityWithLuck(forceRarity, luck) or nil
 
-	local results = {}
+	local results, grantIds = {}, {}
 
 	for _ = 1, amount do
-		local collectibleId
+		local id
 		if forceCard then
-			collectibleId = forceCard; forceCard = nil
+			id = forceCard; forceCard = nil
 		elseif forceRarity then
-			collectibleId = drawRare(); forceRarity = nil
-			if not collectibleId then collectibleId = drawAll() end
+			id = drawRare(); forceRarity = nil
+			if not id then id = drawAll() end
 		else
-			collectibleId = drawAll()
+			id = drawAll()
 		end
 
-		local def = collectibleId and CardsCfg.ById[collectibleId]
+		local def = id and CardsCfg.ById[id]
 		if not def then
-			collectibleId = drawAll()
-			def = collectibleId and CardsCfg.ById[collectibleId]
+			id  = drawAll()
+			def = id and CardsCfg.ById[id]
 		end
 
 		if def then
-			local fragType = CardsCfg.PickRandomFragment(collectibleId)
-			local fragRarity = CardsCfg.RollFragmentRarity(luck)
-
-			CardService:GiveFragment(plr, collectibleId, fragType, fragRarity)
-
 			table.insert(results, {
-				id            = def.id,
-				name          = def.name,
-				artist        = def.artist,
-				fragmentType  = fragType,
-				fragmentRarity = fragRarity,
-				collectibleType = def.collectibleType or def.unitType,
-				image         = tostring(def.image or "rbxassetid://0"),
-				color         = def.color or Color3.fromRGB(255, 255, 255),
-				rarity        = def.rarity,
-				weight        = tonumber(CardsCfg.RollWeights[def.id]) or 1,
+				id     = def.id,
+				image  = tostring(def.image or "rbxassetid://82097846469507"),
+				color  = def.color or Color3.fromRGB(255,255,255),
+				weight = tonumber(CardsCfg.RollWeights[def.id]) 
+					or tonumber(def.rollPower) 
+					or 1,
 			})
-
-			local rarIdx = 1
-			for i, r in ipairs(CardsCfg.FragmentRarity) do
-				if r.id == fragRarity then rarIdx = i; break end
-			end
-			if rarIdx >= 3 then
-				pcall(function() QuestService:Increment(plr, "RareFinds", 1) end)
-			end
+			table.insert(grantIds, def.id)
 		end
 	end
 
+	local prof = DataService:Get(plr)
+	if prof and prof.Data then
+		local d = prof.Data
+
+		d.Cards = d.Cards or {}
+		for _, id in ipairs(grantIds) do
+			d.Cards[id] = (d.Cards[id] or 0) + 1
+		end
+
+		DataService:MarkDirty(plr)
+
+		if type(CardService.Send) == "function" then
+			CardService:Send(plr)
+		end
+
+		if EconomyService and EconomyService.SendRolls then
+			EconomyService:SendRolls(plr)
+			EconomyService:SendLevel(plr)
+		end
+	end
+	
 	EconomyService:AddRolls(plr, amount)
 
 	pcall(function() Svc.Net:Send(plr, "Ack", { ok = true, amount = amount }) end)
-	pcall(function() GameCore.Fire("UpgradeService", "RequestStatus", {}, plr) end)
-
-	print("[RNGService] Sending", #results, "results to", plr.Name)
+	
+	pcall(function()
+		GameCore.Fire("UpgradeService","RequestStatus",{}, plr)
+	end)
+	
 	Svc.Net:Send(plr, "Results", results)
-
-	pcall(function() QuestService:Increment(plr, "Rolls", amount) end)
+	
+	pcall(function()
+		QuestService:Increment(plr, "Rolls", amount)
+	end)
 
 	return true
 end
 
-return Svc
-
-]]></ProtectedString>
+return Svc]]></ProtectedString>
 						<string name="ScriptGuid">{755ED489-E248-422B-98B6-0D9BC1328808}</string>
 						<BinaryString name="AttributesSerialize"></BinaryString>
 						<SecurityCapabilities name="Capabilities">0</SecurityCapabilities>
@@ -42916,9 +42928,9 @@ return Svc]]></ProtectedString>
 						<ProtectedString name="Source"><![CDATA[local Players = game:GetService("Players")
 local RS = game:GetService("ReplicatedStorage")
 
-local GameCore    = require(RS.Main.GameCore)
-local DataService = require(RS.Main.Services.DataService)
-local CardsCfg    = require(RS.Main.Configs.Cards)
+local GameCore      = require(RS.Main.GameCore)
+local DataService   = require(RS.Main.Services.DataService)
+local CardIndex     = require(RS.Main.Configs.Cards)
 
 local Svc = {
 	Name = "LeaderboardService",
@@ -42926,46 +42938,47 @@ local Svc = {
 	DependsOn = {"DataService"},
 }
 
-local function collectionPower(d: any): number
+local function deckPowerTotal(d:any): number
+	d = d or {}
+	local inv = d.Inventory or {}
+	local eq  = inv.Equipped or {}
 	local sum = 0
-	for collId, track in pairs(d.CompletedTracks or {}) do
-		local def = CardsCfg.ById[collId]
-		if def then
-			local basePow = def.power or 0
-			local rarBonus = 1
-			for i, r in ipairs(CardsCfg.FragmentRarity or {}) do
-				if r.id == (track.rarity or "Common") then rarBonus = i; break end
+	for _,cardId in pairs(eq) do
+		if typeof(cardId) == "string" then
+			local def = CardIndex[cardId]
+			if def and typeof(def.power) == "number" then
+				sum += def.power
 			end
-			sum += basePow * rarBonus * (1 + (track.fusionLevel or 0) * 0.1)
 		end
 	end
-	return math.floor(sum)
+	return sum
 end
 
-local function snapshotTop(limit: number)
+local function totalRolls(d:any): number
+	return math.max(0, tonumber(d.TotalRolls or 0))
+end
+
+local function snapshotTop(limit:number)
 	local rows = {}
-	for _, plr in ipairs(Players:GetPlayers()) do
+	for _,plr in ipairs(Players:GetPlayers()) do
 		local prof = DataService:Get(plr)
 		if prof and prof.Data then
 			local d = prof.Data
-			local completed = 0
-			for _ in pairs(d.CompletedTracks or {}) do completed += 1 end
 			table.insert(rows, {
-				userId    = plr.UserId,
-				username  = plr.Name,
-				deckPow   = collectionPower(d),
-				rolled    = tonumber(d.Rolls or 0),
-				completed = completed,
+				userId   = plr.UserId,
+				username = plr.Name,
+				deckPow  = deckPowerTotal(d),
+				rolled   = tonumber(d.Rolls or 0),
 			})
 		end
 	end
-	table.sort(rows, function(a, b)
+	table.sort(rows, function(a,b)
 		if a.deckPow ~= b.deckPow then return a.deckPow > b.deckPow end
-		return a.completed > b.completed
+		return a.rolled > b.rolled
 	end)
 	if #rows > limit then
 		local t = table.create(limit)
-		for i = 1, limit do t[i] = rows[i] end
+		for i=1,limit do t[i] = rows[i] end
 		return t
 	end
 	return rows
@@ -42983,12 +42996,13 @@ function Svc:Start()
 			task.wait(10)
 		end
 	end)
+
 	Players.PlayerAdded:Connect(function() task.delay(1, function() self:Broadcast() end) end)
 	Players.PlayerRemoving:Connect(function() task.delay(0.1, function() self:Broadcast() end) end)
+
 end
 
 return Svc
-
 ]]></ProtectedString>
 						<string name="ScriptGuid">{AE113411-E940-412B-AAD3-CD29653630FE}</string>
 						<BinaryString name="AttributesSerialize"></BinaryString>
@@ -43019,147 +43033,104 @@ local Svc = {
 	DependsOn = {"DataService"},
 }
 
-function Svc:GiveFragment(plr: Player, collectibleId: string, fragmentType: string, rarity: string)
-	local prof = DataService:Get(plr); if not prof then return end
-	local d = prof.Data
-	d.Fragments = d.Fragments or {}
-	d.Fragments[collectibleId] = d.Fragments[collectibleId] or {}
-	local frag = d.Fragments[collectibleId][fragmentType]
-	if not frag then
-		frag = { count = 0, bestRarity = "Common" }
-		d.Fragments[collectibleId][fragmentType] = frag
-	end
-	frag.count = (frag.count or 0) + 1
+local function equipArrays(d:any)
+	d.Equip = d.Equip or {}
 
-	local newIdx, oldIdx = 1, 1
-	for i, r in ipairs(CardsCfg.FragmentRarity) do
-		if r.id == rarity then newIdx = i end
-		if r.id == (frag.bestRarity or "Common") then oldIdx = i end
-	end
-	if newIdx > oldIdx then frag.bestRarity = rarity end
+	local atk = d.Equip.Attack
+	local sup = d.Equip.Support
 
+	if typeof(atk) == "string" then atk = { atk } end
+	if typeof(sup) == "string" then sup = { sup } end
+
+	if typeof(atk) ~= "table" then atk = {} end
+	if typeof(sup) ~= "table" then sup = {} end
+
+	local function clean(t:{any})
+		local out = {}
+		for _,v in ipairs(t) do
+			if typeof(v) == "string" then
+				table.insert(out, v)
+				if #out >= MAX_EQUIPPED_TOTAL then break end
+			end
+		end
+		return out
+	end
+
+	d.Equip.Attack  = clean(atk)
+	d.Equip.Support = clean(sup)
 	d.Cards = d.Cards or {}
-	d.Cards[collectibleId] = (d.Cards[collectibleId] or 0) + 1
 
-	DataService:MarkDirty(plr)
-	self:Send(plr)
+	return d.Equip
+end
+
+local function countEquippedTotal(eq:{Attack:any,Support:any}): number
+	local a = (typeof(eq.Attack)  == "table") and #eq.Attack  or 0
+	local s = (typeof(eq.Support) == "table") and #eq.Support or 0
+	return a + s
+end
+
+local function countEquippedOf(eq:{Attack:any,Support:any}, id:string): number
+	local n = 0
+	local atk = (typeof(eq.Attack)  == "table") and eq.Attack  or {}
+	local sup = (typeof(eq.Support) == "table") and eq.Support or {}
+	for _,v in ipairs(atk) do if v == id then n += 1 end end
+	for _,v in ipairs(sup) do if v == id then n += 1 end end
+	return n
+end
+
+local function packCardRow(id:string, count:number, eq:{Attack:any,Support:any})
+	local def = CardsCfg.ById[id]; if not def then return nil end
+	return {
+		id        = id,
+		count     = count or 0,
+		equipped  = countEquippedOf(eq, id) > 0,
+		unitType  = def.unitType or def.kind or "Attack",
+		rarity    = def.rarity,
+		power     = def.power or 0,
+		image     = def.image,
+		color     = def.color,
+	}
 end
 
 function Svc:Send(plr: Player)
 	local prof = DataService:Get(plr); if not prof then return end
 	local d = prof.Data
+	local eq = equipArrays(d)
 
-	local fragmentList = {}
-	for collId, frags in pairs(d.Fragments or {}) do
-		local def = CardsCfg.ById[collId]
-		if def then
-			for fragType, fragData in pairs(frags) do
-				table.insert(fragmentList, {
-					collectibleId = collId,
-					name = def.name,
-					artist = def.artist,
-					fragmentType = fragType,
-					count = fragData.count or 0,
-					bestRarity = fragData.bestRarity or "Common",
-					collectibleType = def.collectibleType or def.unitType,
-					rarity = def.rarity,
-					image = def.image,
-					color = def.color,
-				})
-			end
+	local list = {}
+	for id, count in pairs(d.Cards or {}) do
+		if (count or 0) > 0 then
+			local row = packCardRow(id, count, eq)
+			if row then table.insert(list, row) end
 		end
 	end
-
-	local completedList = {}
-	for collId, track in pairs(d.CompletedTracks or {}) do
-		local def = CardsCfg.ById[collId]
-		if def then
-			table.insert(completedList, {
-				id = collId,
-				name = def.name,
-				artist = def.artist,
-				rarity = track.rarity or "Common",
-				fusionLevel = track.fusionLevel or 0,
-				collectibleType = def.collectibleType or def.unitType,
-				image = def.image,
-				color = def.color,
-				power = def.power or 0,
-				equipped = false,
-			})
-		end
-	end
-
-	for _, ct in ipairs(completedList) do
-		for _, eqId in pairs(d.Equipped or {}) do
-			if eqId == ct.id then ct.equipped = true; break end
-		end
-	end
-
-	self.Net:Send(plr, "CardsUpdate", {
-		fragments = fragmentList,
-		completed = completedList,
-		equipped = d.Equipped or {},
-	})
+	self.Net:Send(plr, "CardsUpdate", list)
 end
 
-Svc.Routes.RequestFuse = function(plr: Player, payload)
-	if type(payload) ~= "table" then return false, "bad payload" end
-	local collectibleId = tostring(payload.id or "")
-	local def = CardsCfg.ById[collectibleId]
-	if not def then return false, "bad collectible" end
+Svc.Routes.GiveCard = function(plr: Player, payload)
+	if not (plr and require(RS.Main.Configs.Admin).IsAdmin(plr.UserId)) then
+		return false, "not admin"
+	end
 
-	local prof = DataService:Get(plr); if not prof then return false, "no profile" end
+	local targetName = payload.target
+	local cardId     = payload.id
+	local amount     = tonumber(payload.amount) or 1
+
+	if type(targetName) ~= "string" or type(cardId) ~= "string" then
+		return false, "bad args"
+	end
+
+	local target = Players:FindFirstChild(targetName)
+	if not target then return false, "player not found" end
+
+	local prof = DataService:Get(target)
+	if not prof then return false, "no profile" end
 	local d = prof.Data
-	d.Fragments = d.Fragments or {}
-	d.CompletedTracks = d.CompletedTracks or {}
+	d.Cards = d.Cards or {}
+	d.Cards[cardId] = (d.Cards[cardId] or 0) + amount
 
-	if not CardsCfg.IsTrackComplete(d.Fragments, collectibleId) then
-		return false, "missing fragments"
-	end
-
-	local trackRarity = CardsCfg.GetLowestFragmentRarity(d.Fragments, collectibleId)
-
-	local existing = d.CompletedTracks[collectibleId]
-	if existing then
-		local existIdx, newIdx = 1, 1
-		for i, r in ipairs(CardsCfg.FragmentRarity) do
-			if r.id == existing.rarity then existIdx = i end
-			if r.id == trackRarity then newIdx = i end
-		end
-		if newIdx > existIdx then
-			existing.rarity = trackRarity
-		end
-		existing.fusionLevel = (existing.fusionLevel or 0) + 1
-	else
-		d.CompletedTracks[collectibleId] = {
-			rarity = trackRarity,
-			fusionLevel = 0,
-		}
-	end
-
-	for _, fragType in ipairs(def.fragments or {}) do
-		local frag = d.Fragments[collectibleId] and d.Fragments[collectibleId][fragType]
-		if frag then
-			frag.count = math.max(0, (frag.count or 1) - 1)
-		end
-	end
-
-	DataService:MarkDirty(plr)
-	Svc:Send(plr)
-
-	Svc.Net:Send(plr, "FuseResult", {
-		ok = true,
-		id = collectibleId,
-		name = def.name,
-		rarity = trackRarity,
-		fusionLevel = d.CompletedTracks[collectibleId].fusionLevel,
-	})
-
-	pcall(function()
-		local QuestService = require(RS.Main.Services.QuestService)
-		QuestService:Increment(plr, "TracksFused", 1)
-	end)
-
+	DataService:MarkDirty(target)
+	Svc:Send(target)
 	return true
 end
 
@@ -43167,23 +43138,21 @@ Svc.Routes.RequestEquip = function(plr: Player, payload)
 	local id = payload and payload.id
 	if type(id) ~= "string" then return false, "bad id" end
 
-	local prof = DataService:Get(plr); if not prof then return false, "no profile" end
+	local prof = DataService:Get(plr); if not prof then return false,"no profile" end
 	local d = prof.Data
-	d.CompletedTracks = d.CompletedTracks or {}
-	d.Equipped = d.Equipped or {}
+	local eq = equipArrays(d)
 
-	if not d.CompletedTracks[id] then return false, "track not completed" end
+	local owned = (d.Cards and d.Cards[id]) or 0
+	local already = countEquippedOf(eq, id)
+	if owned <= already then return false, "no copy free" end
 
-	local count = 0
-	for _ in pairs(d.Equipped) do count += 1 end
-	if count >= MAX_EQUIPPED_TOTAL then return false, "slots full" end
-
-	for _, eqId in pairs(d.Equipped) do
-		if eqId == id then return false, "already equipped" end
+	if countEquippedTotal(eq) >= MAX_EQUIPPED_TOTAL then
+		return false, "cap reached"
 	end
 
-	local slot = "Slot" .. tostring(count + 1)
-	d.Equipped[slot] = id
+	local def = CardsCfg.ById[id]; if not def then return false, "bad card" end
+	local slot = (def.unitType or def.kind) == "Support" and "Support" or "Attack"
+	table.insert(eq[slot], id)
 
 	DataService:MarkDirty(plr)
 	Svc:Send(plr)
@@ -43194,102 +43163,24 @@ Svc.Routes.RequestUnequip = function(plr: Player, payload)
 	local id = payload and payload.id
 	if type(id) ~= "string" then return false, "bad id" end
 
-	local prof = DataService:Get(plr); if not prof then return false, "no profile" end
+	local prof = DataService:Get(plr); if not prof then return false,"no profile" end
 	local d = prof.Data
-	d.Equipped = d.Equipped or {}
+	local eq = equipArrays(d)
 
-	local found = false
-	local newEquip = {}
-	local idx = 1
-	for _, eqId in pairs(d.Equipped) do
-		if eqId == id and not found then
-			found = true
-		else
-			newEquip["Slot" .. idx] = eqId
-			idx += 1
+	local function popOne(t:any)
+		if typeof(t) ~= "table" then return false end
+		for i,v in ipairs(t) do
+			if v == id then table.remove(t, i); return true end
 		end
+		return false
 	end
 
-	if not found then return false, "not equipped" end
-	d.Equipped = newEquip
-
-	DataService:MarkDirty(plr)
-	Svc:Send(plr)
-	return true
-end
-
-Svc.Routes.GiveCard = function(plr: Player, payload)
-	if not (plr and require(RS.Main.Configs.Admin).IsAdmin(plr.UserId)) then
-		return false, "not admin"
+	if popOne(eq.Attack) or popOne(eq.Support) then
+		DataService:MarkDirty(plr)
+		Svc:Send(plr)
+		return true
 	end
-	local targetName = payload.target
-	local cardId = payload.id
-	local amount = tonumber(payload.amount) or 1
-	if type(targetName) ~= "string" or type(cardId) ~= "string" then return false, "bad args" end
-	local target = Players:FindFirstChild(targetName)
-	if not target then return false, "player not found" end
-	local prof = DataService:Get(target); if not prof then return false, "no profile" end
-	local d = prof.Data
-	d.Cards = d.Cards or {}
-	d.Cards[cardId] = (d.Cards[cardId] or 0) + amount
-	DataService:MarkDirty(target)
-	Svc:Send(target)
-	return true
-end
-
-Svc.Routes.AdminGiveFragment = function(plr: Player, payload)
-	if not (plr and require(RS.Main.Configs.Admin).IsAdmin(plr.UserId)) then
-		return false, "not admin"
-	end
-	local targetName = tostring(payload.target or "")
-	local target = Players:FindFirstChild(targetName)
-	if not target then return false, "player not found" end
-
-	Svc:GiveFragment(
-		target,
-		tostring(payload.collectibleId or ""),
-		tostring(payload.fragmentType or "Beat"),
-		tostring(payload.rarity or "Common")
-	)
-	return true
-end
-
-Svc.Routes.AdminCompleteTrack = function(plr: Player, payload)
-	if not (plr and require(RS.Main.Configs.Admin).IsAdmin(plr.UserId)) then
-		return false, "not admin"
-	end
-	local targetName = tostring(payload.target or "")
-	local target = Players:FindFirstChild(targetName)
-	if not target then return false, "player not found" end
-
-	local prof = DataService:Get(target); if not prof then return false, "no profile" end
-	local d = prof.Data
-	d.CompletedTracks = d.CompletedTracks or {}
-	d.CompletedTracks[tostring(payload.id or "")] = {
-		rarity = tostring(payload.rarity or "Common"),
-		fusionLevel = 0,
-	}
-	DataService:MarkDirty(target)
-	Svc:Send(target)
-	return true
-end
-
-Svc.Routes.WipeInventory = function(plr: Player, payload)
-	if not (plr and require(RS.Main.Configs.Admin).IsAdmin(plr.UserId)) then
-		return false, "not admin"
-	end
-	local targetName = tostring(payload.target or "")
-	local target = Players:FindFirstChild(targetName)
-	if not target then return false, "player not found" end
-	local prof = DataService:Get(target); if not prof then return false, "no profile" end
-	local d = prof.Data
-	d.Fragments = {}
-	d.CompletedTracks = {}
-	d.Equipped = {}
-	d.Cards = {}
-	DataService:MarkDirty(target)
-	Svc:Send(target)
-	return true
+	return false, "not equipped"
 end
 
 function Svc:Start()
@@ -43298,7 +43189,7 @@ function Svc:Start()
 			if DataService:EnsureLoaded(plr, 15) then self:Send(plr) end
 		end)
 	end)
-	for _, plr in ipairs(Players:GetPlayers()) do
+	for _,plr in ipairs(Players:GetPlayers()) do
 		task.spawn(function()
 			if DataService:EnsureLoaded(plr, 15) then self:Send(plr) end
 		end)
@@ -43306,7 +43197,6 @@ function Svc:Start()
 end
 
 return Svc
-
 ]]></ProtectedString>
 						<string name="ScriptGuid">{EE37441A-5D1F-4B53-83A3-059D1326EF82}</string>
 						<BinaryString name="AttributesSerialize"></BinaryString>
@@ -43329,7 +43219,7 @@ local GameCore    = require(RS.Main.GameCore)
 local DataService = require(RS.Main.Services.DataService)
 local ItemsCfg    = require(RS.Main.Configs.Items)
 local AdminCfg    = require(RS.Main.Configs.Admin)
-local CodesCfg    = require(RS.Main.Configs.Codes)
+local CodesCfg = require(RS.Main.Configs.Codes)
 
 local Svc = {
 	Name = "BackpackService",
@@ -43339,6 +43229,7 @@ local Svc = {
 
 local function isAdmin(plr: Player): boolean
 	if AdminCfg.IsAdmin then return AdminCfg.IsAdmin(plr.UserId, plr.Name) end
+	if AdminCfg.CanBypassAuto then return AdminCfg.CanBypassAuto(plr.UserId, plr.Name) end
 	return false
 end
 
@@ -43376,7 +43267,7 @@ local function setLuck(plr: Player, mult: number, expireAt: number)
 	d.State.luckMult   = mult
 	d.State.luckExpire = expireAt
 	DataService:MarkDirty(plr)
-	plr:SetAttribute("LuckMult", mult)
+	plr:SetAttribute("LuckMult",   mult)
 	plr:SetAttribute("LuckExpire", expireAt)
 end
 
@@ -43385,12 +43276,13 @@ local ticking: {[number]: boolean} = {}
 local function pushPotionStatus(plr: Player)
 	local mult, expAt = getLuck(plr)
 	if expAt <= now() or mult <= 1 then
-		Svc.Net:Send(plr, "PotionStatus", { active = false })
+		Svc.Net:Send(plr, "PotionStatus", { active=false })
 	else
+		local def = ItemsCfg.LuckPotion
 		Svc.Net:Send(plr, "PotionStatus", {
 			active   = true,
-			id       = "RarityBooster",
-			icon     = ItemsCfg.RarityBooster and ItemsCfg.RarityBooster.icon or "",
+			id       = def.id,
+			icon     = def.icon,
 			mult     = mult,
 			expireAt = expAt,
 		})
@@ -43429,7 +43321,7 @@ Svc.Routes.AdminGiveItem = function(plr: Player, payload)
 
 	local def = ItemsCfg[itemId]
 	if not def then
-		for _, it in pairs(ItemsCfg) do
+		for _,it in pairs(ItemsCfg) do
 			if string.lower(it.name or "") == string.lower(itemId) then
 				def = it; itemId = it.id; break
 			end
@@ -43438,7 +43330,7 @@ Svc.Routes.AdminGiveItem = function(plr: Player, payload)
 	if not def then return false, "invalid item" end
 
 	local target: Player? = nil
-	for _, p in ipairs(Players:GetPlayers()) do
+	for _,p in ipairs(Players:GetPlayers()) do
 		if string.lower(p.Name) == string.lower(targetName) then target = p; break end
 	end
 	if not target then return false, "player not found" end
@@ -43450,20 +43342,17 @@ end
 
 Svc.Routes.RedeemCode = function(plr: Player, payload)
 	if type(payload) ~= "table" then return false, "bad payload" end
-	local code = tostring(payload.code or ""):upper():gsub("%s+", "")
+	local code = tostring(payload.code or ""):upper():gsub("%s+","")
 	if code == "" then return false, "empty" end
-	local codeEntry = CodesCfg[code]
-	if not codeEntry then return false, "invalid" end
+	local rewards = CodesCfg[code]
+	if not rewards then return false, "invalid" end
 
 	local prof = DataService:Get(plr); if not prof then return false, "no profile" end
 	local d = prof.Data; d.Codes = d.Codes or {}
 	if d.Codes[code] == true then return false, "used" end
 
-	local rewards = codeEntry.reward or codeEntry
 	for itemId, amt in pairs(rewards) do
-		if type(amt) == "number" and amt > 0 then
-			addItem(plr, itemId, amt)
-		end
+		addItem(plr, itemId, tonumber(amt) or 0)
 	end
 	d.Codes[code] = true
 	DataService:MarkDirty(plr)
@@ -43487,18 +43376,19 @@ Svc.Routes.RequestUse = function(plr: Player, payload)
 	if have <= 0 then return false, "none" end
 
 	local useN = math.min(want, have)
+
 	d.Items[id] = have - useN
 	if d.Items[id] <= 0 then d.Items[id] = nil end
 	DataService:MarkDirty(plr)
 	send(plr)
 
-	if id == "FragmentScanner" then
+	if id == "InstantRoll" then
 		Svc.Net:Send(plr, "Used", { id = id, amount = useN })
-		Svc.Net:Send(plr, "TriggerRoll", { amount = 5 * useN })
+		Svc.Net:Send(plr, "TriggerRoll", { amount = 10 * useN })
 		return true
 	end
 
-	if id == "RarityBooster" then
+	if id == "LuckPotion" then
 		local baseMult = tonumber(def.use and def.use.payload and def.use.payload.mult) or 1.5
 		local baseDur  = tonumber(def.use and def.use.payload and def.use.payload.duration) or 60
 
@@ -43508,6 +43398,7 @@ Svc.Routes.RequestUse = function(plr: Player, payload)
 
 		local curMult, curExpAt = getLuck(plr)
 		local start = math.max(now(), curExpAt)
+
 		local effDur = baseDur * durBonus
 		local newExp = start + (effDur * useN)
 		local newMult = math.max(curMult, baseMult)
@@ -43515,11 +43406,6 @@ Svc.Routes.RequestUse = function(plr: Player, payload)
 		setLuck(plr, newMult, newExp)
 		pushPotionStatus(plr)
 		startTicker(plr)
-
-		pcall(function()
-			local QS = require(RS.Main.Services.QuestService)
-			QS:Increment(plr, "PotionsUsed", useN)
-		end)
 
 		Svc.Net:Send(plr, "Used", { id = id, amount = useN })
 		return true
@@ -43551,7 +43437,7 @@ function Svc:Start()
 			end
 		end)
 	end)
-	for _, plr in ipairs(Players:GetPlayers()) do
+	for _,plr in ipairs(Players:GetPlayers()) do
 		task.spawn(function()
 			if DataService:EnsureLoaded(plr, 15) then
 				send(plr)
@@ -43565,7 +43451,6 @@ function Svc:Start()
 end
 
 return Svc
-
 ]]></ProtectedString>
 						<string name="ScriptGuid">{6205BD0A-053E-4779-86ED-82ECCDB3D619}</string>
 						<BinaryString name="AttributesSerialize"></BinaryString>
@@ -44193,8 +44078,8 @@ return Svc
 				<Item class="ModuleScript" referent="RBX8FC71FB40C144645A0EF49E0A564D4B6">
 					<Properties>
 						<Content name="LinkedSource"><null></null></Content>
-						<ProtectedString name="Source"><![CDATA[local RS      = game:GetService("ReplicatedStorage")
-local Players = game:GetService("Players")
+						<ProtectedString name="Source"><![CDATA[local RS          = game:GetService("ReplicatedStorage")
+local Players     = game:GetService("Players")
 
 local GameCore    = require(RS.Main.GameCore)
 local DataService = require(RS.Main.Services.DataService)
@@ -44203,8 +44088,8 @@ local AdminCfg    = require(RS.Main.Configs.Admin)
 
 local Svc = { Name = "UpgradeService", Routes = { RequestStatus = true, RequestUpgrade = true, AdminSetPoints = true } }
 
-local PER_POINT = tonumber(UpgCfg.PointsPerRolls) or 500
-local function rollsToNextPoint(totalRolls: number)
+local PER_POINT = tonumber(UpgCfg.PointsPerRolls) or 1000
+local function rollsToNextPoint(totalRolls:number)
 	if PER_POINT <= 0 then return 0 end
 	local rem = totalRolls % PER_POINT
 	return (rem == 0) and PER_POINT or (PER_POINT - rem)
@@ -44212,6 +44097,7 @@ end
 
 local function isAdmin(plr: Player): boolean
 	if AdminCfg.IsAdmin then return AdminCfg.IsAdmin(plr.UserId, plr.Name) end
+	if AdminCfg.CanBypassAuto then return AdminCfg.CanBypassAuto(plr.UserId, plr.Name) end
 	return false
 end
 
@@ -44233,8 +44119,8 @@ local function snapshotPayload(plr)
 	local u, d = ensure(plr)
 	local rolls   = tonumber(d and d.Rolls or 0) or 0
 	local gained  = (PER_POINT > 0) and math.floor(rolls / PER_POINT) or 0
-	local spent   = tonumber(u.PointsSpent or 0) or 0
-	local bonus   = tonumber(u.BonusPoints or 0) or 0
+	local spent   = tonumber(u.PointsSpent  or 0) or 0
+	local bonus   = tonumber(u.BonusPoints  or 0) or 0
 	u.Points      = math.max(0, (gained + bonus) - spent)
 	return {
 		points      = u.Points,
@@ -44251,8 +44137,10 @@ end
 local function findPlayerByName(name: string): Player?
 	name = tostring(name or "")
 	if name == "" then return nil end
-	for _, p in ipairs(Players:GetPlayers()) do
-		if string.lower(p.Name) == string.lower(name) then return p end
+	for _,p in ipairs(Players:GetPlayers()) do
+		if string.lower(p.Name) == string.lower(name) then
+			return p
+		end
 	end
 	return nil
 end
@@ -44264,35 +44152,39 @@ end
 
 Svc.Routes.RequestUpgrade = function(plr, payload)
 	if not DataService:WaitLoaded(plr, 5) then return false, "data not loaded" end
+
 	local u, d = ensure(plr); if not d then return false, "no profile" end
-	local id  = tostring(payload.id or "")
-	local amt = math.max(1, tonumber(payload.times or payload.amount or 1) or 1)
-	local cfg = UpgCfg.Upgrades[id]; if not cfg then return false, "bad upgrade" end
+	local id   = tostring(payload.id or "")
+	local amt  = math.max(1, tonumber(payload.times or payload.amount or 1) or 1)
+	local cfg  = UpgCfg.Upgrades[id]; if not cfg then return false, "bad upgrade" end
 
 	u.Levels[id] = u.Levels[id] or 0
 	local cur = u.Levels[id]
 	if cur >= (cfg.maxLevel or 0) then return false, "maxed" end
 
-	local rolls  = tonumber(d.Rolls or 0) or 0
-	local gained = (PER_POINT > 0) and math.floor(rolls / PER_POINT) or 0
-	local spent  = tonumber(u.PointsSpent or 0) or 0
-	local bonus  = tonumber(u.BonusPoints or 0) or 0
-	u.Points     = math.max(0, (gained + bonus) - spent)
+	local rolls   = tonumber(d.Rolls or 0) or 0
+	local gained  = (PER_POINT > 0) and math.floor(rolls / PER_POINT) or 0
+	local spent   = tonumber(u.PointsSpent or 0) or 0
+	local bonus   = tonumber(u.BonusPoints or 0) or 0
+	u.Points      = math.max(0, (gained + bonus) - spent)
 
 	local can = math.min(amt, u.Points, (cfg.maxLevel or 0) - cur)
 	if can <= 0 then return false, "no points" end
 
-	u.Points      = u.Points - can
-	u.Levels[id]  = cur + can
-	u.PointsSpent = spent + can
+	u.Points       = u.Points - can
+	u.Levels[id]   = cur + can
+	u.PointsSpent  = spent + can
 
 	DataService:MarkDirty(plr)
+
+	local snap = snapshotPayload(plr)
 	Svc.Net:Send(plr, "Upgraded", {
 		id          = id,
 		level       = u.Levels[id],
-		points      = snapshotPayload(plr).points,
-		rollsToNext = snapshotPayload(plr).rollsToNext,
+		points      = snap.points,
+		rollsToNext = snap.rollsToNext,
 	})
+
 	sendSnapshot(plr)
 	return true
 end
@@ -44300,30 +44192,34 @@ end
 Svc.Routes.AdminSetPoints = function(_plr, payload)
 	if not isAdmin(_plr) then return false, "no permission" end
 	if type(payload) ~= "table" then return false, "bad payload" end
+
 	local targetName = tostring(payload.target or "")
 	local desired    = tonumber(payload.points)
-	if targetName == "" or not desired or desired < 0 then return false, "bad args" end
+	if targetName == "" or not desired or desired < 0 then
+		return false, "usage: target, points>=0"
+	end
 
 	local target = findPlayerByName(targetName)
 	if not target then return false, "player not found" end
 	if not DataService:EnsureLoaded(target, 10) then return false, "no profile" end
 
 	local u, d = ensure(target); if not d then return false, "no profile" end
-	local rolls  = tonumber(d.Rolls or 0) or 0
-	local gained = (PER_POINT > 0) and math.floor(rolls / PER_POINT) or 0
-	local spent  = tonumber(u.PointsSpent or 0) or 0
+
+	local rolls   = tonumber(d.Rolls or 0) or 0
+	local gained  = (PER_POINT > 0) and math.floor(rolls / PER_POINT) or 0
+	local spent   = tonumber(u.PointsSpent or 0) or 0
 
 	local newBonus = math.max(0, math.floor(desired + spent - gained))
-	u.BonusPoints = newBonus
-	u.Points      = math.max(0, (gained + newBonus) - spent)
+	u.BonusPoints  = newBonus
+	u.Points       = math.max(0, (gained + newBonus) - spent)
 
 	DataService:MarkDirty(target)
 	sendSnapshot(target)
-	return true
+
+	return true, { points = u.Points, gained = gained, spent = spent, bonus = u.BonusPoints }
 end
 
 return Svc
-
 ]]></ProtectedString>
 						<string name="ScriptGuid">{8339C9B2-D5AF-4791-9F02-51B4D0730975}</string>
 						<BinaryString name="AttributesSerialize"></BinaryString>
@@ -44621,31 +44517,12 @@ return Svc
 					<Properties>
 						<Content name="LinkedSource"><null></null></Content>
 						<ProtectedString name="Source"><![CDATA[return {
-	ScanInterval = 0.45,
-	AutoScanInterval = 0.6,
-	QuickScanInterval = 0.25,
+	BANNER_ID = "default",
 
-	Pity = { enabled = true, target = "Rare", scansForBoost = 30, boostPerStep = 0.005, maxBoost = 0.06 },
-	MultiScanSizes = { x1 = 1, x5 = 5, x10 = 10 },
-	AnimationMs = 400,
-
-	Soundstorm = {
-		intervalMin = 300,
-		intervalMax = 600,
-		duration = 60,
-		dropMultiplier = 3.0,
-		rarityBoost = 1.5,
-	},
-
-	Zones = {
-		City      = { dropMult = 1.0,  rarityBoost = 1.0 },
-		NeonAlley = { dropMult = 1.1,  rarityBoost = 1.05 },
-		Desert    = { dropMult = 0.9,  rarityBoost = 1.15 },
-		Arcade    = { dropMult = 0.8,  rarityBoost = 1.25 },
-	},
-}
-
-]]></ProtectedString>
+	Pity = { enabled=true, target="Rare", rollsForBoost=25, boostPerStep=0.005, maxBoost=0.05 },
+	MultiRollSizes = { x1 = 1, x10 = 10 },
+	AnimationMs = 450,
+}]]></ProtectedString>
 						<string name="ScriptGuid">{82B71C5F-D11C-4FF6-9849-F30F0C6FAB5B}</string>
 						<BinaryString name="AttributesSerialize"></BinaryString>
 						<SecurityCapabilities name="Capabilities">0</SecurityCapabilities>
@@ -44662,9 +44539,9 @@ return Svc
 						<Content name="LinkedSource"><null></null></Content>
 						<ProtectedString name="Source"><![CDATA[return {
 	MaxLevel = 200,
-	RollsPerLevel = { base = 500, pow = 1.15 },
-}
 
+	RollsPerLevel = { base = 1000, pow = 1.18 },
+}
 ]]></ProtectedString>
 						<string name="ScriptGuid">{D65F52C5-B3FA-43F2-A7FC-0A230173FFC5}</string>
 						<BinaryString name="AttributesSerialize"></BinaryString>
@@ -44685,9 +44562,7 @@ return Svc
 		AutoRoll  = { id = 0000000 },
 		QuickRoll = { id = 0000000 },
 	},
-}
-
-]]></ProtectedString>
+}]]></ProtectedString>
 						<string name="ScriptGuid">{82FDFC21-B99E-4C20-A7F6-4C323674C59A}</string>
 						<BinaryString name="AttributesSerialize"></BinaryString>
 						<SecurityCapabilities name="Capabilities">0</SecurityCapabilities>
@@ -44704,343 +44579,275 @@ return Svc
 						<Content name="LinkedSource"><null></null></Content>
 						<ProtectedString name="Source"><![CDATA[local Cards = {}
 
-Cards.FragmentTypes = { "Beat", "Melody", "Bass", "Vocal" }
-
-Cards.FragmentRarity = {
-	{ id = "Common",   chance = 0.60, order = 1, color = Color3.fromRGB(150, 160, 170) },
-	{ id = "Uncommon", chance = 0.25, order = 2, color = Color3.fromRGB(80, 200, 120)  },
-	{ id = "Rare",     chance = 0.10, order = 3, color = Color3.fromRGB(70, 150, 255)  },
-	{ id = "Epic",     chance = 0.04, order = 4, color = Color3.fromRGB(180, 70, 255)  },
-	{ id = "Mythic",   chance = 0.01, order = 5, color = Color3.fromRGB(255, 200, 50)  },
-}
-Cards.FragmentRarityOrder = { "Common", "Uncommon", "Rare", "Epic", "Mythic" }
-
 Cards.Rarity = {
-	Common = {
-		id = "Common", order = 1,
-		color = Color3.fromRGB(150, 160, 170),
-		stroke = Color3.fromRGB(60, 65, 70),
+	Basic = {
+		id = "Basic",
+		order = 1,
+		color = Color3.fromRGB(120, 140, 160),
+		stroke = Color3.fromRGB(40, 50, 60),
 		uiGradient = {
 			Rotation = 0,
 			Color = ColorSequence.new{
-				ColorSequenceKeypoint.new(0.00, Color3.fromRGB(130, 140, 150)),
-				ColorSequenceKeypoint.new(0.50, Color3.fromRGB(150, 160, 170)),
-				ColorSequenceKeypoint.new(1.00, Color3.fromRGB(110, 120, 130)),
+				ColorSequenceKeypoint.new(0.00, Color3.fromRGB(90, 105, 125)),
+				ColorSequenceKeypoint.new(0.50, Color3.fromRGB(120, 140, 160)),
+				ColorSequenceKeypoint.new(1.00, Color3.fromRGB(70, 85, 105))
 			},
-			Transparency = NumberSequence.new(0),
-		},
+			Transparency = NumberSequence.new(0)
+		}
 	},
-	Uncommon = {
-		id = "Uncommon", order = 2,
-		color = Color3.fromRGB(80, 200, 120),
-		stroke = Color3.fromRGB(30, 80, 45),
+
+	Gold = {
+		id = "Gold",
+		order = 2,
+		color = Color3.fromRGB(255, 196, 62),
+		stroke = Color3.fromRGB(120, 90, 20),
 		uiGradient = {
 			Rotation = 0,
 			Color = ColorSequence.new{
-				ColorSequenceKeypoint.new(0.00, Color3.fromRGB(60, 180, 100)),
-				ColorSequenceKeypoint.new(0.50, Color3.fromRGB(80, 200, 120)),
-				ColorSequenceKeypoint.new(1.00, Color3.fromRGB(40, 160, 80)),
+				ColorSequenceKeypoint.new(0.00, Color3.fromRGB(255, 222, 120)),
+				ColorSequenceKeypoint.new(0.45, Color3.fromRGB(255, 196, 62)),
+				ColorSequenceKeypoint.new(0.55, Color3.fromRGB(255, 235, 170)),
+				ColorSequenceKeypoint.new(1.00, Color3.fromRGB(230, 170, 40))
 			},
-			Transparency = NumberSequence.new(0),
-		},
+			Transparency = NumberSequence.new(0)
+		}
 	},
-	Rare = {
-		id = "Rare", order = 3,
-		color = Color3.fromRGB(70, 150, 255),
-		stroke = Color3.fromRGB(25, 60, 120),
+
+	AllBlue = {
+		id = "AllBlue",
+		order = 3,
+		color = Color3.fromRGB(70, 170, 255),
+		stroke = Color3.fromRGB(25, 70, 120),
 		uiGradient = {
 			Rotation = 0,
 			Color = ColorSequence.new{
 				ColorSequenceKeypoint.new(0.00, Color3.fromRGB(40, 120, 230)),
-				ColorSequenceKeypoint.new(0.50, Color3.fromRGB(70, 150, 255)),
-				ColorSequenceKeypoint.new(1.00, Color3.fromRGB(20, 100, 200)),
+				ColorSequenceKeypoint.new(0.50, Color3.fromRGB(70, 170, 255)),
+				ColorSequenceKeypoint.new(1.00, Color3.fromRGB(20, 90, 190))
 			},
-			Transparency = NumberSequence.new(0),
-		},
+			Transparency = NumberSequence.new(0)
+		}
 	},
-	Epic = {
-		id = "Epic", order = 4,
-		color = Color3.fromRGB(180, 70, 255),
-		stroke = Color3.fromRGB(70, 20, 110),
+
+	Secret = {
+		id = "Secret",
+		order = 4,
+		color = Color3.fromRGB(190, 70, 255),
+		stroke = Color3.fromRGB(80, 20, 120),
 		uiGradient = {
 			Rotation = 0,
 			Color = ColorSequence.new{
-				ColorSequenceKeypoint.new(0.00, Color3.fromRGB(140, 40, 220)),
-				ColorSequenceKeypoint.new(0.50, Color3.fromRGB(180, 70, 255)),
-				ColorSequenceKeypoint.new(1.00, Color3.fromRGB(100, 20, 180)),
+				ColorSequenceKeypoint.new(0.00, Color3.fromRGB(60, 10, 120)),
+				ColorSequenceKeypoint.new(0.45, Color3.fromRGB(190, 70, 255)),
+				ColorSequenceKeypoint.new(0.55, Color3.fromRGB(255, 120, 255)),
+				ColorSequenceKeypoint.new(1.00, Color3.fromRGB(100, 20, 170))
 			},
-			Transparency = NumberSequence.new(0),
-		},
-	},
-	Mythic = {
-		id = "Mythic", order = 5,
-		color = Color3.fromRGB(255, 200, 50),
-		stroke = Color3.fromRGB(120, 90, 15),
-		uiGradient = {
-			Rotation = 0,
-			Color = ColorSequence.new{
-				ColorSequenceKeypoint.new(0.00, Color3.fromRGB(255, 230, 120)),
-				ColorSequenceKeypoint.new(0.45, Color3.fromRGB(255, 200, 50)),
-				ColorSequenceKeypoint.new(0.55, Color3.fromRGB(255, 240, 160)),
-				ColorSequenceKeypoint.new(1.00, Color3.fromRGB(230, 180, 30)),
-			},
-			Transparency = NumberSequence.new(0),
-		},
+			Transparency = NumberSequence.new(0)
+		}
 	},
 }
 
-Cards.RarityOrder = { "Common", "Uncommon", "Rare", "Epic", "Mythic" }
+Cards.RarityOrder = { "Basic", "Gold", "AllBlue", "Secret" }
 
-Cards.UnitType = { Artist = "Artist", LP = "LP", EP = "EP", Single = "Single" }
-
-Cards.Zones = {
-	City      = { id = "City",      name = "City",       order = 1 },
-	NeonAlley = { id = "NeonAlley", name = "Neon Alley", order = 2 },
-	Desert    = { id = "Desert",    name = "Desert",     order = 3 },
-	Arcade    = { id = "Arcade",    name = "Arcade",     order = 4 },
-}
+Cards.UnitType = { Attack = "Attack", Support = "Support" }
 
 Cards.Catalog = {
-	-- ===== ARTISTS (Common, 2-3 fragments, high drop rate) =====
+	-- ══ Basic (common drops) ══
 	{
-		id = "tyler_artist", name = "Tyler, The Creator",
-		artist = "Tyler, The Creator", collectibleType = "Artist",
-		rarity = "Common", unitType = "Artist",
-		fragments = {"Beat", "Melody"},
-		image = "rbxassetid://0", color = Color3.fromRGB(255, 183, 197),
-		rollPower = 2, zone = "City", power = 100,
-		tags = {"HipHop"},
+		id = "lofi_beats_basic",
+		name = "Lo-Fi Beats",
+		rarity = "Basic",
+		unitType = Cards.UnitType.Attack,
+		power = 1200000,
+		image = "rbxassetid://113165478145605",
+		rollPower = 5,
+		tags = { "Chill" },
 	},
 	{
-		id = "kendrick_artist", name = "Kendrick Lamar",
-		artist = "Kendrick Lamar", collectibleType = "Artist",
-		rarity = "Common", unitType = "Artist",
-		fragments = {"Beat", "Vocal"},
-		image = "rbxassetid://0", color = Color3.fromRGB(50, 50, 50),
-		rollPower = 2, zone = "City", power = 100,
-		tags = {"HipHop"},
+		id = "midnight_radio_basic",
+		name = "Midnight Radio",
+		rarity = "Basic",
+		unitType = Cards.UnitType.Attack,
+		power = 1400000,
+		image = "rbxassetid://113165478145605",
+		rollPower = 8,
+		tags = { "Indie" },
 	},
 	{
-		id = "frank_artist", name = "Frank Ocean",
-		artist = "Frank Ocean", collectibleType = "Artist",
-		rarity = "Common", unitType = "Artist",
-		fragments = {"Melody", "Vocal"},
-		image = "rbxassetid://0", color = Color3.fromRGB(230, 230, 230),
-		rollPower = 3, zone = "NeonAlley", power = 100,
-		tags = {"RnB"},
+		id = "acoustic_dawn_basic",
+		name = "Acoustic Dawn",
+		rarity = "Basic",
+		unitType = Cards.UnitType.Support,
+		power = 1100000,
+		image = "rbxassetid://113165478145605",
+		rollPower = 6,
+		tags = { "Folk" },
 	},
 	{
-		id = "kanye_artist", name = "Kanye West",
-		artist = "Kanye West", collectibleType = "Artist",
-		rarity = "Common", unitType = "Artist",
-		fragments = {"Beat", "Melody", "Vocal"},
-		image = "rbxassetid://0", color = Color3.fromRGB(60, 60, 60),
-		rollPower = 3, zone = "City", power = 120,
-		tags = {"HipHop"},
+		id = "synth_city_basic",
+		name = "Synth City",
+		rarity = "Basic",
+		unitType = Cards.UnitType.Attack,
+		power = 1350000,
+		image = "rbxassetid://113165478145605",
+		rollPower = 7,
+		tags = { "Electronic" },
 	},
 	{
-		id = "travis_artist", name = "Travis Scott",
-		artist = "Travis Scott", collectibleType = "Artist",
-		rarity = "Common", unitType = "Artist",
-		fragments = {"Beat", "Bass"},
-		image = "rbxassetid://0", color = Color3.fromRGB(120, 80, 40),
-		rollPower = 4, zone = "Desert", power = 100,
-		tags = {"HipHop"},
+		id = "vinyl_groove_basic",
+		name = "Vinyl Groove",
+		rarity = "Basic",
+		unitType = Cards.UnitType.Support,
+		power = 1250000,
+		image = "rbxassetid://113165478145605",
+		rollPower = 10,
+		tags = { "Funk" },
 	},
 	{
-		id = "sza_artist", name = "SZA",
-		artist = "SZA", collectibleType = "Artist",
-		rarity = "Common", unitType = "Artist",
-		fragments = {"Melody", "Vocal"},
-		image = "rbxassetid://0", color = Color3.fromRGB(200, 150, 100),
-		rollPower = 4, zone = "NeonAlley", power = 100,
-		tags = {"RnB"},
-	},
-	{
-		id = "weeknd_artist", name = "The Weeknd",
-		artist = "The Weeknd", collectibleType = "Artist",
-		rarity = "Common", unitType = "Artist",
-		fragments = {"Beat", "Vocal"},
-		image = "rbxassetid://0", color = Color3.fromRGB(200, 30, 30),
-		rollPower = 3, zone = "NeonAlley", power = 100,
-		tags = {"RnB"},
-	},
-	{
-		id = "drake_artist", name = "Drake",
-		artist = "Drake", collectibleType = "Artist",
-		rarity = "Common", unitType = "Artist",
-		fragments = {"Melody", "Bass"},
-		image = "rbxassetid://0", color = Color3.fromRGB(20, 20, 20),
-		rollPower = 3, zone = "City", power = 100,
-		tags = {"HipHop"},
+		id = "garage_riff_basic",
+		name = "Garage Riff",
+		rarity = "Basic",
+		unitType = Cards.UnitType.Attack,
+		power = 1300000,
+		image = "rbxassetid://113165478145605",
+		rollPower = 9,
+		tags = { "Rock" },
 	},
 
-	-- ===== LPs (Rare, 4 fragments, medium drop rate) =====
+	-- ══ Gold (uncommon) ══
 	{
-		id = "igor_lp", name = "IGOR",
-		artist = "Tyler, The Creator", collectibleType = "LP",
-		rarity = "Rare", unitType = "LP",
-		fragments = {"Beat", "Melody", "Bass", "Vocal"},
-		image = "rbxassetid://0", color = Color3.fromRGB(255, 183, 197),
-		rollPower = 50, zone = "City", power = 500,
-		tags = {"Album"},
+		id = "neon_pulse_gold",
+		name = "Neon Pulse",
+		rarity = "Gold",
+		unitType = Cards.UnitType.Attack,
+		power = 2400000,
+		image = "rbxassetid://115490303677656",
+		rollPower = 800,
+		tags = { "EDM" },
 	},
 	{
-		id = "gkmc_lp", name = "good kid, m.A.A.d city",
-		artist = "Kendrick Lamar", collectibleType = "LP",
-		rarity = "Rare", unitType = "LP",
-		fragments = {"Beat", "Melody", "Bass", "Vocal"},
-		image = "rbxassetid://0", color = Color3.fromRGB(180, 120, 60),
-		rollPower = 60, zone = "City", power = 550,
-		tags = {"Album"},
+		id = "velvet_echo_gold",
+		name = "Velvet Echo",
+		rarity = "Gold",
+		unitType = Cards.UnitType.Support,
+		power = 2100000,
+		image = "rbxassetid://115490303677656",
+		rollPower = 1000,
+		tags = { "R&B" },
 	},
 	{
-		id = "blonde_lp", name = "Blonde",
-		artist = "Frank Ocean", collectibleType = "LP",
-		rarity = "Rare", unitType = "LP",
-		fragments = {"Beat", "Melody", "Bass", "Vocal"},
-		image = "rbxassetid://0", color = Color3.fromRGB(229, 229, 229),
-		rollPower = 80, zone = "NeonAlley", power = 600,
-		tags = {"Album"},
+		id = "bass_cathedral_gold",
+		name = "Bass Cathedral",
+		rarity = "Gold",
+		unitType = Cards.UnitType.Attack,
+		power = 2600000,
+		image = "rbxassetid://115490303677656",
+		rollPower = 1200,
+		tags = { "Dubstep" },
 	},
 	{
-		id = "mbdtf_lp", name = "My Beautiful Dark Twisted Fantasy",
-		artist = "Kanye West", collectibleType = "LP",
-		rarity = "Rare", unitType = "LP",
-		fragments = {"Beat", "Melody", "Bass", "Vocal"},
-		image = "rbxassetid://0", color = Color3.fromRGB(180, 30, 30),
-		rollPower = 70, zone = "Desert", power = 650,
-		tags = {"Album"},
+		id = "jazz_noir_gold",
+		name = "Jazz Noir",
+		rarity = "Gold",
+		unitType = Cards.UnitType.Support,
+		power = 2000000,
+		image = "rbxassetid://115490303677656",
+		rollPower = 900,
+		tags = { "Jazz" },
 	},
 	{
-		id = "astroworld_lp", name = "ASTROWORLD",
-		artist = "Travis Scott", collectibleType = "LP",
-		rarity = "Rare", unitType = "LP",
-		fragments = {"Beat", "Melody", "Bass", "Vocal"},
-		image = "rbxassetid://0", color = Color3.fromRGB(255, 200, 0),
-		rollPower = 60, zone = "Desert", power = 500,
-		tags = {"Album"},
-	},
-	{
-		id = "sos_lp", name = "SOS",
-		artist = "SZA", collectibleType = "LP",
-		rarity = "Rare", unitType = "LP",
-		fragments = {"Beat", "Melody", "Bass", "Vocal"},
-		image = "rbxassetid://0", color = Color3.fromRGB(70, 130, 180),
-		rollPower = 50, zone = "NeonAlley", power = 520,
-		tags = {"Album"},
-	},
-	{
-		id = "afterhours_lp", name = "After Hours",
-		artist = "The Weeknd", collectibleType = "LP",
-		rarity = "Rare", unitType = "LP",
-		fragments = {"Beat", "Melody", "Bass", "Vocal"},
-		image = "rbxassetid://0", color = Color3.fromRGB(200, 30, 30),
-		rollPower = 65, zone = "NeonAlley", power = 540,
-		tags = {"Album"},
+		id = "stadium_anthem_gold",
+		name = "Stadium Anthem",
+		rarity = "Gold",
+		unitType = Cards.UnitType.Attack,
+		power = 2500000,
+		image = "rbxassetid://115490303677656",
+		rollPower = 1100,
+		tags = { "Pop" },
 	},
 
-	-- ===== EPs (Epic, 3 fragments, low drop rate) =====
+	-- ══ AllBlue (rare) ══
 	{
-		id = "flowerboy_ep", name = "Flower Boy Demos",
-		artist = "Tyler, The Creator", collectibleType = "EP",
-		rarity = "Epic", unitType = "EP",
-		fragments = {"Beat", "Melody", "Bass"},
-		image = "rbxassetid://0", color = Color3.fromRGB(247, 209, 74),
-		rollPower = 500, zone = "Arcade", power = 1500,
-		tags = {"EP"},
+		id = "aurora_waves_blue",
+		name = "Aurora Waves",
+		rarity = "AllBlue",
+		unitType = Cards.UnitType.Support,
+		power = 3200000,
+		image = "rbxassetid://95289023079537",
+		rollPower = 4000,
+		tags = { "Ambient" },
 	},
 	{
-		id = "untitled_ep", name = "untitled unmastered",
-		artist = "Kendrick Lamar", collectibleType = "EP",
-		rarity = "Epic", unitType = "EP",
-		fragments = {"Beat", "Melody", "Vocal"},
-		image = "rbxassetid://0", color = Color3.fromRGB(40, 40, 40),
-		rollPower = 600, zone = "Desert", power = 1600,
-		tags = {"EP"},
+		id = "phoenix_drop_blue",
+		name = "Phoenix Drop",
+		rarity = "AllBlue",
+		unitType = Cards.UnitType.Attack,
+		power = 3600000,
+		image = "rbxassetid://95289023079537",
+		rollPower = 5000,
+		tags = { "DnB" },
 	},
 	{
-		id = "endless_ep", name = "Endless",
-		artist = "Frank Ocean", collectibleType = "EP",
-		rarity = "Epic", unitType = "EP",
-		fragments = {"Melody", "Bass", "Vocal"},
-		image = "rbxassetid://0", color = Color3.fromRGB(180, 180, 180),
-		rollPower = 700, zone = "NeonAlley", power = 1800,
-		tags = {"EP"},
+		id = "crystal_resonance_blue",
+		name = "Crystal Resonance",
+		rarity = "AllBlue",
+		unitType = Cards.UnitType.Attack,
+		power = 3400000,
+		image = "rbxassetid://95289023079537",
+		rollPower = 4500,
+		tags = { "Trance" },
 	},
 	{
-		id = "cruel_ep", name = "Cruel Summer",
-		artist = "Kanye West", collectibleType = "EP",
-		rarity = "Epic", unitType = "EP",
-		fragments = {"Beat", "Bass", "Vocal"},
-		image = "rbxassetid://0", color = Color3.fromRGB(220, 180, 80),
-		rollPower = 550, zone = "Desert", power = 1400,
-		tags = {"EP"},
+		id = "dreamscape_blue",
+		name = "Dreamscape",
+		rarity = "AllBlue",
+		unitType = Cards.UnitType.Support,
+		power = 3000000,
+		image = "rbxassetid://95289023079537",
+		rollPower = 3500,
+		tags = { "Shoegaze" },
 	},
 
-	-- ===== SINGLES (Mythic, 1-2 fragments, very low drop rate) =====
+	-- ══ Secret (ultra rare) ══
 	{
-		id = "earfquake_single", name = "EARFQUAKE",
-		artist = "Tyler, The Creator", collectibleType = "Single",
-		rarity = "Mythic", unitType = "Single",
-		fragments = {"Melody", "Vocal"},
-		image = "rbxassetid://0", color = Color3.fromRGB(255, 183, 197),
-		rollPower = 2000, zone = "Arcade", power = 5000,
-		tags = {"Single"},
+		id = "eternal_frequency_secret",
+		name = "Eternal Frequency",
+		rarity = "Secret",
+		unitType = Cards.UnitType.Attack,
+		power = 5000000,
+		image = "rbxassetid://82097846469507",
+		rollPower = 10000,
+		tags = { "Legendary" },
 	},
 	{
-		id = "humble_single", name = "HUMBLE.",
-		artist = "Kendrick Lamar", collectibleType = "Single",
-		rarity = "Mythic", unitType = "Single",
-		fragments = {"Beat", "Vocal"},
-		image = "rbxassetid://0", color = Color3.fromRGB(139, 0, 0),
-		rollPower = 2500, zone = "City", power = 5500,
-		tags = {"Single"},
+		id = "cosmic_symphony_secret",
+		name = "Cosmic Symphony",
+		rarity = "Secret",
+		unitType = Cards.UnitType.Attack,
+		power = 5500000,
+		image = "rbxassetid://82097846469507",
+		rollPower = 15000,
+		tags = { "Orchestral" },
 	},
 	{
-		id = "nights_single", name = "Nights",
-		artist = "Frank Ocean", collectibleType = "Single",
-		rarity = "Mythic", unitType = "Single",
-		fragments = {"Melody"},
-		image = "rbxassetid://0", color = Color3.fromRGB(20, 20, 80),
-		rollPower = 3000, zone = "NeonAlley", power = 6000,
-		tags = {"Single"},
+		id = "void_resonator_secret",
+		name = "Void Resonator",
+		rarity = "Secret",
+		unitType = Cards.UnitType.Support,
+		power = 4800000,
+		image = "rbxassetid://82097846469507",
+		rollPower = 20000,
+		tags = { "Glitch" },
 	},
 	{
-		id = "runaway_single", name = "Runaway",
-		artist = "Kanye West", collectibleType = "Single",
-		rarity = "Mythic", unitType = "Single",
-		fragments = {"Melody", "Vocal"},
-		image = "rbxassetid://0", color = Color3.fromRGB(180, 30, 30),
-		rollPower = 4000, zone = "Desert", power = 8000,
-		tags = {"Single"},
-	},
-	{
-		id = "sickomode_single", name = "SICKO MODE",
-		artist = "Travis Scott", collectibleType = "Single",
-		rarity = "Mythic", unitType = "Single",
-		fragments = {"Beat", "Bass"},
-		image = "rbxassetid://0", color = Color3.fromRGB(50, 10, 80),
-		rollPower = 3500, zone = "Desert", power = 7000,
-		tags = {"Single"},
-	},
-	{
-		id = "killbill_single", name = "Kill Bill",
-		artist = "SZA", collectibleType = "Single",
-		rarity = "Mythic", unitType = "Single",
-		fragments = {"Vocal"},
-		image = "rbxassetid://0", color = Color3.fromRGB(200, 60, 60),
-		rollPower = 2800, zone = "Arcade", power = 5800,
-		tags = {"Single"},
-	},
-	{
-		id = "blindinglights_single", name = "Blinding Lights",
-		artist = "The Weeknd", collectibleType = "Single",
-		rarity = "Mythic", unitType = "Single",
-		fragments = {"Melody", "Vocal"},
-		image = "rbxassetid://0", color = Color3.fromRGB(255, 40, 40),
-		rollPower = 3200, zone = "NeonAlley", power = 6500,
-		tags = {"Single"},
+		id = "soundscape_origin_secret",
+		name = "SoundScape Origin",
+		rarity = "Secret",
+		unitType = Cards.UnitType.Attack,
+		power = 6000000,
+		image = "rbxassetid://82097846469507",
+		rollPower = 50000,
+		tags = { "Mythic" },
 	},
 }
 
@@ -45053,7 +44860,7 @@ for _, c in ipairs(Cards.Catalog) do
 	local denom = tonumber(c.rollPower)
 	if c.id and denom and denom > 0 then
 		local w = 1 / denom
-		table.insert(rollPool, { id = c.id, weight = w })
+		table.insert(rollPool, { id = c.id, weight = w, image = c.image, color = c.color })
 		weights[c.id] = w
 	end
 end
@@ -45061,67 +44868,6 @@ end
 Cards.ById        = byId
 Cards.RollPool    = rollPool
 Cards.RollWeights = weights
-
-function Cards.RollFragmentRarity(luckMult: number?): string
-	local mult = luckMult or 1
-	local r = math.random()
-	local cumulative = 0
-	for i = #Cards.FragmentRarity, 1, -1 do
-		local entry = Cards.FragmentRarity[i]
-		local adjusted = entry.chance
-		if i >= 3 then adjusted = adjusted * mult end
-		cumulative += adjusted
-		if r <= cumulative then return entry.id end
-	end
-	return "Common"
-end
-
-function Cards.PickRandomFragment(collectibleId: string): string?
-	local def = byId[collectibleId]
-	if not def or not def.fragments or #def.fragments == 0 then return nil end
-	return def.fragments[math.random(1, #def.fragments)]
-end
-
-function Cards.GetCollectiblesForZone(zoneId: string): {any}
-	local result = {}
-	for _, c in ipairs(Cards.Catalog) do
-		if c.zone == zoneId then table.insert(result, c) end
-	end
-	return result
-end
-
-function Cards.IsTrackComplete(fragments: any, collectibleId: string): boolean
-	local def = byId[collectibleId]
-	if not def or not def.fragments then return false end
-	if type(fragments) ~= "table" then return false end
-	local coll = fragments[collectibleId]
-	if type(coll) ~= "table" then return false end
-	for _, frag in ipairs(def.fragments) do
-		if not coll[frag] or (coll[frag].count or 0) < 1 then return false end
-	end
-	return true
-end
-
-function Cards.GetLowestFragmentRarity(fragments: any, collectibleId: string): string
-	local def = byId[collectibleId]
-	if not def then return "Common" end
-	local coll = type(fragments) == "table" and fragments[collectibleId] or {}
-	local worst = 99
-	for _, frag in ipairs(def.fragments or {}) do
-		local fData = coll[frag]
-		if fData then
-			local rIdx = 1
-			for i, r in ipairs(Cards.FragmentRarity) do
-				if r.id == (fData.bestRarity or "Common") then rIdx = i; break end
-			end
-			worst = math.min(worst, rIdx)
-		else
-			worst = 1
-		end
-	end
-	local entry = Cards.FragmentRarity[worst] or Cards.FragmentRarity[1]
-	return entry.id
-end
 
 return Cards
 
@@ -45215,7 +44961,7 @@ local function alias(src: string, other: string)
 	_cmds[norm(other)] = _cmds[norm(src)]
 end
 
-local function findCollectible(arg: string)
+local function findCard(arg: string)
 	arg = norm(arg)
 	if arg == "" then return nil end
 	for id, c in pairs(Cards.ById) do
@@ -45229,7 +44975,7 @@ end
 
 local function rarityExists(arg: string)
 	arg = norm(arg)
-	for r, _ in pairs(Cards.Rarity) do
+	for r,_ in pairs(Cards.Rarity) do
 		if norm(r) == arg then return r end
 	end
 	return nil
@@ -45247,68 +44993,114 @@ local function parseInt(s: string?, def: number?): number?
 	return def
 end
 
-register("scan", "Force next scan to a rarity or collectible", function(plr, args)
+register("roll", "Force next roll to a rarity or card id/name", function(plr, args)
 	local arg = norm(args[1] or "")
-	if arg == "" then return "Usage: scan <rarity|id|name>" end
+	if arg == "" then return "Usage: roll <rarity|id|name>" end
 	local rar = rarityExists(arg)
 	if rar then
 		plr:SetAttribute("ForceNextRarity", rar)
 		plr:SetAttribute("ForceNextCard", nil)
-		return ("Next scan forced to %s"):format(rar)
+		return ("Next roll will be %s"):format(rar)
 	end
-	local coll = findCollectible(arg)
-	if coll then
-		plr:SetAttribute("ForceNextCard", coll.id)
+	local card = findCard(arg)
+	if card then
+		plr:SetAttribute("ForceNextCard", card.id)
 		plr:SetAttribute("ForceNextRarity", nil)
-		return ("Next scan forced to %s"):format(coll.name)
+		return ("Next roll will be %s"):format(card.name)
 	end
-	return "Unknown rarity or collectible: " .. arg
+	return "Unknown rarity or card: "..arg
 end)
 
-register("clearforce", "Clear forced scan", function(plr)
+register("clearforce", "Clear forced roll", function(plr)
 	plr:SetAttribute("ForceNextCard", nil)
 	plr:SetAttribute("ForceNextRarity", nil)
 	return "Force cleared"
 end)
 
-register("givefragment", "Give a fragment to a player", function(plr, args)
+register("givecard", "Give a specific card to a player", function(plr, args)
 	local targetName = resolvePlayerArg(plr.Name, args[1])
 	local idOrName   = trim(args[2] or "")
-	local fragType   = trim(args[3] or "Beat")
-	local rarity     = trim(args[4] or "Common")
+	local amount     = parseInt(args[3], 1) or 1
 	if idOrName == "" then
-		return "Usage: givefragment <player|me> <collectibleId> [fragType] [rarity]"
+		return "Usage: givecard <player|me> <id|name> [amount]"
 	end
-	local coll = findCollectible(idOrName)
-	if not coll then return "Invalid collectible" end
+	local card = findCard(idOrName)
+	if not card then return "Invalid card id/name" end
 
-	GameCore.Fire("CardService", "AdminGiveFragment", {
+	GameCore.Fire("CardService", "GiveCard", {
 		target = targetName,
-		collectibleId = coll.id,
-		fragmentType = fragType,
-		rarity = rarity,
+		id     = card.id,
+		amount = amount,
 	})
-	return ("Giving %s %s fragment (%s) to %s"):format(coll.name, fragType, rarity, targetName)
+	return ("Giving %dx %s to %s"):format(amount, card.name, targetName)
 end)
 
-register("addrolls", "Add scans to a player", function(plr, a)
+register("givecardme", "Give a card to yourself", function(plr, args)
+	local idOrName = trim(args[1] or "")
+	local amount   = parseInt(args[2], 1) or 1
+	if idOrName == "" then return "Usage: givecardme <id|name> [amount]" end
+	local card = findCard(idOrName)
+	if not card then return "Invalid card id/name" end
+
+	GameCore.Fire("CardService", "GiveCard", {
+		target = plr.Name,
+		id     = card.id,
+		amount = amount,
+	})
+	return ("Giving %dx %s to you"):format(amount, card.name)
+end)
+
+register("addrolls", "Add rolls to a player", function(plr, a)
 	local target = resolvePlayerArg(plr.Name, a[1])
 	local amt    = parseInt(a[2], nil)
 	if not amt then return "Usage: addrolls <player|me> <amount>" end
-	GameCore.Fire("EconomyService", "AddRolls", { target = target, amount = amt })
-	return ("Adding %d scans to %s"):format(amt, target)
+	GameCore.Fire("EconomyService","AddRolls",{ target = target, amount = amt })
+	return ("Adding %d rolls to %s"):format(amt, target)
 end)
 
-register("setrolls", "Set scans for a player", function(plr, a)
+register("setrolls", "Set rolls for a player", function(plr, a)
 	local target = resolvePlayerArg(plr.Name, a[1])
 	local amt    = parseInt(a[2], nil)
 	if not amt then return "Usage: setrolls <player|me> <amount>" end
-	GameCore.Fire("EconomyService", "SetRolls", { target = target, amount = amt })
-	return ("Setting %s scans = %d"):format(target, amt)
+	GameCore.Fire("EconomyService","SetRolls",{ target = target, amount = amt })
+	return ("Setting %s rolls = %d"):format(target, amt)
 end)
 
-register("giveitem", "Give item(s) to a player", function(plr, a)
-	local target   = resolvePlayerArg(plr.Name, a[1])
+register("removerolls", "Remove rolls from a player", function(plr, a)
+	local target = resolvePlayerArg(plr.Name, a[1])
+	local amt    = parseInt(a[2], nil)
+	if not amt then return "Usage: removerolls <player|me> <amount>" end
+	GameCore.Fire("EconomyService","AddRolls",{ target = target, amount = -amt })
+	return ("Removing %d rolls from %s"):format(amt, target)
+end)
+
+register("removecard", "Remove one card from a player", function(plr, a)
+	local target = resolvePlayerArg(plr.Name, a[1])
+	local id     = trim(a[2] or "")
+	local amount = parseInt(a[3], 1) or 1
+	if id == "" then return "Usage: removecard <player|me> <cardId> [amount]" end
+	GameCore.Fire("CardService","RemoveCard",{ target = target, id = id, amount = amount })
+	return ("Removing %dx %s from %s"):format(amount, id, target)
+end)
+
+register("wipeinv", "Wipe inventory for a player", function(plr, a)
+	local target = resolvePlayerArg(plr.Name, a[1])
+	if target == "" then return "Usage: wipeinv <player|me>" end
+	GameCore.Fire("CardService","WipeInventory",{ target = target })
+	return ("Wiping inventory for %s"):format(target)
+end)
+alias("wipeinv", "wipinv")
+
+register("giveall", "Give a card to all players", function(_, a)
+	local id   = trim(a[1] or "")
+	local amt  = parseInt(a[2], 1) or 1
+	if id == "" then return "Usage: giveall <cardId> [amount]" end
+	GameCore.Fire("CardService","GiveAll",{ id = id, amount = amt })
+	return ("Giving %dx %s to ALL"):format(amt, id)
+end)
+
+register("giveitem","Give item(s) to a player", function(plr, a)
+	local target = resolvePlayerArg(plr.Name, a[1])
 	local idOrName = trim(a[2] or "")
 	local amount   = parseInt(a[3], 1) or 1
 	if idOrName == "" then
@@ -45319,13 +45111,13 @@ register("giveitem", "Give item(s) to a player", function(plr, a)
 	if ItemsCfg[idOrName] then
 		itemId = idOrName
 	else
-		for k, def in pairs(ItemsCfg) do
+		for k,def in pairs(ItemsCfg) do
 			if norm(def.name) == norm(idOrName) then itemId = k; break end
 		end
 	end
-	if not itemId then return "Invalid item" end
+	if not itemId then return "Invalid item id/name" end
 
-	GameCore.Fire("BackpackService", "AdminGiveItem", { target = target, itemId = itemId, amount = amount })
+	GameCore.Fire("BackpackService","AdminGiveItem",{ target = target, itemId = itemId, amount = amount })
 	return ("Giving %dx %s to %s"):format(amount, itemId, target)
 end)
 
@@ -45333,8 +45125,16 @@ register("setlevel", "Set level for a player", function(plr, a)
 	local target = resolvePlayerArg(plr.Name, a[1])
 	local lvl    = parseInt(a[2], nil)
 	if not lvl then return "Usage: setlevel <player|me> <level>" end
-	GameCore.Fire("EconomyService", "SetLevel", { target = target, level = lvl })
+	GameCore.Fire("EconomyService","SetLevel",{ target = target, level = lvl })
 	return ("Setting %s level = %d"):format(target, lvl)
+end)
+
+register("addxp", "Add XP to a player", function(plr, a)
+	local target = resolvePlayerArg(plr.Name, a[1])
+	local xp     = parseInt(a[2], nil)
+	if not xp then return "Usage: addxp <player|me> <xp>" end
+	GameCore.Fire("EconomyService","AddXP",{ target = target, xp = xp })
+	return ("Adding %d XP to %s"):format(xp, target)
 end)
 
 register("setpoints", "Set upgrade points for a player", function(plr, a)
@@ -45343,55 +45143,46 @@ register("setpoints", "Set upgrade points for a player", function(plr, a)
 	if not pts or pts < 0 then
 		return "Usage: setpoints <player|me> <points>=0"
 	end
-	GameCore.Fire("UpgradeService", "AdminSetPoints", { target = target, points = pts })
+	GameCore.Fire("UpgradeService","AdminSetPoints",{ target = target, points = pts })
 	return ("Setting %s upgrade points = %d"):format(target, pts)
 end)
 alias("setpoints", "setpts")
 
-register("completetrack", "Force-complete a track for a player", function(plr, a)
-	local target = resolvePlayerArg(plr.Name, a[1])
-	local id     = trim(a[2] or "")
-	local rarity = trim(a[3] or "Common")
-	if id == "" then return "Usage: completetrack <player|me> <collectibleId> [rarity]" end
-	GameCore.Fire("CardService", "AdminCompleteTrack", { target = target, id = id, rarity = rarity })
-	return ("Completing %s for %s at %s rarity"):format(id, target, rarity)
-end)
-
-register("wipeinv", "Wipe inventory for a player", function(plr, a)
-	local target = resolvePlayerArg(plr.Name, a[1])
-	if target == "" then return "Usage: wipeinv <player|me>" end
-	GameCore.Fire("CardService", "WipeInventory", { target = target })
-	return ("Wiping inventory for %s"):format(target)
-end)
 
 register("saveprofile", "Force save a player's profile", function(plr, a)
 	local target = resolvePlayerArg(plr.Name, a[1])
-	GameCore.Fire("DataService", "ForceSave", { target = target })
+	GameCore.Fire("DataService","ForceSave",{ target = target })
 	return ("Saving profile for %s"):format(target)
+end)
+
+register("reloadcfg", "Reload Cards config", function()
+	GameCore.Fire("ConfigService","Reload",{ which = "Cards" })
+	return "Reloading Cards config"
 end)
 
 register("announce", "Broadcast a message", function(_, a)
 	local msg = trim(table.concat(a, " "))
 	if msg == "" then return "Usage: announce <message>" end
-	GameCore.Fire("AnnounceService", "Broadcast", { message = msg })
+	GameCore.Fire("AnnounceService","Broadcast",{ message = msg })
 	return ("Announce: %s"):format(msg)
 end)
 
-register("toggleautoroll", "Toggle Auto Scan (self)", function(plr)
+register("toggleautoroll", "Toggle Auto Roll (self)", function(plr)
 	plr:SetAttribute("ForceToggleAuto", not plr:GetAttribute("ForceToggleAuto"))
-	GameCore.Fire("RNGService", "NotifyAutoToggle", { player = plr.Name })
-	return ("AutoScan toggled: %s"):format(tostring(plr:GetAttribute("ForceToggleAuto")))
+	GameCore.Fire("RNGService","NotifyAutoToggle",{ player = plr.Name })
+	return ("AutoRoll toggled: %s"):format(tostring(plr:GetAttribute("ForceToggleAuto")))
 end)
 
+-- ====== API ======
 function AdminCommands.Find(prefix: string)
 	prefix = norm(prefix)
 	local out = {}
-	for _, cmd in pairs(_cmds) do
+	for _,cmd in pairs(_cmds) do
 		if string.find(norm(cmd.name), prefix, 1, true) == 1 then
 			table.insert(out, cmd)
 		end
 	end
-	table.sort(out, function(a, b) return a.name < b.name end)
+	table.sort(out, function(a,b) return a.name < b.name end)
 	return out
 end
 
@@ -45400,19 +45191,18 @@ function AdminCommands.Run(plr, text: string)
 	local cmd = norm(table.remove(parts, 1))
 	if cmd == "" then return "No command" end
 	local entry = _cmds[cmd]
-	if not entry then return "Unknown command: " .. cmd end
+	if not entry then return "Unknown command: "..cmd end
 	return entry.run(plr, parts)
 end
 
 function AdminCommands.All()
 	local out = {}
-	for _, cmd in pairs(_cmds) do table.insert(out, cmd) end
-	table.sort(out, function(a, b) return a.name < b.name end)
+	for _,cmd in pairs(_cmds) do table.insert(out, cmd) end
+	table.sort(out, function(a,b) return a.name < b.name end)
 	return out
 end
 
 return AdminCommands
-
 ]]></ProtectedString>
 						<string name="ScriptGuid">{DF7BA6FC-CDB0-4398-B6D3-910790E5E02B}</string>
 						<BinaryString name="AttributesSerialize"></BinaryString>
@@ -45429,31 +45219,24 @@ return AdminCommands
 					<Properties>
 						<Content name="LinkedSource"><null></null></Content>
 						<ProtectedString name="Source"><![CDATA[local Items = {
-	FragmentScanner = {
-		id = "FragmentScanner",
-		name = "Fragment Scanner",
+	-- Consumables
+	InstantRoll = {
+		id = "InstantRoll",
+		name = "Instant Roll",
 		icon = "rbxassetid://132292029713675",
-		Description = "Instantly scan for fragments in your zone.",
+		Description = "Instantly open Cards.",
 	},
 
-	RarityBooster = {
-		id = "RarityBooster",
-		name = "Rarity Booster (60s)",
+	LuckPotion = {
+		id = "LuckPotion",
+		name = "Luck Potion (60s)",
 		icon = "rbxassetid://124515443468836",
-		Description = "Boost fragment rarity for 60 seconds.",
+		Description = "Boost your luck.",
 		use = { payload = { mult = 1.5, duration = 60 } },
 	},
 
-	FragmentMagnet = {
-		id = "FragmentMagnet",
-		name = "Fragment Magnet (120s)",
-		icon = "rbxassetid://132292029713675",
-		Description = "Auto-collect nearby fragments for 120 seconds.",
-		use = { payload = { duration = 120 } },
-	},
 }
 return Items
-
 ]]></ProtectedString>
 						<string name="ScriptGuid">{3A42DFE7-79F2-48F8-8B77-0746F7DB4F4A}</string>
 						<BinaryString name="AttributesSerialize"></BinaryString>
@@ -45471,65 +45254,55 @@ return Items
 						<Content name="LinkedSource"><null></null></Content>
 						<ProtectedString name="Source"><![CDATA[local Quests = {}
 
-Quests.RefreshSeconds = 24 * 60 * 60
+Quests.RefreshSeconds = 24*60*60
+
 Quests.DailyCount = 5
 
 Quests.Filters = {
 	Daily = { id = "Daily", name = "Daily Quests" },
+	-- Weekly = { id = "Weekly", name = "Weekly Quests" },
 }
 
 Quests.Icons = {
-	Scan   = "rbxassetid://132292029713675",
-	Boost  = "rbxassetid://124515443468836",
+	Rolls = "rbxassetid://132292029713675",
+	Item  = "rbxassetid://124515443468836",
 }
 
 Quests.Pool = {
 	Daily = {
 		{
-			id = "scan_15",
-			group = "Scanning",
-			name = "Scan 15 times",
+			id = "roll_10",
+			group = "Rolling",
+			name = "Roll 10 times",
 			statKey = "Rolls",
-			target  = 15,
+			target  = 10,
 			icon    = "rbxassetid://132292029713675",
 			rewards = {
-				Scan = { {id = "FragmentScanner", amount = 3} },
-				Boost = { {id = "RarityBooster", amount = 1} },
+				Roll = { {id = "InstantRoll", amount = 5} },
+				Luck = { {id = "LuckPotion", amount = 1} }
 			},
 		},
 		{
-			id = "scan_50",
-			group = "Scanning",
-			name = "Scan 50 times",
+			id = "roll_50",
+			group = "Rolling",
+			name = "Roll 50 times",
 			statKey = "Rolls",
 			target  = 50,
 			icon    = "rbxassetid://132292029713675",
 			rewards = {
-				Scan = { {id = "FragmentScanner", amount = 5} },
-				Boost = { {id = "RarityBooster", amount = 2} },
+				Roll = { {id = "InstantRoll", amount = 5} },
+				Luck = { {id = "LuckPotion", amount = 1} }
 			},
 		},
 		{
-			id = "use_booster_1",
-			name = "Use 1 Rarity Booster",
+			id = "use_potion_1",
+			name = "Use 1 Potion",
 			statKey = "PotionsUsed",
 			target  = 1,
 			icon    = "rbxassetid://124515443468836",
 			rewards = {
-				Scan = { {id = "FragmentScanner", amount = 5} },
-				Boost = { {id = "RarityBooster", amount = 1} },
-			},
-		},
-		{
-			id = "collect_rare_1",
-			group = "Collecting",
-			name = "Find a Rare+ fragment",
-			statKey = "RareFinds",
-			target  = 1,
-			icon    = "rbxassetid://132292029713675",
-			rewards = {
-				Scan = { {id = "FragmentScanner", amount = 8} },
-				Boost = { {id = "RarityBooster", amount = 2} },
+				Roll = { {id = "InstantRoll", amount = 5} },
+				Luck = { {id = "LuckPotion", amount = 1} }
 			},
 		},
 		{
@@ -45540,20 +45313,8 @@ Quests.Pool = {
 			target  = 300,
 			icon    = "rbxassetid://14334363335",
 			rewards = {
-				Scan = { {id = "FragmentScanner", amount = 3} },
-				Boost = { {id = "RarityBooster", amount = 1} },
-			},
-		},
-		{
-			id = "fuse_1",
-			group = "Fusion",
-			name = "Complete 1 Track",
-			statKey = "TracksFused",
-			target  = 1,
-			icon    = "rbxassetid://132292029713675",
-			rewards = {
-				Scan = { {id = "FragmentScanner", amount = 10} },
-				Boost = { {id = "RarityBooster", amount = 3} },
+				Roll = { {id = "InstantRoll", amount = 5} },
+				Luck = { {id = "LuckPotion", amount = 1} }
 			},
 		},
 	}
@@ -45561,15 +45322,13 @@ Quests.Pool = {
 
 Quests.RarityGradients = {
 	Default = ColorSequence.new{
-		ColorSequenceKeypoint.new(0.00, Color3.fromRGB(140, 140, 255)),
-		ColorSequenceKeypoint.new(0.50, Color3.fromRGB(80, 220, 255)),
-		ColorSequenceKeypoint.new(1.00, Color3.fromRGB(140, 140, 255)),
+		ColorSequenceKeypoint.new(0.00, Color3.fromRGB(140,140,255)),
+		ColorSequenceKeypoint.new(0.50, Color3.fromRGB( 80,220,255)),
+		ColorSequenceKeypoint.new(1.00, Color3.fromRGB(140,140,255)),
 	},
 }
 
-return Quests
-
-]]></ProtectedString>
+return Quests]]></ProtectedString>
 						<string name="ScriptGuid">{C0C0FEBB-7948-47B0-A36B-D993473CC4A5}</string>
 						<BinaryString name="AttributesSerialize"></BinaryString>
 						<SecurityCapabilities name="Capabilities">0</SecurityCapabilities>
@@ -45585,32 +45344,32 @@ return Quests
 					<Properties>
 						<Content name="LinkedSource"><null></null></Content>
 						<ProtectedString name="Source"><![CDATA[return {
-	PointsPerRolls = 500,
+	PointsPerRolls = 1000, -- every 1000 rolls = +1 point
 	Upgrades = {
 		Luck = {
-			name = "Drop Rate",
+			name = "Luck",
 			maxLevel = 100,
-			perLevel = 0.30,
+			perLevel = 0.25, -- Luck %
 			desc = function(lv, per)
-				return ("+%.2f%% Drop Rate\n(+%.2f%% per level)"):format(lv * per, per)
+				return ("+%.2f Luck\n(+%.2f Luck per level)"):format(lv * per, per)
 			end,
-			color = Color3.fromRGB(80, 200, 120),
+			color = Color3.fromRGB(50, 220, 100),
 		},
 		RollSpeed = {
 			maxLevel = 50,
-			perLevel = 3,
-			name = function() return "Scan Speed" end,
-			desc = function(lvl, per) return ("+%d%% Scan Speed (+%d%% per level)"):format(lvl*per, per) end,
+			perLevel = 3, -- +3% roll speed per level
+			name = function(lvl, per) return ("Roll Speed"):format() end,
+			desc = function(lvl, per) return ("+%d%% Roll Speed (+%d%% per level)"):format(lvl*per, per) end,
 		},
 		PotionDuration = {
 			maxLevel = 60,
-			perLevel = 1,
-			name = function() return "Booster Duration" end,
-			desc = function(lvl, per) return ("+%d%% Booster Duration (+%d%% per level)"):format(lvl*per, per) end,
+			perLevel = 1, -- +1% duration per level
+			name = function(lvl, per) return ("Potion Duration"):format() end,
+			desc = function(lvl, per) return ("+%d%% Potion Duration (+%d%% per level)"):format(lvl*per, per) end,
 		},
 	},
-}
 
+}
 ]]></ProtectedString>
 						<string name="ScriptGuid">{B2313B41-E036-419A-8E1C-1154E8E65F71}</string>
 						<BinaryString name="AttributesSerialize"></BinaryString>
@@ -45628,7 +45387,7 @@ return Quests
 						<Content name="LinkedSource"><null></null></Content>
 						<ProtectedString name="Source"><![CDATA[local Schema = {}
 
-Schema.VERSION = 2
+Schema.VERSION = 1
 
 Schema.DEFAULT = {
 	__v = Schema.VERSION,
@@ -45636,15 +45395,9 @@ Schema.DEFAULT = {
 	Level = 1,
 	Xp = 0,
 	Pity = { misses = 0, boost = 0 },
-	Fragments = {},
-	CompletedTracks = {},
-	Equipped = {},
-	Items = {},
-	Upgrades = { Levels = {}, Points = 0, PointsSpent = 0, RollsDone = 0 },
-	Codes = {},
-	Zone = "City",
-	Quests = {},
 	Cards = {},
+	Equip = { Attack = nil, Support = nil },
+	Upgrades = { Levels = {}, Points = 0, PointsSpent = 0, RollsDone = 0 },
 }
 
 function Schema.migrate(data: table): table
@@ -45657,24 +45410,11 @@ function Schema.migrate(data: table): table
 		v = 1
 	end
 
-	if v < 2 then
-		data.Fragments = data.Fragments or {}
-		data.CompletedTracks = data.CompletedTracks or {}
-		data.Equipped = data.Equipped or {}
-		data.Items = data.Items or {}
-		data.Codes = data.Codes or {}
-		data.Zone = data.Zone or "City"
-		data.Cards = data.Cards or {}
-		v = 2
-	end
-
 	data.__v = v
 	return data
 end
 
-return Schema
-
-]]></ProtectedString>
+return Schema]]></ProtectedString>
 						<string name="ScriptGuid">{42932E9A-7C75-4CD6-8C70-A0E95C5FFB72}</string>
 						<BinaryString name="AttributesSerialize"></BinaryString>
 						<SecurityCapabilities name="Capabilities">0</SecurityCapabilities>
@@ -45690,43 +45430,31 @@ return Schema
 					<Properties>
 						<Content name="LinkedSource"><null></null></Content>
 						<ProtectedString name="Source"><![CDATA[return {
-	["SOUNDSCAPE"] = {
+	["WELCOME"] = {
 		reward = {
-			RarityBooster   = 3,
-			FragmentScanner = 5,
+			LuckPotion  = 3,
+			InstantRoll = 1,
 		},
-		expiration    = "never",
+		expiration    = "never", -- 4D = 4 days, 1S = 1 second, 1M = 1 month, 1Y = 1 year, "never"
+		globalMaxUses = 0,       -- 0 = unlimited, 1 = one-time global, N = max total redeems across all players
+	},
+
+	["LUCKYDAY"] = {
+		reward = {
+			LuckPotion = 5,
+		},
+		expiration    = "4D",  -- expires 4 days after creation/start
 		globalMaxUses = 0,
 	},
 
-	["BEATDROP"] = {
+	["SECRET100"] = {
 		reward = {
-			RarityBooster = 5,
+			InstantRoll = 10,
 		},
-		expiration    = "7D",
-		globalMaxUses = 0,
+		expiration    = "1M", -- expires after 1 month
+		globalMaxUses = 100,  -- only 100 players can redeem it total
 	},
-
-	["FIRSTTRACK"] = {
-		reward = {
-			FragmentScanner = 10,
-			RarityBooster   = 3,
-		},
-		expiration    = "1M",
-		globalMaxUses = 500,
-	},
-
-	["MYTHICHUNT"] = {
-		reward = {
-			RarityBooster   = 10,
-			FragmentMagnet  = 2,
-		},
-		expiration    = "14D",
-		globalMaxUses = 200,
-	},
-}
-
-]]></ProtectedString>
+}]]></ProtectedString>
 						<string name="ScriptGuid">{1AC8ED43-FE4E-4525-98C2-3745A6FC4FA0}</string>
 						<BinaryString name="AttributesSerialize"></BinaryString>
 						<SecurityCapabilities name="Capabilities">0</SecurityCapabilities>
@@ -52280,108 +52008,57 @@ else
 	end
 end
 
-local SERVICE_NAMES = {
-	"DataService", "EconomyService", "RNGService", "CardService",
-	"BackpackService", "LeaderboardService", "UpgradeService",
-	"QuestService", "MarketService", "AudioService", "CardPetService",
-	"CodesService",
-}
+local GameCore = require(RS.Main.GameCore)
+local Promise  = require(RS.Main.GameCore.Promise)
+local Async    = require(RS.Main.GameCore.AsyncTasks)
+local MathX    = require(RS.Main.GameCore.MathX)
 
-for _, name in ipairs(SERVICE_NAMES) do
-	if not GC_REMOTES:FindFirstChild(name) then
-		local re = Instance.new("RemoteEvent")
-		re.Name = name
-		re.Parent = GC_REMOTES
-	end
-	if not GC_REMOTES:FindFirstChild(name .. "_fn") then
-		local rf = Instance.new("RemoteFunction")
-		rf.Name = name .. "_fn"
-		rf.Parent = GC_REMOTES
-	end
-end
+GameCore.PingTimes = require(RS.Main.Modules.PingTimes)
 
-print("[Server] RemoteEvents pre-created for", #SERVICE_NAMES, "services")
-
-local ok1, GameCore = pcall(require, RS.Main.GameCore)
-if not ok1 then print("[Server] FATAL: GameCore failed to load:", tostring(GameCore)); return end
-print("[Server] GameCore loaded OK")
-
-local ok2, Promise = pcall(require, RS.Main.GameCore.Promise)
-if not ok2 then print("[Server] FATAL: Promise failed to load:", tostring(Promise)); return end
-print("[Server] Promise loaded OK")
-
-local ok3, Async = pcall(require, RS.Main.GameCore.AsyncTasks)
-if not ok3 then print("[Server] FATAL: AsyncTasks failed to load:", tostring(Async)); return end
-print("[Server] AsyncTasks loaded OK")
-
-local ok4, MathX = pcall(require, RS.Main.GameCore.MathX)
-if not ok4 then print("[Server] FATAL: MathX failed to load:", tostring(MathX)); return end
-print("[Server] MathX loaded OK")
-
-local okPT, PingTimes = pcall(require, RS.Main.Modules.PingTimes)
-if okPT then
-	GameCore.PingTimes = PingTimes
-	print("[Server] PingTimes loaded OK")
-else
-	print("[Server] PingTimes skipped:", tostring(PingTimes))
-end
-
-local okC, errC = pcall(function()
-	GameCore.Configure({
-		RemotesFolder = GC_REMOTES,
-		Roots = {
-			Services    = RS.Main.Services,
-			Controllers = RS.Main.Controllers,
-		},
-		Promise = Promise,
-		Async   = Async,
-		AC = { Whitelist = { [797399348] = true } },
-		AntiCheat = {
-			Enabled  = true,
-			Mode     = "enforce",
-			LogLevel = "warn",
-			Network  = {
-				MaxPayloadBytes = 8 * 1024,
-				ReplayWindow    = 8,
-				Rate = {
-					Default  = { calls = 20, window = 1.0 },
-					PerRoute = {
-						RNGService    = { calls = 8, window = 0.5 },
-						RNGService_fn = { calls = 8, window = 0.5 },
-					},
+GameCore.Configure({
+	RemotesFolder = GC_REMOTES,
+	Roots = { 
+		Services    = RS.Main.Services, 
+		Controllers = RS.Main.Controllers
+	},
+	Promise = Promise,
+	Async   = Async,
+	AC = { Whitelist = { [797399348] = true } },
+	AntiCheat = {
+		Enabled  = true,
+		Mode     = "enforce",
+		LogLevel = "warn",
+		Network  = {
+			MaxPayloadBytes = 8*1024,
+			ReplayWindow    = 8,
+			Rate = {
+				Default  = { calls = 20, window = 1.0 },
+				PerRoute = {
+					RNGService    = { calls = 6, window = 0.5 },
+					RNGService_fn = { calls = 6, window = 0.5 },
 				},
 			},
-			Movement = {
-				BaseWalkSpeed  = 16,
-				MaxSprintSpeed = 50,
-				SpeedTolerance = 15,
-				MaxTP          = 100,
-				TPWindow       = 0.25,
-				CheckNoclip    = false,
-			},
-			Integrity = {
-				LockHumanoidProps      = true,
-				BlockDescendantScripts = true,
-				DisallowSetHiddenProps = true,
-			},
 		},
-	})
-end)
-if not okC then print("[Server] FATAL: GameCore.Configure failed:", tostring(errC)); return end
-print("[Server] GameCore configured")
+		Movement = {
+			BaseWalkSpeed  = 16,
+			MaxSprintSpeed = 50,
+			SpeedTolerance = 15,
+			MaxTP          = 100,
+			TPWindow       = 0.25,
+			CheckNoclip    = false,
+		},
+		Integrity = {
+			LockHumanoidProps      = true,
+			BlockDescendantScripts = true,
+			DisallowSetHiddenProps = true,
+		},
+	},
+})
 
-local okM, errM = pcall(function()
-	MathX.setGameCore(GameCore)
-end)
-if not okM then print("[Server] FATAL: MathX.setGameCore failed:", tostring(errM)); return end
+MathX.setGameCore(GameCore)
 
-local okAC, errAC = pcall(function()
-	GameCore.AC.Start()
-	GameCore.AC.AttachNetGuards()
-end)
-if not okAC then print("[Server] FATAL: AC start failed:", tostring(errAC)); return end
-
-print("[Server] AC started, calling GameCore.Auto()...")
+GameCore.AC.Start()
+GameCore.AC.AttachNetGuards()
 
 local lastReq = {}
 GameCore.UseMiddleware("RNGService", function(ctx, next)
@@ -52392,17 +52069,8 @@ GameCore.UseMiddleware("RNGService", function(ctx, next)
 	next(ctx)
 end)
 
-local autoOk, autoErr = pcall(function()
-	GameCore.Auto()
-end)
-
-if autoOk then
-	print("[Server] SoundScape RNG - GameCore Started successfully")
-else
-	print("[Server] FATAL: GameCore.Auto() FAILED:", tostring(autoErr))
-	print("[Server] Game will run with limited functionality")
-end
-
+GameCore.Auto()
+print("[Server] GameCore Started")
 ]]></ProtectedString>
 				<bool name="Disabled">false</bool>
 				<Content name="LinkedSource"><null></null></Content>
