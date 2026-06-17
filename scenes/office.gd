@@ -198,6 +198,13 @@ var flashlight_timer: float = 0.0
 var flashlight_active: bool = false
 const FLASHLIGHT_IMMUNE: Array = ["Jace", "Blitz", "Doggie", "Kolzaru", "Tung"]
 
+# ── Office panning (FNAF 1 style) ────────────────────────────────────────────
+const PAN_MAX: float = 250.0
+const PAN_DEAD_ZONE: float = 0.3
+const PAN_LERP_SPEED: float = 4.0
+var office_cam: Camera2D
+var pan_current: float = 0.0
+
 func _is_goku_active() -> bool:
 	if GameManager.is_custom_night:
 		return GameManager.custom_ai.get("Goku", 0) > 0
@@ -236,6 +243,8 @@ func _ready():
 	hud_layer.layer = 10
 	add_child(hud_layer)
 
+	_setup_office_pan()
+
 	_build_power_warning()
 	_build_audio_warning()
 	_build_power_bar()
@@ -267,6 +276,8 @@ func _process(delta: float):
 			sfx_phone_ring.play()
 			sfx_ambient.play()
 		return
+
+	_update_office_pan(delta)
 
 	GameManager.power -= GameManager.get_power_drain() * delta
 	GameManager.power = clamp(GameManager.power, 0.0, 100.0)
@@ -947,6 +958,56 @@ func _wake_up():
 		sleep_bot.position.y = 648
 	if sleep_label != null:
 		sleep_label.visible = false
+
+# ── Office panning ────────────────────────────────────────────────────────────
+func _setup_office_pan():
+	office_cam = Camera2D.new()
+	office_cam.position = Vector2(576, 324)
+	office_cam.enabled = true
+	add_child(office_cam)
+
+	left_door.position.x -= PAN_MAX
+	right_door.position.x += PAN_MAX
+	$LeftDoorButton.position.x -= PAN_MAX
+	$RightDoorButton.position.x += PAN_MAX
+
+	$PowerLabel.visible = false
+	$HourLabel.visible = false
+	$CameraButton.visible = false
+
+	var hud_power = Label.new()
+	hud_power.set_position(Vector2(981, 631))
+	hud_power.text = "Power: 100"
+	hud_layer.add_child(hud_power)
+	power_label = hud_power
+
+	var hud_hour = Label.new()
+	hud_hour.set_position(Vector2(0, 6))
+	hud_hour.text = "12 AM"
+	hud_layer.add_child(hud_hour)
+	hour_label = hud_hour
+
+	var hud_cam_btn = Button.new()
+	hud_cam_btn.text = "CAM"
+	hud_cam_btn.set_position(Vector2(539, 589))
+	hud_cam_btn.set_size(Vector2(44, 31))
+	hud_cam_btn.pressed.connect(_on_camera_button_pressed)
+	hud_layer.add_child(hud_cam_btn)
+
+func _update_office_pan(delta: float):
+	if camera_open:
+		return
+	var mouse_x = get_viewport().get_mouse_position().x
+	var vp_w = get_viewport().get_visible_rect().size.x
+	if vp_w == 0:
+		return
+	var normalized = (mouse_x / vp_w) * 2.0 - 1.0
+	var pan_target = 0.0
+	if abs(normalized) > PAN_DEAD_ZONE:
+		var sign_v = sign(normalized)
+		pan_target = sign_v * (abs(normalized) - PAN_DEAD_ZONE) / (1.0 - PAN_DEAD_ZONE)
+	pan_current = lerp(pan_current, pan_target, delta * PAN_LERP_SPEED)
+	office_cam.position.x = 576.0 + pan_current * PAN_MAX
 
 # ── Office flashlight ─────────────────────────────────────────────────────────
 func _build_flashlight_ui():
