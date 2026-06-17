@@ -20,7 +20,7 @@ func _ready():
 func _build_audio():
 	sfx_menu_theme = AudioStreamPlayer.new()
 	sfx_menu_theme.stream = load("res://sounds/menu_theme.ogg")
-	if sfx_menu_theme.stream is AudioStreamOGGVorbis:
+	if sfx_menu_theme.stream is AudioStreamOggVorbis:
 		sfx_menu_theme.stream.loop = true
 	sfx_menu_theme.volume_db = -6.0
 	add_child(sfx_menu_theme)

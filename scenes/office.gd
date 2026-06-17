@@ -932,7 +932,7 @@ func _wake_up():
 func _make_sfx(path: String, loop: bool = false, vol: float = 0.0) -> AudioStreamPlayer:
 	var player = AudioStreamPlayer.new()
 	player.stream = load(path)
-	if loop and player.stream is AudioStreamOGGVorbis:
+	if loop and player.stream is AudioStreamOggVorbis:
 		player.stream.loop = true
 	player.volume_db = vol
 	add_child(player)
