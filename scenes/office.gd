@@ -386,9 +386,11 @@ func _try_enter(anim_name: String):
 	if door == "BOTH_DOORS":
 		if owen_at_door:
 			anim_state[anim_name]["index"] = 0
+			anim_state[anim_name]["timer"] = 0.0
 			return
 		if left_door_closed and right_door_closed:
-			anim_state[anim_name]["index"] = 0  # back to his desk
+			anim_state[anim_name]["index"] = 0
+			anim_state[anim_name]["timer"] = 0.0
 		else:
 			_game_over(anim_name)
 		return
@@ -438,7 +440,8 @@ func _try_enter(anim_name: String):
 				  (door == "RIGHT_DOOR" and right_door_closed)
 
 	if blocked:
-		anim_state[anim_name]["index"] = max(0, anim_state[anim_name]["index"] - 1)
+		anim_state[anim_name]["index"] = 0
+		anim_state[anim_name]["timer"] = 0.0
 	else:
 		_game_over(anim_name)
 
