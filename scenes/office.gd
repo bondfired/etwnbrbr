@@ -577,6 +577,7 @@ func _update_cam_display():
 	var has_uncollected_db = _is_goku_active() and (room in DB_ROOMS) and not db_collected.get(room, true)
 	cam_db_label.visible   = has_uncollected_db
 	db_collect_btn.visible = has_uncollected_db
+	cam_db_counter.visible = _is_goku_active()
 	cam_db_counter.text    = "★ Dragon Balls: %d / 7" % db_found
 
 	# Owen flash button — visible when Owen is in this camera room, or at the door and
@@ -1066,7 +1067,7 @@ func _build_camera_overlay():
 	cam_overlay.add_child(db_collect_btn)
 
 	cam_db_counter = Label.new()
-	cam_db_counter.set_position(Vector2(540, 8))
+	cam_db_counter.set_position(Vector2(260, 102))
 	cam_db_counter.add_theme_font_size_override("font_size", 16)
 	cam_db_counter.add_theme_color_override("font_color", Color.ORANGE)
 	cam_overlay.add_child(cam_db_counter)
