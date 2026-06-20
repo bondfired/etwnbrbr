@@ -14,21 +14,23 @@
   --gray:#787c7e;
   --dark-gray:#3a3a3c;
   --light-gray:#d3d6da;
-  --key-bg:#d3d6da;
+  --key-bg:rgba(211,214,218,.85);
   --bg:#fff;
+  --bg-grad:linear-gradient(135deg,#fdf6f0 0%,#f0e6ff 30%,#e6f0ff 60%,#f0fff4 100%);
   --text:#1a1a1b;
-  --border:#d3d6da;
-  --card-bg:#f7f7f7;
-  --hint-bg:#f0f4ff;
-  --hint-border:#c5d5f7;
-  --locked-bg:#e8e8e8;
-  --locked-border:#ccc;
-  --header-border:#e0e0e0;
-  --input-bg:#fff;
+  --border:rgba(211,214,218,.7);
+  --card-bg:rgba(255,255,255,.6);
+  --hint-bg:rgba(240,244,255,.7);
+  --hint-border:rgba(197,213,247,.6);
+  --locked-bg:rgba(232,232,232,.5);
+  --locked-border:rgba(204,204,204,.5);
+  --header-border:rgba(224,224,224,.6);
+  --header-bg:rgba(255,255,255,.8);
+  --input-bg:rgba(255,255,255,.8);
   --accent:#4a6cf7;
   --accent-hover:#3b5de6;
-  --success-bg:#e8f5e9;
-  --fail-bg:#fdecea;
+  --success-bg:rgba(232,245,233,.75);
+  --fail-bg:rgba(253,236,234,.75);
 }
 
 .dark{
@@ -38,26 +40,29 @@
   --gray:#3a3a3c;
   --dark-gray:#818384;
   --light-gray:#565758;
-  --key-bg:#818384;
+  --key-bg:rgba(129,131,132,.85);
   --bg:#121213;
+  --bg-grad:linear-gradient(135deg,#0d0d1a 0%,#1a0d2e 30%,#0d1a2e 60%,#0d1a14 100%);
   --text:#d7dadc;
-  --border:#3a3a3c;
-  --card-bg:#1a1a1b;
-  --hint-bg:#1a1f2e;
-  --hint-border:#2a3a5a;
-  --locked-bg:#2a2a2b;
-  --locked-border:#3a3a3c;
-  --header-border:#3a3a3c;
-  --input-bg:#2a2a2b;
+  --border:rgba(58,58,60,.7);
+  --card-bg:rgba(26,26,27,.7);
+  --hint-bg:rgba(26,31,46,.7);
+  --hint-border:rgba(42,58,90,.6);
+  --locked-bg:rgba(42,42,43,.5);
+  --locked-border:rgba(58,58,60,.5);
+  --header-border:rgba(58,58,60,.6);
+  --header-bg:rgba(18,18,19,.85);
+  --input-bg:rgba(42,42,43,.8);
   --accent:#5b7cf7;
   --accent-hover:#4a6ae6;
-  --success-bg:#1b2e1b;
-  --fail-bg:#2e1b1b;
+  --success-bg:rgba(27,46,27,.75);
+  --fail-bg:rgba(46,27,27,.75);
 }
 
 body{
   font-family:'Helvetica Neue',Arial,sans-serif;
-  background:var(--bg);
+  background:var(--bg-grad);
+  background-attachment:fixed;
   color:var(--text);
   display:flex;
   flex-direction:column;
@@ -65,6 +70,45 @@ body{
   min-height:100vh;
   user-select:none;
   -webkit-user-select:none;
+  position:relative;
+  overflow-x:hidden;
+}
+
+body::before,body::after{
+  content:'';
+  position:fixed;
+  border-radius:50%;
+  filter:blur(80px);
+  opacity:.35;
+  z-index:0;
+  pointer-events:none;
+  animation:float 12s ease-in-out infinite alternate;
+}
+
+body::before{
+  width:400px;
+  height:400px;
+  background:radial-gradient(circle,rgba(74,108,247,.4),transparent 70%);
+  top:-80px;
+  right:-100px;
+  animation-delay:0s;
+}
+
+body::after{
+  width:350px;
+  height:350px;
+  background:radial-gradient(circle,rgba(106,170,100,.35),transparent 70%);
+  bottom:-60px;
+  left:-80px;
+  animation-delay:-6s;
+}
+
+.dark body::before,.dark body::after{opacity:.2}
+
+@keyframes float{
+  0%{transform:translate(0,0) scale(1)}
+  50%{transform:translate(30px,20px) scale(1.1)}
+  100%{transform:translate(-20px,40px) scale(.95)}
 }
 
 header{
@@ -75,7 +119,9 @@ header{
   border-bottom:1px solid var(--header-border);
   padding:14px 16px;
   position:relative;
-  background:var(--bg);
+  background:var(--header-bg);
+  backdrop-filter:blur(16px);
+  -webkit-backdrop-filter:blur(16px);
 }
 
 header h1{
@@ -83,6 +129,17 @@ header h1{
   font-weight:700;
   letter-spacing:.1em;
   text-transform:uppercase;
+  background:linear-gradient(90deg,var(--accent),#e74c9a,var(--green),var(--accent));
+  background-size:300% 100%;
+  -webkit-background-clip:text;
+  -webkit-text-fill-color:transparent;
+  background-clip:text;
+  animation:shimmer 6s ease-in-out infinite;
+}
+
+@keyframes shimmer{
+  0%,100%{background-position:0% 50%}
+  50%{background-position:100% 50%}
 }
 
 .header-right{
@@ -111,6 +168,8 @@ header h1{
   align-items:center;
   gap:20px;
   flex:1;
+  position:relative;
+  z-index:1;
 }
 
 #day-label{
@@ -173,6 +232,8 @@ header h1{
   background:var(--locked-bg);
   border:1px solid var(--locked-border);
   opacity:.5;
+  backdrop-filter:blur(8px);
+  -webkit-backdrop-filter:blur(8px);
 }
 
 .hint-card.revealed{
@@ -180,6 +241,8 @@ header h1{
   border:1px solid var(--hint-border);
   opacity:1;
   animation:hintReveal .5s ease;
+  backdrop-filter:blur(8px);
+  -webkit-backdrop-filter:blur(8px);
 }
 
 @keyframes hintReveal{
@@ -317,6 +380,8 @@ header h1{
   padding:28px 24px;
   text-align:center;
   animation:resultPop .5s ease;
+  backdrop-filter:blur(12px);
+  -webkit-backdrop-filter:blur(12px);
 }
 
 #result-card.visible{display:block}
