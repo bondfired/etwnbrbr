@@ -571,28 +571,62 @@ let hintsRevealed = 0;
 let guesses = [];
 let gameOver = false;
 
+function saveState() {
+  const state = {
+    day: currentPuzzle.day,
+    guesses,
+    hintsRevealed,
+    gameOver
+  };
+  localStorage.setItem("challengle-state", JSON.stringify(state));
+}
+
+function loadState() {
+  try {
+    const s = JSON.parse(localStorage.getItem("challengle-state"));
+    if (s && s.day === currentPuzzle.day) return s;
+  } catch {}
+  return null;
+}
+
 function loadPuzzle(index) {
   currentPuzzle = PUZZLES[index];
-  hintsRevealed = 1;
-  guesses = [];
-  gameOver = false;
 
   document.getElementById("day-label").textContent = `Day ${currentPuzzle.day}`;
+
+  const saved = loadState();
+  if (saved) {
+    guesses = saved.guesses;
+    hintsRevealed = saved.hintsRevealed;
+    gameOver = saved.gameOver;
+  } else {
+    hintsRevealed = 1;
+    guesses = [];
+    gameOver = false;
+  }
 
   renderAttempts();
   renderHints();
   renderGuessHistory();
 
-  document.getElementById("guess-input").disabled = false;
-  document.getElementById("guess-input").value = "";
-  document.getElementById("submit-btn").disabled = false;
+  if (gameOver) {
+    const won = guesses.length > 0 && guesses[guesses.length - 1].correct;
+    document.getElementById("guess-input").disabled = true;
+    document.getElementById("guess-input").value = "";
+    document.getElementById("submit-btn").disabled = true;
+    showResult(won);
+  } else {
+    document.getElementById("guess-input").disabled = false;
+    document.getElementById("guess-input").value = "";
+    document.getElementById("submit-btn").disabled = false;
 
-  const result = document.getElementById("result-card");
-  result.classList.remove("visible", "won", "lost");
-  result.style.display = "none";
+    const result = document.getElementById("result-card");
+    result.classList.remove("visible", "won", "lost");
+    result.style.display = "none";
 
-  document.getElementById("play-again-btn").classList.remove("visible");
-  document.getElementById("share-btn").classList.remove("visible");
+    document.getElementById("play-again-btn").classList.remove("visible");
+    document.getElementById("share-btn").classList.remove("visible");
+  }
 }
 
 function renderAttempts() {
@@ -682,6 +716,7 @@ function submitGuess() {
 
   if (isCorrect) {
     gameOver = true;
+    saveState();
     renderAttempts();
     showResult(true);
     return;
@@ -691,12 +726,14 @@ function submitGuess() {
     hintsRevealed++;
   }
 
+  saveState();
   renderAttempts();
   renderHints();
   renderGuessHistory();
 
   if (guesses.length >= MAX_GUESSES) {
     gameOver = true;
+    saveState();
     showResult(false);
     return;
   }
