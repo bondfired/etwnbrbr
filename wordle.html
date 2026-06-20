@@ -3,44 +3,56 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>Doctordle</title>
+<title>Challengle</title>
 <style>
 *,*::before,*::after{margin:0;padding:0;box-sizing:border-box}
 
 :root{
   --green:#6aaa64;
   --yellow:#c9b458;
+  --red:#e74c3c;
   --gray:#787c7e;
   --dark-gray:#3a3a3c;
   --light-gray:#d3d6da;
-  --white:#fff;
-  --black:#212121;
   --key-bg:#d3d6da;
   --bg:#fff;
   --text:#1a1a1b;
   --border:#d3d6da;
-  --empty-border:#878a8c;
   --card-bg:#f7f7f7;
-  --solved-bg:#e8f5e9;
+  --hint-bg:#f0f4ff;
+  --hint-border:#c5d5f7;
+  --locked-bg:#e8e8e8;
+  --locked-border:#ccc;
   --header-border:#e0e0e0;
+  --input-bg:#fff;
+  --accent:#4a6cf7;
+  --accent-hover:#3b5de6;
+  --success-bg:#e8f5e9;
+  --fail-bg:#fdecea;
 }
 
 .dark{
   --green:#538d4e;
   --yellow:#b59f3b;
+  --red:#c0392b;
   --gray:#3a3a3c;
   --dark-gray:#818384;
   --light-gray:#565758;
-  --white:#d7dadc;
-  --black:#d7dadc;
   --key-bg:#818384;
   --bg:#121213;
   --text:#d7dadc;
   --border:#3a3a3c;
-  --empty-border:#3a3a3c;
   --card-bg:#1a1a1b;
-  --solved-bg:#1b2e1b;
+  --hint-bg:#1a1f2e;
+  --hint-border:#2a3a5a;
+  --locked-bg:#2a2a2b;
+  --locked-border:#3a3a3c;
   --header-border:#3a3a3c;
+  --input-bg:#2a2a2b;
+  --accent:#5b7cf7;
+  --accent-hover:#4a6ae6;
+  --success-bg:#1b2e1b;
+  --fail-bg:#2e1b1b;
 }
 
 body{
@@ -61,28 +73,25 @@ header{
   align-items:center;
   justify-content:center;
   border-bottom:1px solid var(--header-border);
-  padding:10px 16px;
-  position:sticky;
-  top:0;
+  padding:14px 16px;
+  position:relative;
   background:var(--bg);
-  z-index:50;
 }
 
 header h1{
-  font-size:1.6rem;
+  font-size:1.8rem;
   font-weight:700;
-  letter-spacing:.12em;
+  letter-spacing:.1em;
   text-transform:uppercase;
 }
 
-.header-left,.header-right{
+.header-right{
   position:absolute;
+  right:16px;
   display:flex;
   align-items:center;
   gap:8px;
 }
-.header-left{left:16px}
-.header-right{right:16px}
 
 .header-btn{
   background:none;
@@ -93,193 +102,280 @@ header h1{
   padding:4px;
 }
 
-#guess-counter{
-  font-size:.85rem;
-  font-weight:700;
-  color:var(--text);
-  opacity:.8;
-}
-
-#progress-bar{
+#game-container{
   width:100%;
-  height:4px;
-  background:var(--border);
-}
-
-#progress-fill{
-  height:100%;
-  width:0%;
-  background:var(--green);
-  transition:width .4s ease;
-}
-
-#current-input{
-  width:100%;
+  max-width:560px;
+  padding:20px 16px;
   display:flex;
-  justify-content:center;
-  gap:4px;
-  padding:10px 0 6px;
-  position:sticky;
-  top:49px;
-  background:var(--bg);
-  z-index:40;
-}
-
-.input-tile{
-  width:44px;
-  height:44px;
-  border:2px solid var(--empty-border);
-  display:flex;
+  flex-direction:column;
   align-items:center;
-  justify-content:center;
-  font-size:1.5rem;
+  gap:20px;
+  flex:1;
+}
+
+#day-label{
+  font-size:1.1rem;
   font-weight:700;
+  opacity:.6;
   text-transform:uppercase;
-  color:var(--text);
-  background:var(--bg);
+  letter-spacing:.15em;
 }
 
-.input-tile.filled{
-  border-color:var(--text);
-  animation:pop .1s ease-in-out;
-}
-
-#boards-container{
-  display:grid;
-  grid-template-columns:repeat(4,1fr);
+#attempts-bar{
+  display:flex;
   gap:8px;
-  padding:8px;
-  width:100%;
-  max-width:900px;
-  flex:1;
-  overflow-y:auto;
-}
-
-.board-card{
-  background:var(--card-bg);
-  border-radius:6px;
-  padding:6px;
-  display:flex;
-  flex-direction:column;
   align-items:center;
-  gap:2px;
-  position:relative;
-  transition:background .3s;
 }
 
-.board-card.solved{
-  background:var(--solved-bg);
+.attempt-dot{
+  width:14px;
+  height:14px;
+  border-radius:50%;
+  border:2px solid var(--border);
+  transition:background .3s,border-color .3s;
 }
 
-.board-label{
-  font-size:.65rem;
-  font-weight:700;
-  opacity:.5;
-  margin-bottom:2px;
+.attempt-dot.used{
+  background:var(--red);
+  border-color:var(--red);
 }
 
-.mini-row{
-  display:flex;
-  gap:2px;
+.attempt-dot.correct{
+  background:var(--green);
+  border-color:var(--green);
 }
 
-.mini-tile{
-  width:clamp(12px,3.5vw,22px);
-  height:clamp(12px,3.5vw,22px);
-  border:1px solid var(--border);
-  display:flex;
-  align-items:center;
-  justify-content:center;
-  font-size:clamp(6px,1.8vw,11px);
-  font-weight:700;
-  text-transform:uppercase;
-  color:var(--text);
-}
-
-.mini-tile.correct{background:var(--green);border-color:var(--green);color:#fff}
-.mini-tile.present{background:var(--yellow);border-color:var(--yellow);color:#fff}
-.mini-tile.absent{background:var(--gray);border-color:var(--gray);color:#fff}
-.mini-tile.empty-solved{border-color:transparent;background:transparent}
-
-.solved-badge{
-  position:absolute;
-  top:50%;
-  left:50%;
-  transform:translate(-50%,-50%);
-  font-size:1.6rem;
-  opacity:0;
-  animation:badgePop .4s ease forwards;
-  pointer-events:none;
-  z-index:5;
-}
-
-@keyframes badgePop{
-  0%{opacity:0;transform:translate(-50%,-50%) scale(0)}
-  60%{opacity:1;transform:translate(-50%,-50%) scale(1.3)}
-  100%{opacity:.7;transform:translate(-50%,-50%) scale(1)}
-}
-
-.board-card.solved .mini-row{opacity:.6}
-
-#keyboard-area{
-  position:sticky;
-  bottom:0;
-  width:100%;
-  background:var(--bg);
-  padding:6px 0 10px;
-  border-top:1px solid var(--header-border);
-  z-index:40;
-}
-
-#keyboard{
-  display:flex;
-  flex-direction:column;
-  gap:5px;
-  padding:0 6px;
-  width:100%;
-  max-width:520px;
-  margin:0 auto;
-}
-
-.kb-row{
-  display:flex;
-  justify-content:center;
-  gap:4px;
-}
-
-.key{
-  height:52px;
-  min-width:28px;
-  padding:0 5px;
-  border:none;
-  border-radius:4px;
-  background:var(--key-bg);
-  color:var(--text);
+#attempts-label{
   font-size:.8rem;
-  font-weight:700;
-  text-transform:uppercase;
-  cursor:pointer;
+  font-weight:600;
+  opacity:.6;
+  margin-left:4px;
+}
+
+#hints-container{
+  width:100%;
+  display:flex;
+  flex-direction:column;
+  gap:10px;
+}
+
+.hint-card{
+  width:100%;
+  border-radius:8px;
+  padding:14px 18px;
+  display:flex;
+  align-items:center;
+  gap:12px;
+  transition:all .4s ease;
+}
+
+.hint-card.locked{
+  background:var(--locked-bg);
+  border:1px solid var(--locked-border);
+  opacity:.5;
+}
+
+.hint-card.revealed{
+  background:var(--hint-bg);
+  border:1px solid var(--hint-border);
+  opacity:1;
+  animation:hintReveal .5s ease;
+}
+
+@keyframes hintReveal{
+  0%{opacity:0;transform:translateY(-8px)}
+  100%{opacity:1;transform:translateY(0)}
+}
+
+.hint-number{
+  width:28px;
+  height:28px;
+  border-radius:50%;
   display:flex;
   align-items:center;
   justify-content:center;
-  flex:1;
-  max-width:40px;
-  transition:background .15s,color .15s;
-  -webkit-tap-highlight-color:transparent;
+  font-size:.75rem;
+  font-weight:700;
+  flex-shrink:0;
 }
 
-.key.wide{
-  max-width:62px;
-  font-size:.7rem;
+.hint-card.locked .hint-number{
+  background:var(--border);
+  color:var(--bg);
 }
 
-.key.correct{background:var(--green);color:#fff}
-.key.present{background:var(--yellow);color:#fff}
-.key.absent{background:var(--dark-gray);color:#fff}
+.hint-card.revealed .hint-number{
+  background:var(--accent);
+  color:#fff;
+}
+
+.hint-text{
+  font-size:.95rem;
+  line-height:1.4;
+}
+
+.hint-card.locked .hint-text{
+  font-style:italic;
+  opacity:.6;
+}
+
+#guess-area{
+  width:100%;
+  display:flex;
+  flex-direction:column;
+  align-items:center;
+  gap:12px;
+  margin-top:8px;
+}
+
+#guess-input{
+  width:100%;
+  padding:14px 18px;
+  border:2px solid var(--border);
+  border-radius:8px;
+  font-size:1.1rem;
+  font-weight:600;
+  text-align:center;
+  background:var(--input-bg);
+  color:var(--text);
+  outline:none;
+  transition:border-color .2s;
+  font-family:inherit;
+}
+
+#guess-input:focus{
+  border-color:var(--accent);
+}
+
+#guess-input::placeholder{
+  color:var(--gray);
+  font-weight:400;
+}
+
+#guess-input:disabled{
+  opacity:.5;
+  cursor:not-allowed;
+}
+
+#submit-btn{
+  width:100%;
+  padding:14px;
+  background:var(--accent);
+  color:#fff;
+  border:none;
+  border-radius:8px;
+  font-size:1rem;
+  font-weight:700;
+  cursor:pointer;
+  text-transform:uppercase;
+  letter-spacing:.08em;
+  transition:background .2s,transform .1s;
+}
+
+#submit-btn:hover{background:var(--accent-hover)}
+#submit-btn:active{transform:scale(.98)}
+#submit-btn:disabled{opacity:.4;cursor:not-allowed;transform:none}
+
+#guess-history{
+  width:100%;
+  display:flex;
+  flex-direction:column;
+  gap:6px;
+  margin-top:4px;
+}
+
+.past-guess{
+  width:100%;
+  padding:10px 16px;
+  border-radius:6px;
+  font-size:.9rem;
+  font-weight:600;
+  display:flex;
+  align-items:center;
+  justify-content:space-between;
+  animation:slideIn .3s ease;
+}
+
+.past-guess.wrong{
+  background:var(--fail-bg);
+  border:1px solid var(--red);
+  color:var(--red);
+}
+
+@keyframes slideIn{
+  0%{opacity:0;transform:translateY(-6px)}
+  100%{opacity:1;transform:translateY(0)}
+}
+
+.past-guess .guess-text{text-transform:uppercase}
+.past-guess .guess-x{font-size:1.1rem}
+
+#result-card{
+  display:none;
+  width:100%;
+  border-radius:12px;
+  padding:28px 24px;
+  text-align:center;
+  animation:resultPop .5s ease;
+}
+
+#result-card.visible{display:block}
+
+#result-card.won{background:var(--success-bg);border:2px solid var(--green)}
+#result-card.lost{background:var(--fail-bg);border:2px solid var(--red)}
+
+@keyframes resultPop{
+  0%{opacity:0;transform:scale(.9)}
+  60%{transform:scale(1.02)}
+  100%{opacity:1;transform:scale(1)}
+}
+
+#result-card h2{
+  font-size:1.5rem;
+  margin-bottom:8px;
+}
+
+#result-card .answer-reveal{
+  font-size:1.3rem;
+  font-weight:700;
+  text-transform:uppercase;
+  letter-spacing:.1em;
+  margin:12px 0;
+  color:var(--accent);
+}
+
+#result-card .result-detail{
+  font-size:.9rem;
+  opacity:.7;
+  margin-bottom:16px;
+  line-height:1.5;
+}
+
+#result-card .credit{
+  font-size:.75rem;
+  opacity:.5;
+  margin-top:12px;
+  font-style:italic;
+}
+
+#play-again-btn{
+  margin-top:12px;
+  padding:12px 28px;
+  background:var(--accent);
+  color:#fff;
+  border:none;
+  border-radius:6px;
+  font-size:.95rem;
+  font-weight:700;
+  cursor:pointer;
+  display:none;
+}
+
+#play-again-btn.visible{display:inline-block}
 
 #toast-container{
   position:fixed;
-  top:60px;
+  top:70px;
   left:50%;
   transform:translateX(-50%);
   z-index:100;
@@ -304,539 +400,241 @@ header h1{
 
 .toast.fade{opacity:0}
 
-@keyframes pop{
-  0%{transform:scale(1)}
-  50%{transform:scale(1.12)}
-  100%{transform:scale(1)}
-}
-
 @keyframes shake{
   0%,100%{transform:translateX(0)}
-  20%{transform:translateX(-5px)}
-  40%{transform:translateX(5px)}
-  60%{transform:translateX(-5px)}
-  80%{transform:translateX(5px)}
+  20%{transform:translateX(-6px)}
+  40%{transform:translateX(6px)}
+  60%{transform:translateX(-6px)}
+  80%{transform:translateX(6px)}
 }
 
 .shake{animation:shake .4s ease}
 
-#modal-overlay{
-  display:none;
-  position:fixed;
-  inset:0;
-  background:rgba(0,0,0,.5);
-  z-index:200;
-  justify-content:center;
-  align-items:center;
-}
-#modal-overlay.active{display:flex}
-
-#modal{
-  background:var(--bg);
-  color:var(--text);
-  border-radius:8px;
-  padding:28px;
-  max-width:420px;
-  width:90%;
-  text-align:center;
-  position:relative;
-  max-height:80vh;
-  overflow-y:auto;
-}
-
-#modal h2{margin-bottom:12px;font-size:1.3rem}
-#modal p{margin-bottom:10px;font-size:.95rem;line-height:1.5}
-
-.stat-row{
-  display:flex;
-  justify-content:center;
-  gap:20px;
-  margin:14px 0;
-}
-
-.stat-item{
-  display:flex;
-  flex-direction:column;
-  align-items:center;
-}
-
-.stat-item .num{font-size:1.8rem;font-weight:700}
-.stat-item .label{font-size:.65rem;text-transform:uppercase;color:var(--dark-gray)}
-
-#play-again{
-  margin-top:14px;
-  padding:10px 28px;
-  background:var(--green);
-  color:#fff;
-  border:none;
-  border-radius:4px;
-  font-size:1rem;
-  font-weight:700;
-  cursor:pointer;
-}
-
-#modal-close{
-  position:absolute;
-  top:10px;
-  right:14px;
-  background:none;
-  border:none;
-  font-size:1.2rem;
-  cursor:pointer;
-  color:var(--text);
-}
-
-#word-list{
-  text-align:left;
-  margin-top:12px;
-  columns:2;
-  column-gap:16px;
-  font-size:.8rem;
-  line-height:1.8;
-}
-
-#word-list span{
-  display:inline-block;
-  width:100%;
-}
-
-#word-list .solved-word{color:var(--green);font-weight:700}
-#word-list .missed-word{color:var(--gray)}
-
-@media(max-width:600px){
-  #boards-container{grid-template-columns:repeat(4,1fr);gap:5px;padding:5px}
-  .board-card{padding:4px}
-  .mini-tile{width:clamp(10px,4vw,18px);height:clamp(10px,4vw,18px);font-size:clamp(5px,2vw,9px)}
-  .key{height:46px;font-size:.72rem}
-  .input-tile{width:38px;height:38px;font-size:1.3rem}
-  header h1{font-size:1.3rem}
-}
-
 @media(max-width:400px){
-  .mini-tile{width:11px;height:11px;font-size:5.5px;border-width:.5px}
-  .mini-row{gap:1px}
-  .board-card{padding:3px;gap:1px}
-  #boards-container{gap:3px;padding:3px}
+  header h1{font-size:1.4rem}
+  .hint-card{padding:10px 14px}
+  .hint-text{font-size:.85rem}
+  #guess-input{padding:12px 14px;font-size:1rem}
 }
 </style>
 </head>
 <body>
 
 <header>
-  <div class="header-left">
-    <span id="guess-counter">21 left</span>
-  </div>
-  <h1>Doctordle</h1>
+  <h1>Challengle</h1>
   <div class="header-right">
     <button class="header-btn" id="theme-toggle" aria-label="Toggle dark mode">&#9790;</button>
   </div>
 </header>
-<div id="progress-bar"><div id="progress-fill"></div></div>
 
 <div id="toast-container"></div>
 
-<div id="current-input"></div>
+<div id="game-container">
+  <div id="day-label"></div>
 
-<div id="boards-container"></div>
+  <div id="attempts-bar"></div>
 
-<div id="keyboard-area">
-  <div id="keyboard"></div>
-</div>
+  <div id="hints-container"></div>
 
-<div id="modal-overlay">
-  <div id="modal">
-    <button id="modal-close">&times;</button>
-    <h2 id="modal-title"></h2>
-    <p id="modal-subtitle"></p>
-    <div class="stat-row">
-      <div class="stat-item"><span class="num" id="stat-solved">0</span><span class="label">Solved</span></div>
-      <div class="stat-item"><span class="num" id="stat-total">16</span><span class="label">Total</span></div>
-      <div class="stat-item"><span class="num" id="stat-guesses">0</span><span class="label">Guesses</span></div>
-    </div>
-    <div id="word-list"></div>
-    <button id="play-again">Play Again</button>
+  <div id="guess-area">
+    <input type="text" id="guess-input" placeholder="Type your answer..." autocomplete="off" spellcheck="false">
+    <button id="submit-btn">Submit Guess</button>
   </div>
+
+  <div id="guess-history"></div>
+
+  <div id="result-card">
+    <h2 id="result-title"></h2>
+    <div class="answer-reveal" id="result-answer"></div>
+    <div class="result-detail" id="result-detail"></div>
+    <div class="credit" id="result-credit"></div>
+  </div>
+
+  <button id="play-again-btn">View Hints Again</button>
 </div>
 
 <script>
-const WORDS = [
-  "about","above","abuse","actor","acute","admit","adopt","adult","after","again",
-  "agent","agree","ahead","alarm","album","alert","alien","align","alive","alley",
-  "allow","alone","alter","among","angel","anger","angle","angry","anime","ankle",
-  "annex","apart","apple","apply","arena","argue","arise","armor","array","arrow",
-  "aside","asset","atlas","attic","audio","audit","avoid","awake","award","aware",
-  "awful","basic","basin","basis","batch","beach","beast","begun","being","below",
-  "bench","berry","birth","black","blade","blame","bland","blank","blast","blaze",
-  "bleed","blend","bless","blind","bliss","block","blood","bloom","blown","blues",
-  "bluff","blunt","board","boast","bonus","boost","booth","bound","brain","brand",
-  "brave","bread","break","breed","brick","bride","brief","bring","broad","broke",
-  "brook","brown","brush","buddy","build","built","bunch","burst","buyer","cabin",
-  "cable","camel","candy","cargo","carry","catch","cause","cease","chain","chair",
-  "chaos","charm","chart","chase","cheap","check","cheek","cheer","chess","chest",
-  "chief","child","china","chunk","civil","claim","clash","class","clean","clear",
-  "clerk","click","cliff","climb","cling","clock","clone","close","cloth","cloud",
-  "coach","coast","color","comet","comic","coral","could","count","court","cover",
-  "crack","craft","crane","crash","crazy","cream","creek","crime","cross","crowd",
-  "crown","crude","crush","cubic","curve","cycle","daily","dance","death","debug",
-  "decay","deity","delay","delta","demon","dense","depot","depth","derby","devil",
-  "diary","dirty","disco","ditch","dizzy","dodge","doing","donor","doubt","dough",
-  "draft","drain","drake","drama","drank","drape","drawn","dream","dress","dried",
-  "drift","drill","drink","drive","drone","drove","drown","drums",
-  "drunk","dryer","dummy","dusty","dying","eager","eagle","early","earth","easel",
-  "eight","elder","elect","elite","email","ember","empty","enemy","enjoy","enter",
-  "entry","equal","error","essay","event","every","exact","exile","exist","extra",
-  "fable","facet","faith","false","fancy","fatal","fault","feast","ferry","fetch",
-  "fever","fewer","fiber","field","fifth","fifty","fight","final","first","fixed",
-  "flame","flash","flesh","fleet","float","flood","floor","flora","flour","fluid",
-  "flush","flute","focal","focus","force","forge","forth","forum","found","frame",
-  "frank","fraud","fresh","front","frost","froze","fruit","fully","funny","ghost",
-  "giant","given","glass","gleam","glide","globe","gloom","glory","gloss","glove",
-  "going","grace","grade","grain","grand","grant","grape","graph","grasp","grass",
-  "grave","great","green","greet","grief","grill","grind","gross","group",
-  "grove","grown","guard","guess","guest","guide","guild","guilt",
-  "happy","harsh","haven","heart","heavy","hedge","hello","herbs","hinge",
-  "hobby","honey","honor","horse","hotel","house","human","humor",
-  "hurry","hyper","ideal","image","imply","inbox","index","indie","infer","inner",
-  "input","intro","irony","issue","ivory","jewel","joint","joker","judge",
-  "juice","juicy","jumbo","knack","kneel","knife","knock","known",
-  "label","labor","lance","large","laser","latch","later","laugh","layer","learn",
-  "lease","leave","legal","lemon","level","light","limit","linen","liner","liver",
-  "llama","lobby","local","lodge","logic","loose","lover","lower",
-  "loyal","lucky","lunch","lunar","lying","magic","major","maker","manor","maple",
-  "march","marry","marsh","match","mayor","meant","media","medal","melon","mercy",
-  "merge","merit","merry","metal","meter","might","minor","minus","mirth","model",
-  "money","month","moral","motor","mount","mouse","mouth","moved","movie","mural",
-  "music","naive","nerve","never","night","noble","noise","north","noted","novel",
-  "nurse","nylon","occur","ocean","offer","often","olive","onset","opera","opted",
-  "orbit","order","other","outer","owned","owner","oxide","ozone","paint","panel",
-  "panic","paper","pasta","paste","patch","pause","peace","peach","pearl","penny",
-  "phase","phone","photo","piano","piece","pilot","pinch","pixel","pizza","place",
-  "plain","plane","plant","plate","plaza","plead","pluck","plumb","plume","plump",
-  "point","polar","posed","pouch","pound","power","press","price","pride",
-  "prime","print","prior","prize","probe","prone","proof","prose","proud",
-  "prove","proxy","psalm","pulse","punch","pupil","purse","queen","query",
-  "quest","queue","quick","quiet","quilt","quirk","quota","quote","radar",
-  "radio","rally","range","rapid","ratio","reach","realm","rebel","reign","relax",
-  "relay","repay","reply","rider","ridge","rifle","right","rigid","risky","rival",
-  "river","roast","robot","rocky","rogue","rouge","rough","round",
-  "route","royal","rugby","ruins","ruler","rumor","rural","sadly","saint","salad",
-  "salon","sandy","sauce","scale","scare","scene","scent","scope","score","scout",
-  "scrap","sense","serve","setup","seven","shade","shake","shall","shame","shape",
-  "share","shark","sharp","shave","sheep","sheer","sheet","shelf","shell","shift",
-  "shine","shirt","shock","shore","short","shout","shown","sight","silly",
-  "since","sixth","sixty","sized","skill","skull","slate","sleep","slice",
-  "slide","slope","smart","smell","smile","smoke","snake","solar","solid","solve",
-  "sorry","sound","south","space","spare","spark","spawn","speak","speed","spend",
-  "spent","spice","spike","spine","spite","split","spoke","spoon","sport","spray",
-  "squad","stack","staff","stage","stain","stake","stale","stall","stamp","stand",
-  "stare","start","state","stays","steak","steal","steam","steel","steep",
-  "steer","stern","stick","stiff","still","stock","stole","stone","stood","store",
-  "storm","story","stove","strap","straw","strip","stuck","study","stuff","style",
-  "sugar","suite","sunny","super","surge","swamp","swear","sweat","sweep","sweet",
-  "swift","swing","sword","swore","sworn","syrup","table","taken","taste",
-  "teach","teeth","tempo","tenor","tense","tenth","terms","theme","thick","thing",
-  "think","third","those","three","threw","throw","thumb","tiger","tight","timer",
-  "title","toast","today","token","topic","total","touch","tough","tower",
-  "toxic","trace","track","trade","trail","train","trait","trash","treat","trend",
-  "trial","tribe","trick","tried","troop","truck","truly","trunk","trust",
-  "truth","tumor","tuner","twist","tying","ultra","uncle","under","unify","union",
-  "unite","unity","until","upper","upset","urban","usage","usual","utter","vague",
-  "valid","value","valve","vault","venue","verse","video","vigor","vinyl","viral",
-  "virus","visit","visor","vital","vivid","vocal","vodka","vogue","voice","voter",
-  "vowel","wagon","waste","watch","water","weary","weave","wedge","weird","whale",
-  "wheat","wheel","where","which","while","whirl","white","whole","whose","wider",
-  "width","witch","woman","world","worry","worse","worst","worth","would","wound",
-  "wrath","write","wrong","wrote","yacht","yield","young","yours","youth","zebra"
+const PUZZLES = [
+  {
+    day: 1,
+    hints: [
+      "Tiny length",
+      "Primary mini wave",
+      "Bottom of legacy",
+      "Silver in gdsr wave",
+      "Created and verified by sizzli"
+    ],
+    answer: "funk god",
+    credit: "Created and verified by sizzli"
+  }
 ];
 
-const VALID_GUESSES = new Set(WORDS);
-const NUM_BOARDS = 16;
-const MAX_GUESSES = 21;
-const WORD_LENGTH = 5;
+const MAX_GUESSES = 5;
 
-let answers = [];
-let boards = [];
-let solved = [];
-let guessNum = 0;
-let currentGuess = [];
+let currentPuzzle = null;
+let hintsRevealed = 0;
+let guesses = [];
 let gameOver = false;
-let revealInProgress = false;
 
-function pickUniqueWords(n) {
-  const shuffled = [...WORDS].sort(() => Math.random() - 0.5);
-  return shuffled.slice(0, n);
+function loadPuzzle(index) {
+  currentPuzzle = PUZZLES[index];
+  hintsRevealed = 1;
+  guesses = [];
+  gameOver = false;
+
+  document.getElementById("day-label").textContent = `Day ${currentPuzzle.day}`;
+
+  renderAttempts();
+  renderHints();
+  renderGuessHistory();
+
+  document.getElementById("guess-input").disabled = false;
+  document.getElementById("guess-input").value = "";
+  document.getElementById("submit-btn").disabled = false;
+
+  const result = document.getElementById("result-card");
+  result.classList.remove("visible", "won", "lost");
+  result.style.display = "none";
+
+  document.getElementById("play-again-btn").classList.remove("visible");
 }
 
-function createInputRow() {
-  const container = document.getElementById("current-input");
-  container.innerHTML = "";
-  for (let c = 0; c < WORD_LENGTH; c++) {
-    const tile = document.createElement("div");
-    tile.className = "input-tile";
-    tile.id = `input-${c}`;
-    container.appendChild(tile);
-  }
-}
+function renderAttempts() {
+  const bar = document.getElementById("attempts-bar");
+  bar.innerHTML = "";
 
-function createBoards() {
-  const container = document.getElementById("boards-container");
-  container.innerHTML = "";
-  boards = [];
-
-  for (let b = 0; b < NUM_BOARDS; b++) {
-    const card = document.createElement("div");
-    card.className = "board-card";
-    card.id = `board-${b}`;
-
-    const label = document.createElement("div");
-    label.className = "board-label";
-    label.textContent = `#${b + 1}`;
-    card.appendChild(label);
-
-    const boardData = [];
-
-    for (let r = 0; r < MAX_GUESSES; r++) {
-      const row = document.createElement("div");
-      row.className = "mini-row";
-      row.id = `b${b}-row-${r}`;
-      row.style.display = "none";
-      const rowTiles = [];
-      for (let c = 0; c < WORD_LENGTH; c++) {
-        const tile = document.createElement("div");
-        tile.className = "mini-tile";
-        tile.id = `b${b}-t${r}-${c}`;
-        row.appendChild(tile);
-        rowTiles.push(tile);
-      }
-      card.appendChild(row);
-      boardData.push({ row, tiles: rowTiles });
+  for (let i = 0; i < MAX_GUESSES; i++) {
+    const dot = document.createElement("div");
+    dot.className = "attempt-dot";
+    if (i < guesses.length) {
+      dot.classList.add(guesses[i].correct ? "correct" : "used");
     }
+    bar.appendChild(dot);
+  }
 
+  const label = document.createElement("span");
+  label.id = "attempts-label";
+  const remaining = MAX_GUESSES - guesses.length;
+  label.textContent = gameOver ? "" : `${remaining} guess${remaining !== 1 ? "es" : ""} left`;
+  bar.appendChild(label);
+}
+
+function renderHints() {
+  const container = document.getElementById("hints-container");
+  container.innerHTML = "";
+
+  for (let i = 0; i < currentPuzzle.hints.length; i++) {
+    const card = document.createElement("div");
+    card.className = "hint-card " + (i < hintsRevealed ? "revealed" : "locked");
+
+    const num = document.createElement("div");
+    num.className = "hint-number";
+    num.textContent = i + 1;
+
+    const text = document.createElement("div");
+    text.className = "hint-text";
+    text.textContent = i < hintsRevealed ? currentPuzzle.hints[i] : "Locked — guess wrong to reveal";
+
+    card.appendChild(num);
+    card.appendChild(text);
     container.appendChild(card);
-    boards.push(boardData);
   }
 }
 
-const KB_ROWS = [
-  ["q","w","e","r","t","y","u","i","o","p"],
-  ["a","s","d","f","g","h","j","k","l"],
-  ["Enter","z","x","c","v","b","n","m","Backspace"]
-];
+function renderGuessHistory() {
+  const container = document.getElementById("guess-history");
+  container.innerHTML = "";
 
-function createKeyboard() {
-  const kb = document.getElementById("keyboard");
-  kb.innerHTML = "";
-  KB_ROWS.forEach(keys => {
-    const row = document.createElement("div");
-    row.className = "kb-row";
-    keys.forEach(k => {
-      const btn = document.createElement("button");
-      btn.className = "key" + (k.length > 1 ? " wide" : "");
-      btn.dataset.key = k;
-      btn.textContent = k === "Backspace" ? "Del" : k;
-      btn.addEventListener("click", () => handleKey(k));
-      row.appendChild(btn);
-    });
-    kb.appendChild(row);
+  guesses.forEach(g => {
+    const el = document.createElement("div");
+    el.className = "past-guess wrong";
+    el.innerHTML = `<span class="guess-text">${escapeHtml(g.text)}</span><span class="guess-x">✗</span>`;
+    container.appendChild(el);
   });
 }
 
-function handleKey(key) {
-  if (gameOver || revealInProgress) return;
+function escapeHtml(str) {
+  const div = document.createElement("div");
+  div.textContent = str;
+  return div.innerHTML;
+}
 
-  if (key === "Backspace") {
-    if (currentGuess.length > 0) {
-      currentGuess.pop();
-      updateInputDisplay();
-    }
+function submitGuess() {
+  if (gameOver) return;
+
+  const input = document.getElementById("guess-input");
+  const guess = input.value.trim().toLowerCase();
+
+  if (!guess) {
+    showToast("Type a guess first");
+    input.classList.add("shake");
+    input.addEventListener("animationend", () => input.classList.remove("shake"), { once: true });
     return;
   }
 
-  if (key === "Enter") {
-    if (currentGuess.length < WORD_LENGTH) {
-      showToast("Not enough letters");
-      shakeInput();
-      return;
-    }
-    const guess = currentGuess.join("");
-    if (!VALID_GUESSES.has(guess)) {
-      showToast("Not in word list");
-      shakeInput();
-      return;
-    }
-    submitGuess(guess);
+  if (guesses.some(g => g.text === guess)) {
+    showToast("Already guessed that");
+    input.classList.add("shake");
+    input.addEventListener("animationend", () => input.classList.remove("shake"), { once: true });
     return;
   }
 
-  if (/^[a-z]$/.test(key) && currentGuess.length < WORD_LENGTH) {
-    currentGuess.push(key);
-    updateInputDisplay();
-  }
-}
+  const isCorrect = guess === currentPuzzle.answer.toLowerCase();
 
-function updateInputDisplay() {
-  for (let c = 0; c < WORD_LENGTH; c++) {
-    const tile = document.getElementById(`input-${c}`);
-    if (c < currentGuess.length) {
-      tile.textContent = currentGuess[c];
-      tile.classList.add("filled");
-    } else {
-      tile.textContent = "";
-      tile.classList.remove("filled");
-    }
-  }
-}
+  guesses.push({ text: guess, correct: isCorrect });
+  input.value = "";
 
-function submitGuess(guess) {
-  revealInProgress = true;
-  const row = guessNum;
-
-  for (let b = 0; b < NUM_BOARDS; b++) {
-    if (solved[b]) continue;
-
-    const boardRow = boards[b][row];
-    boardRow.row.style.display = "flex";
-
-    const result = getResult(guess, answers[b]);
-
-    for (let c = 0; c < WORD_LENGTH; c++) {
-      const tile = boardRow.tiles[c];
-      tile.textContent = guess[c];
-      tile.classList.add(result[c]);
-    }
-
-    if (guess === answers[b]) {
-      solved[b] = true;
-      const card = document.getElementById(`board-${b}`);
-      card.classList.add("solved");
-      const badge = document.createElement("div");
-      badge.className = "solved-badge";
-      badge.textContent = "✓";
-      card.appendChild(badge);
-    }
-  }
-
-  updateKeyboardFromAllBoards(guess);
-
-  guessNum++;
-  currentGuess = [];
-  updateInputDisplay();
-  updateProgress();
-  updateGuessCounter();
-
-  const solvedCount = solved.filter(Boolean).length;
-
-  if (solvedCount === NUM_BOARDS) {
+  if (isCorrect) {
     gameOver = true;
-    revealInProgress = false;
-    showToast(`Solved all ${NUM_BOARDS} in ${guessNum} guesses!`, 3000);
-    setTimeout(() => showModal(true), 800);
+    renderAttempts();
+    showResult(true);
     return;
   }
 
-  if (guessNum >= MAX_GUESSES) {
+  if (hintsRevealed < currentPuzzle.hints.length) {
+    hintsRevealed++;
+  }
+
+  renderAttempts();
+  renderHints();
+  renderGuessHistory();
+
+  if (guesses.length >= MAX_GUESSES) {
     gameOver = true;
-    revealInProgress = false;
-    const missed = NUM_BOARDS - solvedCount;
-    showToast(`Missed ${missed} word${missed > 1 ? "s" : ""}`, 3000);
-    setTimeout(() => showModal(false), 800);
+    showResult(false);
     return;
   }
 
-  revealInProgress = false;
-  scrollToFirstUnsolved();
+  document.getElementById("guess-input").focus();
 }
 
-function getResult(guess, answer) {
-  const result = Array(WORD_LENGTH).fill("absent");
-  const answerArr = answer.split("");
-  const guessArr = guess.split("");
-  const used = Array(WORD_LENGTH).fill(false);
+function showResult(won) {
+  document.getElementById("guess-input").disabled = true;
+  document.getElementById("submit-btn").disabled = true;
 
-  for (let i = 0; i < WORD_LENGTH; i++) {
-    if (guessArr[i] === answerArr[i]) {
-      result[i] = "correct";
-      used[i] = true;
-      guessArr[i] = null;
-    }
+  const card = document.getElementById("result-card");
+  card.style.display = "block";
+
+  requestAnimationFrame(() => {
+    card.classList.add("visible", won ? "won" : "lost");
+  });
+
+  document.getElementById("result-title").textContent =
+    won ? "Correct!" : "Not this time";
+  document.getElementById("result-answer").textContent = currentPuzzle.answer;
+  document.getElementById("result-detail").textContent =
+    won
+      ? `You got it in ${guesses.length} guess${guesses.length !== 1 ? "es" : ""} with ${hintsRevealed} hint${hintsRevealed !== 1 ? "s" : ""} revealed.`
+      : `The answer was revealed above. Better luck next time!`;
+  document.getElementById("result-credit").textContent = currentPuzzle.credit;
+
+  if (!won) {
+    hintsRevealed = currentPuzzle.hints.length;
+    renderHints();
+    renderGuessHistory();
   }
 
-  for (let i = 0; i < WORD_LENGTH; i++) {
-    if (guessArr[i] === null) continue;
-    for (let j = 0; j < WORD_LENGTH; j++) {
-      if (!used[j] && guessArr[i] === answerArr[j]) {
-        result[i] = "present";
-        used[j] = true;
-        break;
-      }
-    }
-  }
-
-  return result;
-}
-
-const keyStates = {};
-const STATE_PRIORITY = { correct: 3, present: 2, absent: 1 };
-
-function updateKeyboardFromAllBoards(guess) {
-  const aggregated = {};
-  for (let i = 0; i < WORD_LENGTH; i++) {
-    const letter = guess[i];
-    let best = "absent";
-    for (let b = 0; b < NUM_BOARDS; b++) {
-      if (solved[b] && guessNum < MAX_GUESSES) {
-        const res = getResult(guess, answers[b]);
-        if (STATE_PRIORITY[res[i]] > STATE_PRIORITY[best]) best = res[i];
-      } else if (!solved[b]) {
-        const res = getResult(guess, answers[b]);
-        if (STATE_PRIORITY[res[i]] > STATE_PRIORITY[best]) best = res[i];
-      }
-    }
-    if (!aggregated[letter] || STATE_PRIORITY[best] > STATE_PRIORITY[aggregated[letter]]) {
-      aggregated[letter] = best;
-    }
-  }
-
-  for (const [letter, state] of Object.entries(aggregated)) {
-    const prev = keyStates[letter];
-    if (!prev || STATE_PRIORITY[state] > STATE_PRIORITY[prev]) {
-      keyStates[letter] = state;
-      const btn = document.querySelector(`.key[data-key="${letter}"]`);
-      if (btn) {
-        btn.classList.remove("correct", "present", "absent");
-        btn.classList.add(state);
-      }
-    }
-  }
-}
-
-function updateProgress() {
-  const solvedCount = solved.filter(Boolean).length;
-  const pct = (solvedCount / NUM_BOARDS) * 100;
-  document.getElementById("progress-fill").style.width = `${pct}%`;
-}
-
-function updateGuessCounter() {
-  const remaining = MAX_GUESSES - guessNum;
-  const solvedCount = solved.filter(Boolean).length;
-  document.getElementById("guess-counter").textContent =
-    `${remaining} left · ${solvedCount}/${NUM_BOARDS}`;
-}
-
-function scrollToFirstUnsolved() {
-  for (let b = 0; b < NUM_BOARDS; b++) {
-    if (!solved[b]) {
-      const card = document.getElementById(`board-${b}`);
-      card.scrollIntoView({ behavior: "smooth", block: "nearest" });
-      break;
-    }
-  }
-}
-
-function shakeInput() {
-  const container = document.getElementById("current-input");
-  container.classList.add("shake");
-  container.addEventListener("animationend", () => container.classList.remove("shake"), { once: true });
+  card.scrollIntoView({ behavior: "smooth", block: "nearest" });
 }
 
 function showToast(msg, duration = 1500) {
@@ -849,81 +647,30 @@ function showToast(msg, duration = 1500) {
   setTimeout(() => toast.remove(), duration + 400);
 }
 
-function showModal(won) {
-  const solvedCount = solved.filter(Boolean).length;
-  document.getElementById("modal-title").textContent =
-    won ? "Amazing!" : "Game Over";
-  document.getElementById("modal-subtitle").textContent =
-    won ? `You solved all ${NUM_BOARDS} boards in ${guessNum} guesses!`
-        : `You solved ${solvedCount} of ${NUM_BOARDS} boards in ${guessNum} guesses.`;
-  document.getElementById("stat-solved").textContent = solvedCount;
-  document.getElementById("stat-total").textContent = NUM_BOARDS;
-  document.getElementById("stat-guesses").textContent = guessNum;
+document.getElementById("submit-btn").addEventListener("click", submitGuess);
 
-  const wordList = document.getElementById("word-list");
-  wordList.innerHTML = "";
-  for (let b = 0; b < NUM_BOARDS; b++) {
-    const span = document.createElement("span");
-    span.className = solved[b] ? "solved-word" : "missed-word";
-    span.textContent = `#${b + 1}: ${answers[b].toUpperCase()}`;
-    wordList.appendChild(span);
+document.getElementById("guess-input").addEventListener("keydown", e => {
+  if (e.key === "Enter") {
+    e.preventDefault();
+    submitGuess();
   }
-
-  document.getElementById("modal-overlay").classList.add("active");
-}
-
-function hideModal() {
-  document.getElementById("modal-overlay").classList.remove("active");
-}
-
-function resetGame() {
-  hideModal();
-  answers = pickUniqueWords(NUM_BOARDS);
-  solved = Array(NUM_BOARDS).fill(false);
-  guessNum = 0;
-  currentGuess = [];
-  gameOver = false;
-  revealInProgress = false;
-  Object.keys(keyStates).forEach(k => delete keyStates[k]);
-  createInputRow();
-  createBoards();
-  updateProgress();
-  updateGuessCounter();
-  document.querySelectorAll(".key").forEach(btn => {
-    btn.classList.remove("correct", "present", "absent");
-  });
-}
-
-document.addEventListener("keydown", e => {
-  if (e.ctrlKey || e.metaKey || e.altKey) return;
-  if (document.getElementById("modal-overlay").classList.contains("active")) return;
-  if (e.key === "Enter") { e.preventDefault(); handleKey("Enter"); }
-  else if (e.key === "Backspace") { e.preventDefault(); handleKey("Backspace"); }
-  else if (/^[a-zA-Z]$/.test(e.key)) handleKey(e.key.toLowerCase());
 });
-
-document.getElementById("play-again").addEventListener("click", resetGame);
-document.getElementById("modal-close").addEventListener("click", hideModal);
 
 document.getElementById("theme-toggle").addEventListener("click", () => {
   document.body.classList.toggle("dark");
   const isDark = document.body.classList.contains("dark");
-  localStorage.setItem("doctordle-theme", isDark ? "dark" : "light");
+  localStorage.setItem("challengle-theme", isDark ? "dark" : "light");
   document.getElementById("theme-toggle").innerHTML = isDark ? "&#9788;" : "&#9790;";
 });
 
 (function init() {
-  const theme = localStorage.getItem("doctordle-theme");
+  const theme = localStorage.getItem("challengle-theme");
   if (theme === "dark" || (!theme && window.matchMedia("(prefers-color-scheme:dark)").matches)) {
     document.body.classList.add("dark");
     document.getElementById("theme-toggle").innerHTML = "&#9788;";
   }
-  answers = pickUniqueWords(NUM_BOARDS);
-  solved = Array(NUM_BOARDS).fill(false);
-  createInputRow();
-  createBoards();
-  createKeyboard();
-  updateGuessCounter();
+  loadPuzzle(0);
+  document.getElementById("guess-input").focus();
 })();
 </script>
 </body>
