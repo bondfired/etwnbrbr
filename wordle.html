@@ -363,6 +363,7 @@ header h1{
   align-items:center;
   gap:12px;
   margin-top:8px;
+  position:relative;
 }
 
 #guess-input{
@@ -393,6 +394,43 @@ header h1{
   opacity:.5;
   cursor:not-allowed;
 }
+
+#autocomplete{
+  display:none;
+  position:absolute;
+  top:54px;
+  left:0;
+  right:0;
+  background:var(--bg);
+  border:1px solid var(--border);
+  border-radius:6px;
+  max-height:200px;
+  overflow-y:auto;
+  z-index:30;
+  box-shadow:0 4px 16px rgba(0,0,0,.15);
+  backdrop-filter:blur(12px);
+  -webkit-backdrop-filter:blur(12px);
+}
+
+#autocomplete.active{display:block}
+
+.ac-item{
+  padding:10px 14px;
+  font-size:.85rem;
+  cursor:pointer;
+  display:flex;
+  justify-content:space-between;
+  align-items:center;
+  gap:8px;
+  transition:background .1s;
+}
+
+.ac-item:hover,.ac-item.selected{
+  background:var(--hint-bg);
+}
+
+.ac-item .ac-name{font-weight:700}
+.ac-item .ac-creator{opacity:.5;font-size:.75rem;flex-shrink:0}
 
 #submit-btn{
   width:100%;
@@ -721,6 +759,7 @@ header h1{
 
   <div id="guess-area">
     <input type="text" id="guess-input" placeholder="Type your answer..." autocomplete="off" spellcheck="false">
+    <div id="autocomplete"></div>
     <button id="submit-btn">Submit Guess</button>
   </div>
 
@@ -880,6 +919,18 @@ function escapeHtml(str) {
 
 function submitGuess() {
   if (gameOver) return;
+
+  const ac = document.getElementById("autocomplete");
+  const acItems = ac.querySelectorAll(".ac-item");
+  if (ac.classList.contains("active") && acIndex >= 0 && acItems[acIndex]) {
+    document.getElementById("guess-input").value = acItems[acIndex].querySelector(".ac-name").textContent;
+    ac.classList.remove("active");
+    ac.innerHTML = "";
+    acIndex = -1;
+    return;
+  }
+  ac.classList.remove("active");
+  ac.innerHTML = "";
 
   const input = document.getElementById("guess-input");
   const guess = input.value.trim().toLowerCase();
@@ -1125,6 +1176,77 @@ document.getElementById("list-overlay").addEventListener("click", e => {
 });
 document.getElementById("list-search").addEventListener("input", e => {
   renderChallengeList(e.target.value);
+});
+
+let acIndex = -1;
+
+function updateAutocomplete() {
+  const input = document.getElementById("guess-input");
+  const ac = document.getElementById("autocomplete");
+  const q = input.value.trim().toLowerCase();
+  acIndex = -1;
+
+  if (!q || gameOver) {
+    ac.classList.remove("active");
+    ac.innerHTML = "";
+    return;
+  }
+
+  const matches = CHALLENGE_LIST.filter(([name]) =>
+    name.toLowerCase().includes(q)
+  ).slice(0, 8);
+
+  if (matches.length === 0) {
+    ac.classList.remove("active");
+    ac.innerHTML = "";
+    return;
+  }
+
+  ac.innerHTML = "";
+  matches.forEach(([name, creator], i) => {
+    const el = document.createElement("div");
+    el.className = "ac-item";
+    el.innerHTML = `<span class="ac-name">${escapeHtml(name)}</span><span class="ac-creator">${escapeHtml(creator)}</span>`;
+    el.addEventListener("mousedown", e => {
+      e.preventDefault();
+      input.value = name;
+      ac.classList.remove("active");
+      ac.innerHTML = "";
+    });
+    ac.appendChild(el);
+  });
+  ac.classList.add("active");
+}
+
+document.getElementById("guess-input").addEventListener("input", updateAutocomplete);
+document.getElementById("guess-input").addEventListener("focus", updateAutocomplete);
+document.getElementById("guess-input").addEventListener("blur", () => {
+  setTimeout(() => {
+    document.getElementById("autocomplete").classList.remove("active");
+  }, 150);
+});
+document.getElementById("guess-input").addEventListener("keydown", e => {
+  const ac = document.getElementById("autocomplete");
+  const items = ac.querySelectorAll(".ac-item");
+  if (!ac.classList.contains("active") || items.length === 0) return;
+
+  if (e.key === "ArrowDown") {
+    e.preventDefault();
+    acIndex = Math.min(acIndex + 1, items.length - 1);
+    items.forEach((el, i) => el.classList.toggle("selected", i === acIndex));
+    items[acIndex].scrollIntoView({ block: "nearest" });
+  } else if (e.key === "ArrowUp") {
+    e.preventDefault();
+    acIndex = Math.max(acIndex - 1, 0);
+    items.forEach((el, i) => el.classList.toggle("selected", i === acIndex));
+    items[acIndex].scrollIntoView({ block: "nearest" });
+  } else if (e.key === "Tab" && acIndex >= 0) {
+    e.preventDefault();
+    const name = items[acIndex].querySelector(".ac-name").textContent;
+    document.getElementById("guess-input").value = name;
+    ac.classList.remove("active");
+    ac.innerHTML = "";
+  }
 });
 
 document.getElementById("theme-toggle").addEventListener("click", () => {
