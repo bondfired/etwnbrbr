@@ -254,6 +254,43 @@ header h1{
   letter-spacing:.15em;
 }
 
+#day-nav{
+  display:flex;
+  align-items:center;
+  gap:14px;
+}
+
+.day-arrow{
+  background:none;
+  border:2px solid var(--border);
+  border-radius:50%;
+  width:34px;
+  height:34px;
+  display:flex;
+  align-items:center;
+  justify-content:center;
+  cursor:pointer;
+  font-size:1rem;
+  color:var(--text);
+  transition:background .15s,border-color .15s,opacity .15s;
+}
+
+.day-arrow:hover{border-color:var(--accent);background:var(--hint-bg)}
+.day-arrow:disabled{opacity:.25;cursor:not-allowed;border-color:var(--border);background:none}
+
+#day-info{
+  text-align:center;
+  display:flex;
+  flex-direction:column;
+  align-items:center;
+  gap:2px;
+}
+
+#day-date{
+  font-size:.7rem;
+  opacity:.4;
+}
+
 #attempts-bar{
   display:flex;
   gap:8px;
@@ -751,7 +788,14 @@ header h1{
 <div id="toast-container"></div>
 
 <div id="game-container">
-  <div id="day-label"></div>
+  <div id="day-nav">
+    <button class="day-arrow" id="day-prev" aria-label="Previous day">&#9664;</button>
+    <div id="day-info">
+      <div id="day-label"></div>
+      <div id="day-date"></div>
+    </div>
+    <button class="day-arrow" id="day-next" aria-label="Next day">&#9654;</button>
+  </div>
 
   <div id="attempts-bar"></div>
 
@@ -777,6 +821,10 @@ header h1{
 </div>
 
 <script>
+// START_DATE is Day 1. Add one puzzle per day to the PUZZLES array.
+// The game auto-selects today's puzzle based on the date.
+const START_DATE = new Date("2026-06-21T00:00:00");
+
 const PUZZLES = [
   {
     day: 1,
@@ -790,14 +838,38 @@ const PUZZLES = [
     answer: "funk god",
     credit: "Created and verified by sizzli"
   }
+  // To add Day 2, 3, etc. just add more objects here:
+  // { day: 2, hints: ["hint1","hint2","hint3","hint4","hint5"], answer: "answer here", credit: "by someone" },
+  // { day: 3, hints: [...], answer: "...", credit: "..." },
+  // Each new entry = one new day. The game automatically shows the right one.
 ];
 
 const MAX_GUESSES = 5;
 
 let currentPuzzle = null;
+let currentDayIndex = 0;
 let hintsRevealed = 0;
 let guesses = [];
 let gameOver = false;
+
+function getTodayIndex() {
+  const now = new Date();
+  const today = new Date(now.getFullYear(), now.getMonth(), now.getDate());
+  const start = new Date(START_DATE.getFullYear(), START_DATE.getMonth(), START_DATE.getDate());
+  const diff = Math.floor((today - start) / (1000 * 60 * 60 * 24));
+  return Math.min(Math.max(diff, 0), PUZZLES.length - 1);
+}
+
+function getDateForDay(dayIndex) {
+  const d = new Date(START_DATE);
+  d.setDate(d.getDate() + dayIndex);
+  return d;
+}
+
+function formatDate(d) {
+  const months = ["Jan","Feb","Mar","Apr","May","Jun","Jul","Aug","Sep","Oct","Nov","Dec"];
+  return `${months[d.getMonth()]} ${d.getDate()}, ${d.getFullYear()}`;
+}
 
 function saveState() {
   const state = {
@@ -806,21 +878,27 @@ function saveState() {
     hintsRevealed,
     gameOver
   };
-  localStorage.setItem("challengle-state", JSON.stringify(state));
+  localStorage.setItem(`challengle-state-day${currentPuzzle.day}`, JSON.stringify(state));
 }
 
 function loadState() {
   try {
-    const s = JSON.parse(localStorage.getItem("challengle-state"));
+    const s = JSON.parse(localStorage.getItem(`challengle-state-day${currentPuzzle.day}`));
     if (s && s.day === currentPuzzle.day) return s;
   } catch {}
   return null;
 }
 
 function loadPuzzle(index) {
+  currentDayIndex = index;
   currentPuzzle = PUZZLES[index];
 
   document.getElementById("day-label").textContent = `Day ${currentPuzzle.day}`;
+  document.getElementById("day-date").textContent = formatDate(getDateForDay(index));
+
+  const todayIdx = getTodayIndex();
+  document.getElementById("day-prev").disabled = (index <= 0);
+  document.getElementById("day-next").disabled = (index >= todayIdx);
 
   const saved = loadState();
   if (saved) {
@@ -836,6 +914,10 @@ function loadPuzzle(index) {
   renderAttempts();
   renderHints();
   renderGuessHistory();
+
+  const ac = document.getElementById("autocomplete");
+  ac.classList.remove("active");
+  ac.innerHTML = "";
 
   if (gameOver) {
     const won = guesses.length > 0 && guesses[guesses.length - 1].correct;
@@ -1256,13 +1338,21 @@ document.getElementById("theme-toggle").addEventListener("click", () => {
   document.getElementById("theme-toggle").innerHTML = isDark ? "&#9788;" : "&#9790;";
 });
 
+document.getElementById("day-prev").addEventListener("click", () => {
+  if (currentDayIndex > 0) loadPuzzle(currentDayIndex - 1);
+});
+document.getElementById("day-next").addEventListener("click", () => {
+  const todayIdx = getTodayIndex();
+  if (currentDayIndex < todayIdx) loadPuzzle(currentDayIndex + 1);
+});
+
 (function init() {
   const theme = localStorage.getItem("challengle-theme");
   if (theme === "dark" || (!theme && window.matchMedia("(prefers-color-scheme:dark)").matches)) {
     document.body.classList.add("dark");
     document.getElementById("theme-toggle").innerHTML = "&#9788;";
   }
-  loadPuzzle(0);
+  loadPuzzle(getTodayIndex());
   document.getElementById("guess-input").focus();
 })();
 </script>
