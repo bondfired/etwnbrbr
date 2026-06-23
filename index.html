@@ -581,8 +581,14 @@ header h1{
   font-style:italic;
 }
 
-#share-btn{
+.share-buttons{
+  display:none;
+  gap:8px;
   width:100%;
+}
+.share-buttons.visible{display:flex}
+#share-btn,#copy-btn{
+  flex:1;
   padding:14px;
   background:var(--green);
   color:#fff;
@@ -594,17 +600,16 @@ header h1{
   text-transform:uppercase;
   letter-spacing:.08em;
   transition:background .2s,transform .1s;
-  display:none;
+  display:flex;
   gap:8px;
   align-items:center;
   justify-content:center;
 }
 
-#share-btn.visible{display:flex}
-#share-btn:hover{filter:brightness(1.1)}
-#share-btn:active{transform:scale(.98)}
+#share-btn:hover,#copy-btn:hover{filter:brightness(1.1)}
+#share-btn:active,#copy-btn:active{transform:scale(.98)}
 
-#share-btn svg{
+#share-btn svg,#copy-btn svg{
   width:18px;
   height:18px;
   fill:#fff;
@@ -824,7 +829,10 @@ header h1{
     <div class="answer-reveal" id="result-answer"></div>
     <div class="result-detail" id="result-detail"></div>
     <div class="credit" id="result-credit"></div>
-    <button id="share-btn"><svg viewBox="0 0 24 24"><path d="M18 16.08c-.76 0-1.44.3-1.96.77L8.91 12.7c.05-.23.09-.46.09-.7s-.04-.47-.09-.7l7.05-4.11c.54.5 1.25.81 2.04.81 1.66 0 3-1.34 3-3s-1.34-3-3-3-3 1.34-3 3c0 .24.04.47.09.7L8.04 9.81C7.5 9.31 6.79 9 6 9c-1.66 0-3 1.34-3 3s1.34 3 3 3c.79 0 1.5-.31 2.04-.81l7.12 4.16c-.05.21-.08.43-.08.65 0 1.61 1.31 2.92 2.92 2.92s2.92-1.31 2.92-2.92-1.31-2.92-2.92-2.92z"/></svg>Share Score</button>
+    <div class="share-buttons">
+      <button id="share-btn"><svg viewBox="0 0 24 24"><path d="M18 16.08c-.76 0-1.44.3-1.96.77L8.91 12.7c.05-.23.09-.46.09-.7s-.04-.47-.09-.7l7.05-4.11c.54.5 1.25.81 2.04.81 1.66 0 3-1.34 3-3s-1.34-3-3-3-3 1.34-3 3c0 .24.04.47.09.7L8.04 9.81C7.5 9.31 6.79 9 6 9c-1.66 0-3 1.34-3 3s1.34 3 3 3c.79 0 1.5-.31 2.04-.81l7.12 4.16c-.05.21-.08.43-.08.65 0 1.61 1.31 2.92 2.92 2.92s2.92-1.31 2.92-2.92-1.31-2.92-2.92-2.92z"/></svg>Share</button>
+      <button id="copy-btn"><svg viewBox="0 0 24 24"><path d="M16 1H4c-1.1 0-2 .9-2 2v14h2V3h12V1zm3 4H8c-1.1 0-2 .9-2 2v14c0 1.1.9 2 2 2h11c1.1 0 2-.9 2-2V7c0-1.1-.9-2-2-2zm0 16H8V7h11v14z" fill="#fff"/></svg>Copy</button>
+    </div>
   </div>
 
   <button id="play-again-btn">View Hints Again</button>
@@ -965,7 +973,7 @@ function loadPuzzle(index) {
     result.style.display = "none";
 
     document.getElementById("play-again-btn").classList.remove("visible");
-    document.getElementById("share-btn").classList.remove("visible");
+    document.querySelector(".share-buttons").classList.remove("visible");
   }
 }
 
@@ -1119,7 +1127,7 @@ function showResult(won) {
     renderGuessHistory();
   }
 
-  document.getElementById("share-btn").classList.add("visible");
+  document.querySelector(".share-buttons").classList.add("visible");
 
   card.scrollIntoView({ behavior: "smooth", block: "nearest" });
 }
@@ -1193,6 +1201,9 @@ function showToast(msg, duration = 1500) {
 
 document.getElementById("submit-btn").addEventListener("click", submitGuess);
 document.getElementById("share-btn").addEventListener("click", shareScore);
+document.getElementById("copy-btn").addEventListener("click", () => {
+  copyToClipboard(generateShareText());
+});
 
 document.getElementById("guess-input").addEventListener("keydown", e => {
   if (e.key === "Enter") {
