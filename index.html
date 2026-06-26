@@ -1410,7 +1410,7 @@ function updateAutocomplete() {
     const aExact = aName === q ? 0 : aName.startsWith(q) ? 1 : 2;
     const bExact = bName === q ? 0 : bName.startsWith(q) ? 1 : 2;
     return aExact - bExact;
-  }).slice(0, 8);
+  }).slice(0, 20);
 
   if (matches.length === 0) {
     ac.classList.remove("active");
