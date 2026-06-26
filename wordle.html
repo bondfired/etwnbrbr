@@ -1404,7 +1404,13 @@ function updateAutocomplete() {
 
   const matches = CHALLENGE_LIST.filter(([name]) =>
     name.toLowerCase().includes(q)
-  ).slice(0, 8);
+  ).sort((a, b) => {
+    const aName = a[0].toLowerCase();
+    const bName = b[0].toLowerCase();
+    const aExact = aName === q ? 0 : aName.startsWith(q) ? 1 : 2;
+    const bExact = bName === q ? 0 : bName.startsWith(q) ? 1 : 2;
+    return aExact - bExact;
+  }).slice(0, 8);
 
   if (matches.length === 0) {
     ac.classList.remove("active");
