@@ -1,0 +1,25 @@
+{
+  "name": "BabbleBlox",
+  "tree": {
+    "$className": "DataModel",
+    "ReplicatedStorage": {
+      "$path": "src/ReplicatedStorage",
+      "Remotes": {
+        "$className": "Folder",
+        "GameStateUpdate": { "$className": "RemoteEvent" },
+        "DescriberPrompt": { "$className": "RemoteEvent" },
+        "RoundResult": { "$className": "RemoteEvent" },
+        "DescriberTapWord": { "$className": "RemoteEvent" },
+        "SubmitGuess": { "$className": "RemoteEvent" }
+      }
+    },
+    "ServerScriptService": {
+      "$path": "src/ServerScriptService"
+    },
+    "StarterPlayer": {
+      "StarterPlayerScripts": {
+        "$path": "src/StarterPlayer/StarterPlayerScripts"
+      }
+    }
+  }
+}
