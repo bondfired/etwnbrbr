@@ -1355,7 +1355,17 @@ document.getElementById("copy-btn").addEventListener("click", () => {
 document.getElementById("guess-input").addEventListener("keydown", e => {
   if (e.key === "Enter") {
     e.preventDefault();
-    submitGuess();
+    const ac = document.getElementById("autocomplete");
+    const items = ac.querySelectorAll(".ac-item");
+    if (ac.classList.contains("active") && items.length > 0) {
+      const pick = acIndex >= 0 ? items[acIndex] : items[0];
+      document.getElementById("guess-input").value = pick.querySelector(".ac-name").textContent;
+      ac.classList.remove("active");
+      ac.innerHTML = "";
+      acIndex = -1;
+    } else {
+      submitGuess();
+    }
   }
 });
 
