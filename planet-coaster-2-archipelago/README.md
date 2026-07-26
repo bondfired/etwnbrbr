@@ -12,12 +12,48 @@ tick off checks in the Manual client as you earn career medals.
 ./build.sh
 ```
 
-Produces `dist/manual_PlanetCoaster2_bondfired.apworld`. The script regenerates the
-data, runs the logic checks, fetches the upstream Manual template and zips the
-result. Requires `python3`, `git` and `zip`.
+Produces `dist/manual_planetcoaster2_bondfired.apworld`. The script regenerates the
+data, runs the logic checks, assembles the world on top of the upstream Manual
+template, and packages it with Archipelago's own "Build APWorlds" component.
+
+Packaging has to go through Archipelago: that is what writes the `version` and
+`compatible_version` fields into `archipelago.json`. A hand-rolled zip without them
+loads today but is rejected from Archipelago 0.7.0 onward. The build verifies the
+manifest before it finishes.
+
+Both the Archipelago and Manual checkouts are cached in `.cache/` and reused. Set
+`AP_ROOT` to an existing Archipelago source tree to skip cloning it.
 
 Drop the `.apworld` into `custom_worlds/` in your Archipelago install. Manual worlds
 cannot be generated on the official web host — generation has to run locally.
+
+## Test
+
+```sh
+./test.sh
+```
+
+Builds the apworld and generates a real multiworld for all eight combinations of
+`goal` × `franchise_milestones` × `include_traps`, reporting the location count each
+produced. Needs the generation dependencies:
+
+```sh
+pip install pyyaml schema jellyfish orjson websockets platformdirs \
+            colorama bsdiff4 cymem typing_extensions jinja2 certifi pathspec
+```
+
+To play-test by hand instead, put a yaml in `Players/` and run `ArchipelagoGenerate`:
+
+```yaml
+name: CoasterTycoon
+game: Manual_PlanetCoaster2_bondfired
+Manual_PlanetCoaster2_bondfired:
+  goal: career_complete
+  franchise_milestones: false
+  include_traps: false
+```
+
+Then open **Manual Client** from the Archipelago Launcher and connect.
 
 ## Layout
 
@@ -56,16 +92,23 @@ everywhere). The unselected one remains as a normal check.
 
 ## Verification status
 
-`tools/check_logic.py` runs on every build and covers all four combinations of the
-content toggles, asserting that every requires string resolves to a real item or
-category, that every region and location is reachable with the full pool, that a
-goal is always reachable, and that the item pool fits the location count.
+Verified:
 
-The data files also validate cleanly against the upstream Manual JSON schemas.
+- **Generation.** All eight option combinations generate successfully against an
+  Archipelago source checkout, producing 74 locations by default and 94 with
+  milestones on — matching what the static checker predicts.
+- **Progression.** The spoiler playthrough confirms the intended shape: sphere 0 is
+  the starting kit, sphere 1 is Prologue-only, and each `Progressive Chapter Pass`
+  opens the next chapter region in turn before the goal resolves.
+- **Loading.** The packaged apworld registers cleanly with no manifest or version
+  warnings.
+- **Static checks.** `tools/check_logic.py` asserts that every requires string
+  resolves to a real item or category, that every region and location is reachable
+  with the full pool, that a goal is always reachable, and that the item pool fits
+  the location count. The data also validates against the upstream Manual schemas.
 
-Not yet verified: a real generation run against an Archipelago install, and the
-in-client experience. Both need an AP host, which this world has not been through
-yet.
+Not verified: the in-client play experience, and whether the difficulty curve is
+any fun. Those need actual play.
 
 The 18 scenario names were assembled from community wikis and guides rather than
 from the game, and the medal arithmetic checks out (18 × 4 = 72 medals). Worth a
