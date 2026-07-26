@@ -1,0 +1,490 @@
+{
+    "$schema": "https://github.com/ManualForArchipelago/Manual/raw/main/schemas/Manual.items.schema.json",
+    "data": [
+        {
+            "name": "Progressive Chapter Pass",
+            "category": [
+                "Chapter Passes"
+            ],
+            "count": 4,
+            "progression": true,
+            "_comment": "Gates each successive career chapter region."
+        },
+        {
+            "name": "Chainlift Coaster",
+            "category": [
+                "Coasters",
+                "Rides"
+            ],
+            "progression": true
+        },
+        {
+            "name": "Wooden Coaster",
+            "category": [
+                "Coasters",
+                "Rides"
+            ],
+            "progression": true
+        },
+        {
+            "name": "Hybrid Coaster",
+            "category": [
+                "Coasters",
+                "Rides"
+            ],
+            "progression": true
+        },
+        {
+            "name": "Steel Looping Coaster",
+            "category": [
+                "Coasters",
+                "Rides"
+            ],
+            "progression": true
+        },
+        {
+            "name": "Launched Coaster",
+            "category": [
+                "Coasters",
+                "Rides"
+            ],
+            "progression": true
+        },
+        {
+            "name": "Inverted Coaster",
+            "category": [
+                "Coasters",
+                "Rides"
+            ],
+            "progression": true
+        },
+        {
+            "name": "Suspended Coaster",
+            "category": [
+                "Coasters",
+                "Rides"
+            ],
+            "progression": true
+        },
+        {
+            "name": "Wing Coaster",
+            "category": [
+                "Coasters",
+                "Rides"
+            ],
+            "progression": true
+        },
+        {
+            "name": "Dive Coaster",
+            "category": [
+                "Coasters",
+                "Rides"
+            ],
+            "progression": true
+        },
+        {
+            "name": "Spinning Coaster",
+            "category": [
+                "Coasters",
+                "Rides"
+            ],
+            "progression": true
+        },
+        {
+            "name": "Mine Train Coaster",
+            "category": [
+                "Coasters",
+                "Rides"
+            ],
+            "progression": true
+        },
+        {
+            "name": "Bobsled Coaster",
+            "category": [
+                "Coasters",
+                "Rides"
+            ],
+            "progression": true
+        },
+        {
+            "name": "Water Coaster",
+            "category": [
+                "Coasters",
+                "Rides"
+            ],
+            "progression": true
+        },
+        {
+            "name": "Tilt Coaster",
+            "category": [
+                "Coasters",
+                "Rides"
+            ],
+            "progression": true
+        },
+        {
+            "name": "Multi-Dimension Coaster",
+            "category": [
+                "Coasters",
+                "Rides"
+            ],
+            "progression": true
+        },
+        {
+            "name": "SuperSplash Coaster",
+            "category": [
+                "Coasters",
+                "Rides"
+            ],
+            "progression": true
+        },
+        {
+            "name": "Body Slide",
+            "category": [
+                "Water Park",
+                "Rides"
+            ],
+            "progression": true
+        },
+        {
+            "name": "Inner Tube Slide",
+            "category": [
+                "Water Park",
+                "Rides"
+            ],
+            "progression": true
+        },
+        {
+            "name": "Raft Slide",
+            "category": [
+                "Water Park",
+                "Rides"
+            ],
+            "progression": true
+        },
+        {
+            "name": "Mat Slide",
+            "category": [
+                "Water Park",
+                "Rides"
+            ],
+            "progression": true
+        },
+        {
+            "name": "Capsule Slide",
+            "category": [
+                "Water Park",
+                "Rides"
+            ],
+            "progression": true
+        },
+        {
+            "name": "Plughole Slide",
+            "category": [
+                "Water Park",
+                "Rides"
+            ],
+            "progression": true
+        },
+        {
+            "name": "Sphere Slide",
+            "category": [
+                "Water Park",
+                "Rides"
+            ],
+            "progression": true
+        },
+        {
+            "name": "Boomerang Slide",
+            "category": [
+                "Water Park",
+                "Rides"
+            ],
+            "progression": true
+        },
+        {
+            "name": "Lazy River",
+            "category": [
+                "Water Park",
+                "Rides"
+            ],
+            "progression": true
+        },
+        {
+            "name": "Wave Pool",
+            "category": [
+                "Water Park",
+                "Rides"
+            ],
+            "progression": true
+        },
+        {
+            "name": "Pool Builder",
+            "category": [
+                "Water Park",
+                "Rides"
+            ],
+            "progression": true
+        },
+        {
+            "name": "Flume Builder",
+            "category": [
+                "Water Park",
+                "Rides"
+            ],
+            "progression": true
+        },
+        {
+            "name": "Carousel",
+            "category": [
+                "Flat Rides",
+                "Rides"
+            ],
+            "useful": true
+        },
+        {
+            "name": "Ferris Wheel",
+            "category": [
+                "Flat Rides",
+                "Rides"
+            ],
+            "useful": true
+        },
+        {
+            "name": "Drop Tower",
+            "category": [
+                "Flat Rides",
+                "Rides"
+            ],
+            "useful": true
+        },
+        {
+            "name": "Pendulum Ride",
+            "category": [
+                "Flat Rides",
+                "Rides"
+            ],
+            "useful": true
+        },
+        {
+            "name": "Teacups",
+            "category": [
+                "Flat Rides",
+                "Rides"
+            ],
+            "useful": true
+        },
+        {
+            "name": "Swing Ride",
+            "category": [
+                "Flat Rides",
+                "Rides"
+            ],
+            "useful": true
+        },
+        {
+            "name": "Bumper Cars",
+            "category": [
+                "Flat Rides",
+                "Rides"
+            ],
+            "useful": true
+        },
+        {
+            "name": "Top Spin",
+            "category": [
+                "Flat Rides",
+                "Rides"
+            ],
+            "useful": true
+        },
+        {
+            "name": "Enterprise",
+            "category": [
+                "Flat Rides",
+                "Rides"
+            ],
+            "useful": true
+        },
+        {
+            "name": "Gyro Tower",
+            "category": [
+                "Flat Rides",
+                "Rides"
+            ],
+            "useful": true
+        },
+        {
+            "name": "Log Flume",
+            "category": [
+                "Flat Rides",
+                "Rides"
+            ],
+            "useful": true
+        },
+        {
+            "name": "River Rapids",
+            "category": [
+                "Flat Rides",
+                "Rides"
+            ],
+            "useful": true
+        },
+        {
+            "name": "Transport Ride",
+            "category": [
+                "Flat Rides",
+                "Rides"
+            ],
+            "useful": true
+        },
+        {
+            "name": "Advanced Path Tools",
+            "category": [
+                "Park Operations"
+            ],
+            "progression": true
+        },
+        {
+            "name": "Terrain Sculpting",
+            "category": [
+                "Park Operations"
+            ],
+            "progression": true
+        },
+        {
+            "name": "Queue Customisation",
+            "category": [
+                "Park Operations"
+            ],
+            "progression": true
+        },
+        {
+            "name": "Shops and Food Stalls",
+            "category": [
+                "Park Operations"
+            ],
+            "progression": true
+        },
+        {
+            "name": "Marketing Campaigns",
+            "category": [
+                "Park Operations"
+            ],
+            "progression": true
+        },
+        {
+            "name": "Lighting and Special Effects",
+            "category": [
+                "Park Operations"
+            ],
+            "progression": true
+        },
+        {
+            "name": "Ride Blueprint Library",
+            "category": [
+                "Park Operations"
+            ],
+            "progression": true
+        },
+        {
+            "name": "Scenery Theme - Viking",
+            "category": [
+                "Park Operations"
+            ],
+            "progression": true
+        },
+        {
+            "name": "Scenery Theme - Mythology",
+            "category": [
+                "Park Operations"
+            ],
+            "progression": true
+        },
+        {
+            "name": "Scenery Theme - Aquatic",
+            "category": [
+                "Park Operations"
+            ],
+            "progression": true
+        },
+        {
+            "name": "Scenery Theme - Resort",
+            "category": [
+                "Park Operations"
+            ],
+            "progression": true
+        },
+        {
+            "name": "Scenery Theme - Classic",
+            "category": [
+                "Park Operations"
+            ],
+            "progression": true
+        },
+        {
+            "name": "Scenery Theme - Adventure",
+            "category": [
+                "Park Operations"
+            ],
+            "progression": true
+        },
+        {
+            "name": "Progressive Staff Hire",
+            "category": [
+                "Park Operations"
+            ],
+            "count": 4,
+            "progression": true,
+            "_comment": "Janitor, Mechanic, Vendor, then Lifeguard."
+        },
+        {
+            "name": "Guest Satisfaction Boost",
+            "category": [
+                "Bonuses"
+            ],
+            "count": 6,
+            "useful": true
+        },
+        {
+            "name": "Ride Breakdown",
+            "category": [
+                "Traps"
+            ],
+            "count": 1,
+            "trap": true
+        },
+        {
+            "name": "Guest Sickness Wave",
+            "category": [
+                "Traps"
+            ],
+            "count": 1,
+            "trap": true
+        },
+        {
+            "name": "Sudden Downpour",
+            "category": [
+                "Traps"
+            ],
+            "count": 1,
+            "trap": true
+        },
+        {
+            "name": "Litter Explosion",
+            "category": [
+                "Traps"
+            ],
+            "count": 1,
+            "trap": true
+        },
+        {
+            "name": "Power Outage",
+            "category": [
+                "Traps"
+            ],
+            "count": 1,
+            "trap": true
+        }
+    ]
+}

@@ -1,0 +1,28 @@
+{
+    "$schema": "https://github.com/ManualForArchipelago/Manual/raw/main/schemas/Manual.categories.schema.json",
+
+    "Franchise Milestones": {
+        "_comment": "Twenty extra checks outside the campaign. Off by default so a solo career run stays a tight 74-check world.",
+        "yaml_option": ["franchise_milestones"]
+    },
+    "Traps": {
+        "yaml_option": ["include_traps"]
+    },
+
+    "Rides": {
+        "_comment": "Umbrella category over Coasters, Water Park and Flat Rides. Logic counts against it, so it does not need its own client tab.",
+        "hidden": true
+    },
+    "Bronze": {
+        "hidden": true
+    },
+    "Silver": {
+        "hidden": true
+    },
+    "Gold": {
+        "hidden": true
+    },
+    "Platinum": {
+        "hidden": true
+    }
+}

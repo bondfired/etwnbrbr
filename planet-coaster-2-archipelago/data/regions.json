@@ -1,0 +1,33 @@
+{
+    "$schema": "https://github.com/ManualForArchipelago/Manual/raw/main/schemas/Manual.regions.schema.json",
+
+    "First Drop": {
+        "_comment": "Prologue. Always open so sphere 1 is never empty.",
+        "starting": true,
+        "connects_to": ["Rolling With It", "Franchise and Challenge"]
+    },
+    "Rolling With It": {
+        "_comment": "Chapter 1.",
+        "requires": "|Progressive Chapter Pass:1|",
+        "connects_to": ["Wheel-y Good Times"]
+    },
+    "Wheel-y Good Times": {
+        "_comment": "Chapter 2.",
+        "requires": "|Progressive Chapter Pass:2|",
+        "connects_to": ["Twisting Tracks"]
+    },
+    "Twisting Tracks": {
+        "_comment": "Chapter 3.",
+        "requires": "|Progressive Chapter Pass:3|",
+        "connects_to": ["Final Plunge"]
+    },
+    "Final Plunge": {
+        "_comment": "Chapter 4, and where both goal locations live.",
+        "requires": "|Progressive Chapter Pass:4|",
+        "connects_to": []
+    },
+    "Franchise and Challenge": {
+        "_comment": "Optional non-career checks. Empty unless franchise_milestones is on.",
+        "connects_to": []
+    }
+}

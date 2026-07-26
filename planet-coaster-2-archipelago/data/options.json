@@ -1,0 +1,47 @@
+{
+    "$schema": "https://raw.githubusercontent.com/ManualForArchipelago/Manual/main/schemas/Manual.options.schema.json",
+
+    "core": {
+        "goal": {
+            "display_name": "Goal",
+            "description": [
+                "How to finish your run.",
+                "career_complete: earn Gold on Coaster Chasm, the last scenario of Chapter 4.",
+                "career_mastery: earn Platinum on every scenario in the campaign."
+            ],
+            "aliases": {
+                "career_complete": 0,
+                "career_mastery": 1
+            },
+            "hidden": false
+        },
+        "filler_traps": {
+            "values": {
+                "recommended": 15
+            }
+        }
+    },
+
+    "user": {
+        "franchise_milestones": {
+            "display_name": "Franchise and Challenge Milestones",
+            "description": [
+                "Adds 20 checks outside the campaign: park ratings, guest counts, park value and coaster excitement targets.",
+                "These are reachable in Franchise, Challenge or Sandbox parks, so turn this on if you want checks you can grind outside career mode."
+            ],
+            "type": "Toggle",
+            "default": false,
+            "group": "Content"
+        },
+        "include_traps": {
+            "display_name": "Include Traps",
+            "description": [
+                "Adds trap items that instruct you to sabotage your own park: forced ride breakdowns, downpours, power outages.",
+                "Traps are honour-system, same as every other check in a Manual world."
+            ],
+            "type": "Toggle",
+            "default": false,
+            "group": "Content"
+        }
+    }
+}

@@ -1,0 +1,901 @@
+{
+    "$schema": "https://github.com/ManualForArchipelago/Manual/raw/main/schemas/Manual.locations.schema.json",
+    "data": [
+        {
+            "name": "Keys to the Coaster - Bronze Medal",
+            "category": [
+                "Career Medals",
+                "Chapter - First Drop",
+                "Bronze"
+            ],
+            "region": "First Drop"
+        },
+        {
+            "name": "Keys to the Coaster - Silver Medal",
+            "category": [
+                "Career Medals",
+                "Chapter - First Drop",
+                "Silver"
+            ],
+            "region": "First Drop",
+            "requires": "|@Rides:1|"
+        },
+        {
+            "name": "Keys to the Coaster - Gold Medal",
+            "category": [
+                "Career Medals",
+                "Chapter - First Drop",
+                "Gold"
+            ],
+            "region": "First Drop",
+            "requires": "|@Rides:2| and |@Park Operations:1|"
+        },
+        {
+            "name": "Keys to the Coaster - Platinum Medal",
+            "category": [
+                "Career Medals",
+                "Chapter - First Drop",
+                "Platinum"
+            ],
+            "region": "First Drop",
+            "requires": "|@Rides:3| and |@Park Operations:1|"
+        },
+        {
+            "name": "In the Swim of Things - Bronze Medal",
+            "category": [
+                "Career Medals",
+                "Chapter - First Drop",
+                "Bronze"
+            ],
+            "region": "First Drop"
+        },
+        {
+            "name": "In the Swim of Things - Silver Medal",
+            "category": [
+                "Career Medals",
+                "Chapter - First Drop",
+                "Silver"
+            ],
+            "region": "First Drop",
+            "requires": "|@Rides:1| and |@Water Park:1|"
+        },
+        {
+            "name": "In the Swim of Things - Gold Medal",
+            "category": [
+                "Career Medals",
+                "Chapter - First Drop",
+                "Gold"
+            ],
+            "region": "First Drop",
+            "requires": "|@Rides:2| and |@Park Operations:1| and |@Water Park:1|"
+        },
+        {
+            "name": "In the Swim of Things - Platinum Medal",
+            "category": [
+                "Career Medals",
+                "Chapter - First Drop",
+                "Platinum"
+            ],
+            "region": "First Drop",
+            "requires": "|@Rides:3| and |@Park Operations:1| and |@Water Park:2|"
+        },
+        {
+            "name": "Parks and Restoration - Bronze Medal",
+            "category": [
+                "Career Medals",
+                "Chapter - Rolling With It",
+                "Bronze"
+            ],
+            "region": "Rolling With It",
+            "requires": "|@Rides:1|"
+        },
+        {
+            "name": "Parks and Restoration - Silver Medal",
+            "category": [
+                "Career Medals",
+                "Chapter - Rolling With It",
+                "Silver"
+            ],
+            "region": "Rolling With It",
+            "requires": "|@Rides:2| and |@Park Operations:1|"
+        },
+        {
+            "name": "Parks and Restoration - Gold Medal",
+            "category": [
+                "Career Medals",
+                "Chapter - Rolling With It",
+                "Gold"
+            ],
+            "region": "Rolling With It",
+            "requires": "|@Rides:3| and |@Park Operations:1|"
+        },
+        {
+            "name": "Parks and Restoration - Platinum Medal",
+            "category": [
+                "Career Medals",
+                "Chapter - Rolling With It",
+                "Platinum"
+            ],
+            "region": "Rolling With It",
+            "requires": "|@Rides:5| and |@Park Operations:2|"
+        },
+        {
+            "name": "A Shore Thing - Bronze Medal",
+            "category": [
+                "Career Medals",
+                "Chapter - Rolling With It",
+                "Bronze"
+            ],
+            "region": "Rolling With It",
+            "requires": "|@Rides:1|"
+        },
+        {
+            "name": "A Shore Thing - Silver Medal",
+            "category": [
+                "Career Medals",
+                "Chapter - Rolling With It",
+                "Silver"
+            ],
+            "region": "Rolling With It",
+            "requires": "|@Rides:2| and |@Park Operations:1| and |@Water Park:1|"
+        },
+        {
+            "name": "A Shore Thing - Gold Medal",
+            "category": [
+                "Career Medals",
+                "Chapter - Rolling With It",
+                "Gold"
+            ],
+            "region": "Rolling With It",
+            "requires": "|@Rides:3| and |@Park Operations:1| and |@Water Park:2|"
+        },
+        {
+            "name": "A Shore Thing - Platinum Medal",
+            "category": [
+                "Career Medals",
+                "Chapter - Rolling With It",
+                "Platinum"
+            ],
+            "region": "Rolling With It",
+            "requires": "|@Rides:5| and |@Park Operations:2| and |@Water Park:3|"
+        },
+        {
+            "name": "Just the Thicket - Bronze Medal",
+            "category": [
+                "Career Medals",
+                "Chapter - Rolling With It",
+                "Bronze"
+            ],
+            "region": "Rolling With It",
+            "requires": "|@Rides:1|"
+        },
+        {
+            "name": "Just the Thicket - Silver Medal",
+            "category": [
+                "Career Medals",
+                "Chapter - Rolling With It",
+                "Silver"
+            ],
+            "region": "Rolling With It",
+            "requires": "|@Rides:2| and |@Park Operations:1|"
+        },
+        {
+            "name": "Just the Thicket - Gold Medal",
+            "category": [
+                "Career Medals",
+                "Chapter - Rolling With It",
+                "Gold"
+            ],
+            "region": "Rolling With It",
+            "requires": "|@Rides:3| and |@Park Operations:1|"
+        },
+        {
+            "name": "Just the Thicket - Platinum Medal",
+            "category": [
+                "Career Medals",
+                "Chapter - Rolling With It",
+                "Platinum"
+            ],
+            "region": "Rolling With It",
+            "requires": "|@Rides:5| and |@Park Operations:2|"
+        },
+        {
+            "name": "Summit Awesome - Bronze Medal",
+            "category": [
+                "Career Medals",
+                "Chapter - Rolling With It",
+                "Bronze"
+            ],
+            "region": "Rolling With It",
+            "requires": "|@Rides:1|"
+        },
+        {
+            "name": "Summit Awesome - Silver Medal",
+            "category": [
+                "Career Medals",
+                "Chapter - Rolling With It",
+                "Silver"
+            ],
+            "region": "Rolling With It",
+            "requires": "|@Rides:2| and |@Park Operations:1|"
+        },
+        {
+            "name": "Summit Awesome - Gold Medal",
+            "category": [
+                "Career Medals",
+                "Chapter - Rolling With It",
+                "Gold"
+            ],
+            "region": "Rolling With It",
+            "requires": "|@Rides:3| and |@Park Operations:1|"
+        },
+        {
+            "name": "Summit Awesome - Platinum Medal",
+            "category": [
+                "Career Medals",
+                "Chapter - Rolling With It",
+                "Platinum"
+            ],
+            "region": "Rolling With It",
+            "requires": "|@Rides:5| and |@Park Operations:2|"
+        },
+        {
+            "name": "Building the Bifrost - Bronze Medal",
+            "category": [
+                "Career Medals",
+                "Chapter - Wheel-y Good Times",
+                "Bronze"
+            ],
+            "region": "Wheel-y Good Times",
+            "requires": "|@Rides:2| and |@Park Operations:1|"
+        },
+        {
+            "name": "Building the Bifrost - Silver Medal",
+            "category": [
+                "Career Medals",
+                "Chapter - Wheel-y Good Times",
+                "Silver"
+            ],
+            "region": "Wheel-y Good Times",
+            "requires": "|@Rides:4| and |@Park Operations:1|"
+        },
+        {
+            "name": "Building the Bifrost - Gold Medal",
+            "category": [
+                "Career Medals",
+                "Chapter - Wheel-y Good Times",
+                "Gold"
+            ],
+            "region": "Wheel-y Good Times",
+            "requires": "|@Rides:6| and |@Park Operations:2|"
+        },
+        {
+            "name": "Building the Bifrost - Platinum Medal",
+            "category": [
+                "Career Medals",
+                "Chapter - Wheel-y Good Times",
+                "Platinum"
+            ],
+            "region": "Wheel-y Good Times",
+            "requires": "|@Rides:8| and |@Park Operations:3|"
+        },
+        {
+            "name": "Farmland Fiasco - Bronze Medal",
+            "category": [
+                "Career Medals",
+                "Chapter - Wheel-y Good Times",
+                "Bronze"
+            ],
+            "region": "Wheel-y Good Times",
+            "requires": "|@Rides:2| and |@Park Operations:1|"
+        },
+        {
+            "name": "Farmland Fiasco - Silver Medal",
+            "category": [
+                "Career Medals",
+                "Chapter - Wheel-y Good Times",
+                "Silver"
+            ],
+            "region": "Wheel-y Good Times",
+            "requires": "|@Rides:4| and |@Park Operations:1|"
+        },
+        {
+            "name": "Farmland Fiasco - Gold Medal",
+            "category": [
+                "Career Medals",
+                "Chapter - Wheel-y Good Times",
+                "Gold"
+            ],
+            "region": "Wheel-y Good Times",
+            "requires": "|@Rides:6| and |@Park Operations:2|"
+        },
+        {
+            "name": "Farmland Fiasco - Platinum Medal",
+            "category": [
+                "Career Medals",
+                "Chapter - Wheel-y Good Times",
+                "Platinum"
+            ],
+            "region": "Wheel-y Good Times",
+            "requires": "|@Rides:8| and |@Park Operations:3|"
+        },
+        {
+            "name": "The Brothers Swimm - Bronze Medal",
+            "category": [
+                "Career Medals",
+                "Chapter - Wheel-y Good Times",
+                "Bronze"
+            ],
+            "region": "Wheel-y Good Times",
+            "requires": "|@Rides:2| and |@Park Operations:1| and |@Water Park:1|"
+        },
+        {
+            "name": "The Brothers Swimm - Silver Medal",
+            "category": [
+                "Career Medals",
+                "Chapter - Wheel-y Good Times",
+                "Silver"
+            ],
+            "region": "Wheel-y Good Times",
+            "requires": "|@Rides:4| and |@Park Operations:1| and |@Water Park:2|"
+        },
+        {
+            "name": "The Brothers Swimm - Gold Medal",
+            "category": [
+                "Career Medals",
+                "Chapter - Wheel-y Good Times",
+                "Gold"
+            ],
+            "region": "Wheel-y Good Times",
+            "requires": "|@Rides:6| and |@Park Operations:2| and |@Water Park:3|"
+        },
+        {
+            "name": "The Brothers Swimm - Platinum Medal",
+            "category": [
+                "Career Medals",
+                "Chapter - Wheel-y Good Times",
+                "Platinum"
+            ],
+            "region": "Wheel-y Good Times",
+            "requires": "|@Rides:8| and |@Park Operations:3| and |@Water Park:4|"
+        },
+        {
+            "name": "Sky's The Limit - Bronze Medal",
+            "category": [
+                "Career Medals",
+                "Chapter - Twisting Tracks",
+                "Bronze"
+            ],
+            "region": "Twisting Tracks",
+            "requires": "|@Rides:3| and |@Park Operations:1|"
+        },
+        {
+            "name": "Sky's The Limit - Silver Medal",
+            "category": [
+                "Career Medals",
+                "Chapter - Twisting Tracks",
+                "Silver"
+            ],
+            "region": "Twisting Tracks",
+            "requires": "|@Rides:6| and |@Park Operations:2|"
+        },
+        {
+            "name": "Sky's The Limit - Gold Medal",
+            "category": [
+                "Career Medals",
+                "Chapter - Twisting Tracks",
+                "Gold"
+            ],
+            "region": "Twisting Tracks",
+            "requires": "|@Rides:9| and |@Park Operations:3|"
+        },
+        {
+            "name": "Sky's The Limit - Platinum Medal",
+            "category": [
+                "Career Medals",
+                "Chapter - Twisting Tracks",
+                "Platinum"
+            ],
+            "region": "Twisting Tracks",
+            "requires": "|@Rides:12| and |@Park Operations:5|"
+        },
+        {
+            "name": "Paradise Lost - Bronze Medal",
+            "category": [
+                "Career Medals",
+                "Chapter - Twisting Tracks",
+                "Bronze"
+            ],
+            "region": "Twisting Tracks",
+            "requires": "|@Rides:3| and |@Park Operations:1| and |@Water Park:1|"
+        },
+        {
+            "name": "Paradise Lost - Silver Medal",
+            "category": [
+                "Career Medals",
+                "Chapter - Twisting Tracks",
+                "Silver"
+            ],
+            "region": "Twisting Tracks",
+            "requires": "|@Rides:6| and |@Park Operations:2| and |@Water Park:3|"
+        },
+        {
+            "name": "Paradise Lost - Gold Medal",
+            "category": [
+                "Career Medals",
+                "Chapter - Twisting Tracks",
+                "Gold"
+            ],
+            "region": "Twisting Tracks",
+            "requires": "|@Rides:9| and |@Park Operations:3| and |@Water Park:4|"
+        },
+        {
+            "name": "Paradise Lost - Platinum Medal",
+            "category": [
+                "Career Medals",
+                "Chapter - Twisting Tracks",
+                "Platinum"
+            ],
+            "region": "Twisting Tracks",
+            "requires": "|@Rides:12| and |@Park Operations:5| and |@Water Park:6|"
+        },
+        {
+            "name": "Double Trouble - Bronze Medal",
+            "category": [
+                "Career Medals",
+                "Chapter - Twisting Tracks",
+                "Bronze"
+            ],
+            "region": "Twisting Tracks",
+            "requires": "|@Rides:3| and |@Park Operations:1|"
+        },
+        {
+            "name": "Double Trouble - Silver Medal",
+            "category": [
+                "Career Medals",
+                "Chapter - Twisting Tracks",
+                "Silver"
+            ],
+            "region": "Twisting Tracks",
+            "requires": "|@Rides:6| and |@Park Operations:2|"
+        },
+        {
+            "name": "Double Trouble - Gold Medal",
+            "category": [
+                "Career Medals",
+                "Chapter - Twisting Tracks",
+                "Gold"
+            ],
+            "region": "Twisting Tracks",
+            "requires": "|@Rides:9| and |@Park Operations:3|"
+        },
+        {
+            "name": "Double Trouble - Platinum Medal",
+            "category": [
+                "Career Medals",
+                "Chapter - Twisting Tracks",
+                "Platinum"
+            ],
+            "region": "Twisting Tracks",
+            "requires": "|@Rides:12| and |@Park Operations:5|"
+        },
+        {
+            "name": "The Garden of Edith - Bronze Medal",
+            "category": [
+                "Career Medals",
+                "Chapter - Twisting Tracks",
+                "Bronze"
+            ],
+            "region": "Twisting Tracks",
+            "requires": "|@Rides:3| and |@Park Operations:1|"
+        },
+        {
+            "name": "The Garden of Edith - Silver Medal",
+            "category": [
+                "Career Medals",
+                "Chapter - Twisting Tracks",
+                "Silver"
+            ],
+            "region": "Twisting Tracks",
+            "requires": "|@Rides:6| and |@Park Operations:2|"
+        },
+        {
+            "name": "The Garden of Edith - Gold Medal",
+            "category": [
+                "Career Medals",
+                "Chapter - Twisting Tracks",
+                "Gold"
+            ],
+            "region": "Twisting Tracks",
+            "requires": "|@Rides:9| and |@Park Operations:3|"
+        },
+        {
+            "name": "The Garden of Edith - Platinum Medal",
+            "category": [
+                "Career Medals",
+                "Chapter - Twisting Tracks",
+                "Platinum"
+            ],
+            "region": "Twisting Tracks",
+            "requires": "|@Rides:12| and |@Park Operations:5|"
+        },
+        {
+            "name": "Fabled Fjord - Bronze Medal",
+            "category": [
+                "Career Medals",
+                "Chapter - Twisting Tracks",
+                "Bronze"
+            ],
+            "region": "Twisting Tracks",
+            "requires": "|@Rides:3| and |@Park Operations:1|"
+        },
+        {
+            "name": "Fabled Fjord - Silver Medal",
+            "category": [
+                "Career Medals",
+                "Chapter - Twisting Tracks",
+                "Silver"
+            ],
+            "region": "Twisting Tracks",
+            "requires": "|@Rides:6| and |@Park Operations:2|"
+        },
+        {
+            "name": "Fabled Fjord - Gold Medal",
+            "category": [
+                "Career Medals",
+                "Chapter - Twisting Tracks",
+                "Gold"
+            ],
+            "region": "Twisting Tracks",
+            "requires": "|@Rides:9| and |@Park Operations:3|"
+        },
+        {
+            "name": "Fabled Fjord - Platinum Medal",
+            "category": [
+                "Career Medals",
+                "Chapter - Twisting Tracks",
+                "Platinum"
+            ],
+            "region": "Twisting Tracks",
+            "requires": "|@Rides:12| and |@Park Operations:5|"
+        },
+        {
+            "name": "Lazy River Styx - Bronze Medal",
+            "category": [
+                "Career Medals",
+                "Chapter - Final Plunge",
+                "Bronze"
+            ],
+            "region": "Final Plunge",
+            "requires": "|@Rides:5| and |@Park Operations:2| and |@Water Park:2|"
+        },
+        {
+            "name": "Lazy River Styx - Silver Medal",
+            "category": [
+                "Career Medals",
+                "Chapter - Final Plunge",
+                "Silver"
+            ],
+            "region": "Final Plunge",
+            "requires": "|@Rides:8| and |@Park Operations:3| and |@Water Park:4|"
+        },
+        {
+            "name": "Lazy River Styx - Gold Medal",
+            "category": [
+                "Career Medals",
+                "Chapter - Final Plunge",
+                "Gold"
+            ],
+            "region": "Final Plunge",
+            "requires": "|@Rides:12| and |@Park Operations:5| and |@Water Park:6|"
+        },
+        {
+            "name": "Lazy River Styx - Platinum Medal",
+            "category": [
+                "Career Medals",
+                "Chapter - Final Plunge",
+                "Platinum"
+            ],
+            "region": "Final Plunge",
+            "requires": "|@Rides:16| and |@Park Operations:7| and |@Water Park:8|"
+        },
+        {
+            "name": "Labyrinth Secrets - Bronze Medal",
+            "category": [
+                "Career Medals",
+                "Chapter - Final Plunge",
+                "Bronze"
+            ],
+            "region": "Final Plunge",
+            "requires": "|@Rides:5| and |@Park Operations:2|"
+        },
+        {
+            "name": "Labyrinth Secrets - Silver Medal",
+            "category": [
+                "Career Medals",
+                "Chapter - Final Plunge",
+                "Silver"
+            ],
+            "region": "Final Plunge",
+            "requires": "|@Rides:8| and |@Park Operations:3|"
+        },
+        {
+            "name": "Labyrinth Secrets - Gold Medal",
+            "category": [
+                "Career Medals",
+                "Chapter - Final Plunge",
+                "Gold"
+            ],
+            "region": "Final Plunge",
+            "requires": "|@Rides:12| and |@Park Operations:5|"
+        },
+        {
+            "name": "Labyrinth Secrets - Platinum Medal",
+            "category": [
+                "Career Medals",
+                "Chapter - Final Plunge",
+                "Platinum"
+            ],
+            "region": "Final Plunge",
+            "requires": "|@Rides:16| and |@Park Operations:7|"
+        },
+        {
+            "name": "Thrills'n'Spills - Bronze Medal",
+            "category": [
+                "Career Medals",
+                "Chapter - Final Plunge",
+                "Bronze"
+            ],
+            "region": "Final Plunge",
+            "requires": "|@Rides:5| and |@Park Operations:2| and |@Water Park:2|"
+        },
+        {
+            "name": "Thrills'n'Spills - Silver Medal",
+            "category": [
+                "Career Medals",
+                "Chapter - Final Plunge",
+                "Silver"
+            ],
+            "region": "Final Plunge",
+            "requires": "|@Rides:8| and |@Park Operations:3| and |@Water Park:4|"
+        },
+        {
+            "name": "Thrills'n'Spills - Gold Medal",
+            "category": [
+                "Career Medals",
+                "Chapter - Final Plunge",
+                "Gold"
+            ],
+            "region": "Final Plunge",
+            "requires": "|@Rides:12| and |@Park Operations:5| and |@Water Park:6|"
+        },
+        {
+            "name": "Thrills'n'Spills - Platinum Medal",
+            "category": [
+                "Career Medals",
+                "Chapter - Final Plunge",
+                "Platinum"
+            ],
+            "region": "Final Plunge",
+            "requires": "|@Rides:16| and |@Park Operations:7| and |@Water Park:8|"
+        },
+        {
+            "name": "Coaster Chasm - Bronze Medal",
+            "category": [
+                "Career Medals",
+                "Chapter - Final Plunge",
+                "Bronze"
+            ],
+            "region": "Final Plunge",
+            "requires": "|@Rides:5| and |@Park Operations:2|"
+        },
+        {
+            "name": "Coaster Chasm - Silver Medal",
+            "category": [
+                "Career Medals",
+                "Chapter - Final Plunge",
+                "Silver"
+            ],
+            "region": "Final Plunge",
+            "requires": "|@Rides:8| and |@Park Operations:3|"
+        },
+        {
+            "name": "Coaster Chasm - Gold Medal",
+            "category": [
+                "Career Medals",
+                "Chapter - Final Plunge",
+                "Gold"
+            ],
+            "region": "Final Plunge",
+            "requires": "|@Rides:12| and |@Park Operations:5|"
+        },
+        {
+            "name": "Coaster Chasm - Platinum Medal",
+            "category": [
+                "Career Medals",
+                "Chapter - Final Plunge",
+                "Platinum"
+            ],
+            "region": "Final Plunge",
+            "requires": "|@Rides:16| and |@Park Operations:7|"
+        },
+        {
+            "name": "Career Complete - Gold at Coaster Chasm",
+            "category": [
+                "Goals"
+            ],
+            "region": "Final Plunge",
+            "requires": "|@Rides:12| and |@Park Operations:5|",
+            "victory": true
+        },
+        {
+            "name": "Career Mastery - Platinum Every Scenario",
+            "category": [
+                "Goals"
+            ],
+            "region": "Final Plunge",
+            "requires": "|@Rides:20| and |@Park Operations:8| and |@Water Park:8|",
+            "victory": true
+        },
+        {
+            "name": "Reach a 3 Star Park Rating",
+            "category": [
+                "Franchise Milestones"
+            ],
+            "region": "Franchise and Challenge",
+            "requires": "|@Rides:3| and |@Park Operations:1|"
+        },
+        {
+            "name": "Reach a 4 Star Park Rating",
+            "category": [
+                "Franchise Milestones"
+            ],
+            "region": "Franchise and Challenge",
+            "requires": "|@Rides:6| and |@Park Operations:2| and |@Water Park:1|"
+        },
+        {
+            "name": "Reach a 5 Star Park Rating",
+            "category": [
+                "Franchise Milestones"
+            ],
+            "region": "Franchise and Challenge",
+            "requires": "|@Rides:10| and |@Park Operations:4| and |@Water Park:2|"
+        },
+        {
+            "name": "Host 500 Guests at Once",
+            "category": [
+                "Franchise Milestones"
+            ],
+            "region": "Franchise and Challenge",
+            "requires": "|@Rides:2| and |@Park Operations:1|"
+        },
+        {
+            "name": "Host 1000 Guests at Once",
+            "category": [
+                "Franchise Milestones"
+            ],
+            "region": "Franchise and Challenge",
+            "requires": "|@Rides:5| and |@Park Operations:2| and |@Water Park:1|"
+        },
+        {
+            "name": "Host 2500 Guests at Once",
+            "category": [
+                "Franchise Milestones"
+            ],
+            "region": "Franchise and Challenge",
+            "requires": "|@Rides:9| and |@Park Operations:3| and |@Water Park:2|"
+        },
+        {
+            "name": "Host 5000 Guests at Once",
+            "category": [
+                "Franchise Milestones"
+            ],
+            "region": "Franchise and Challenge",
+            "requires": "|@Rides:14| and |@Park Operations:5| and |@Water Park:4|"
+        },
+        {
+            "name": "Open 5 Rides in One Park",
+            "category": [
+                "Franchise Milestones"
+            ],
+            "region": "Franchise and Challenge",
+            "requires": "|@Rides:5|"
+        },
+        {
+            "name": "Open 15 Rides in One Park",
+            "category": [
+                "Franchise Milestones"
+            ],
+            "region": "Franchise and Challenge",
+            "requires": "|@Rides:12| and |@Park Operations:1| and |@Water Park:2|"
+        },
+        {
+            "name": "Open 25 Rides in One Park",
+            "category": [
+                "Franchise Milestones"
+            ],
+            "region": "Franchise and Challenge",
+            "requires": "|@Rides:18| and |@Park Operations:3| and |@Water Park:4|"
+        },
+        {
+            "name": "Build a Coaster Rated 6 Excitement",
+            "category": [
+                "Franchise Milestones"
+            ],
+            "region": "Franchise and Challenge",
+            "requires": "|@Rides:3|"
+        },
+        {
+            "name": "Build a Coaster Rated 8 Excitement",
+            "category": [
+                "Franchise Milestones"
+            ],
+            "region": "Franchise and Challenge",
+            "requires": "|@Rides:8| and |@Park Operations:2|"
+        },
+        {
+            "name": "Build a Coaster Rated 10 Excitement",
+            "category": [
+                "Franchise Milestones"
+            ],
+            "region": "Franchise and Challenge",
+            "requires": "|@Rides:14| and |@Park Operations:4|"
+        },
+        {
+            "name": "Reach 100,000 Park Value",
+            "category": [
+                "Franchise Milestones"
+            ],
+            "region": "Franchise and Challenge",
+            "requires": "|@Rides:4| and |@Park Operations:1|"
+        },
+        {
+            "name": "Reach 500,000 Park Value",
+            "category": [
+                "Franchise Milestones"
+            ],
+            "region": "Franchise and Challenge",
+            "requires": "|@Rides:9| and |@Park Operations:3| and |@Water Park:2|"
+        },
+        {
+            "name": "Reach 1,000,000 Park Value",
+            "category": [
+                "Franchise Milestones"
+            ],
+            "region": "Franchise and Challenge",
+            "requires": "|@Rides:15| and |@Park Operations:5| and |@Water Park:4|"
+        },
+        {
+            "name": "Complete a Franchise Season",
+            "category": [
+                "Franchise Milestones"
+            ],
+            "region": "Franchise and Challenge",
+            "requires": "|@Rides:7| and |@Park Operations:2| and |@Water Park:2|"
+        },
+        {
+            "name": "Win a Franchise Community Challenge",
+            "category": [
+                "Franchise Milestones"
+            ],
+            "region": "Franchise and Challenge",
+            "requires": "|@Rides:11| and |@Park Operations:3| and |@Water Park:3|"
+        },
+        {
+            "name": "Publish a Blueprint to the Frontier Workshop",
+            "category": [
+                "Franchise Milestones"
+            ],
+            "region": "Franchise and Challenge",
+            "requires": "|@Rides:6| and |@Park Operations:2| and |@Water Park:1|"
+        },
+        {
+            "name": "Run a Park with Zero Litter for a Full Year",
+            "category": [
+                "Franchise Milestones"
+            ],
+            "region": "Franchise and Challenge",
+            "requires": "|@Rides:8| and |@Park Operations:4| and |@Water Park:2|"
+        }
+    ]
+}

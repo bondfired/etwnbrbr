@@ -1,0 +1,25 @@
+{
+    "$schema": "https://github.com/ManualForArchipelago/Manual/raw/main/schemas/Manual.game.schema.json",
+    "game": "PlanetCoaster2",
+    "creator": "bondfired",
+
+    "filler_item_name": "Park Cash Injection",
+
+    "starting_items": [
+        {
+            "items": ["Advanced Path Tools"]
+        },
+        {
+            "item_categories": ["Coasters"],
+            "random": 1
+        },
+        {
+            "item_categories": ["Water Park"],
+            "random": 1
+        }
+    ],
+
+    "death_link": false,
+    "starting_index": 1,
+    "unused_goals_are_locations": true
+}
