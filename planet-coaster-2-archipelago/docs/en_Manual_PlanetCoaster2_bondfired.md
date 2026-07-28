@@ -10,8 +10,8 @@ checks in the Manual client as you earn them.
 
 Your ability to build things. Every coaster class, water slide type, flat ride,
 scenery theme and park tool is an item somewhere in the multiworld. You start with
-path tools, one random coaster class and one random water park piece, and you may
-only build with what you have been sent.
+path tools, a Janitor, a Mechanic, one random coaster class and one random water
+park piece, and you may only build with what you have been sent.
 
 Career chapters are also gated. **Progressive Chapter Pass** unlocks Chapter 1
 through Chapter 4 in order — even once the game itself has unlocked the next
@@ -44,7 +44,8 @@ Whichever goal you do not pick stays in your world as an ordinary check.
 - **Park operations** — path tools, terrain sculpting, queue customisation, shops,
   marketing, lighting, blueprints.
 - **Progressive Staff Hire** — hire one more staff type each copy, in the order
-  Janitor, Mechanic, Vendor, Lifeguard.
+  Janitor, Mechanic, Vendor, Lifeguard. The first two are granted at the start, so
+  the two you receive are the Vendor and the Lifeguard.
 
 Anything a scenario hands you pre-built is fine to keep and operate. The
 restriction is on what *you* place.

@@ -30,9 +30,13 @@ keep.
 
 ## Playing
 
-You start with path tools, one random coaster class and one random water park
-piece. Everything else — coaster types, slides, flat rides, scenery themes, staff,
-shops — arrives as items from the multiworld.
+You start with path tools, a Janitor and a Mechanic, one random coaster class and
+one random water park piece. Everything else — coaster types, slides, flat rides,
+scenery themes, further staff, shops — arrives as items from the multiworld.
+
+The two starting staff exist so a park is always operable: without a Janitor litter
+compounds and without a Mechanic broken rides stay broken. Vendors and Lifeguards
+are still locked behind the two remaining `Progressive Staff Hire` items.
 
 Career chapters are gated by `Progressive Chapter Pass`. Even once Planet Coaster 2
 unlocks the next chapter, you may not start it until the matching pass arrives.

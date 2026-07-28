@@ -10,6 +10,17 @@
             "items": ["Advanced Path Tools"]
         },
         {
+            "_comment": [
+                "Two Progressive Staff Hires, so every run starts with a Janitor and a Mechanic.",
+                "Without these a from-scratch park cannot clear litter or repair rides, which",
+                "makes even the zero-item Prologue bronze medals impractical.",
+                "'random' is required: naming an item precollects every copy in the pool, and",
+                "there are four."
+            ],
+            "items": ["Progressive Staff Hire"],
+            "random": 2
+        },
+        {
             "item_categories": ["Coasters"],
             "random": 1
         },
