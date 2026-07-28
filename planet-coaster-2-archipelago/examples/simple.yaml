@@ -1,0 +1,22 @@
+# Planet Coaster 2 (Manual) - minimal ready-to-use yaml.
+# Change "name", drop this in your Archipelago "Players" folder, run ArchipelagoGenerate.
+
+name: CoasterTycoon
+description: Planet Coaster 2 career run
+game: Manual_PlanetCoaster2_bondfired
+
+Manual_PlanetCoaster2_bondfired:
+  # career_complete = Gold on Coaster Chasm (shorter)
+  # career_mastery  = Platinum on all 18 scenarios (much longer)
+  goal: career_complete
+
+  # Adds 20 checks earnable in Franchise/Challenge/Sandbox parks.
+  # Strongly recommended in rooms of 3+ so you always have something to do
+  # while waiting on a Progressive Chapter Pass.
+  franchise_milestones: true
+
+  # Items that tell you to sabotage your own park. Honour system.
+  include_traps: false
+
+  accessibility: full
+  progression_balancing: 50
