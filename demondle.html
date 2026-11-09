@@ -1,0 +1,955 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Demondle</title>
+<style>
+:root{
+  --bg:#f0f0f5;
+  --bg-card:#fff;
+  --text:#111;
+  --text-muted:#666;
+  --accent:#7c3aed;
+  --accent-light:#ede9fe;
+  --green:#16a34a;
+  --green-bg:#dcfce7;
+  --red:#dc2626;
+  --red-bg:#fee2e2;
+  --border:#ddd;
+  --hint-bg:#f8f7ff;
+  --hint-border:#c4b5fd;
+  --shadow:rgba(0,0,0,0.08);
+  --header-bg:#fff;
+}
+body.dark{
+  --bg:#0d0d1a;
+  --bg-card:#16162a;
+  --text:#f0f0ff;
+  --text-muted:#888;
+  --accent:#a78bfa;
+  --accent-light:#2d1f5e;
+  --green:#22c55e;
+  --green-bg:#14532d;
+  --red:#f87171;
+  --red-bg:#450a0a;
+  --border:#2a2a40;
+  --hint-bg:#1e1e35;
+  --hint-border:#5b21b6;
+  --shadow:rgba(0,0,0,0.3);
+  --header-bg:#16162a;
+}
+*{box-sizing:border-box;margin:0;padding:0}
+body{
+  font-family:'Helvetica Neue',Arial,sans-serif;
+  background:var(--bg);
+  color:var(--text);
+  min-height:100vh;
+  transition:background .2s,color .2s;
+}
+
+/* ── loading / error overlays ── */
+#loading-screen,#error-screen{
+  position:fixed;inset:0;
+  display:flex;flex-direction:column;
+  align-items:center;justify-content:center;
+  background:var(--bg);
+  z-index:999;
+  gap:16px;
+  text-align:center;
+  padding:24px;
+}
+#loading-screen.hidden,#error-screen.hidden{display:none}
+.spinner{
+  width:40px;height:40px;
+  border:4px solid var(--border);
+  border-top-color:var(--accent);
+  border-radius:50%;
+  animation:spin .8s linear infinite;
+}
+@keyframes spin{to{transform:rotate(360deg)}}
+#loading-screen p{color:var(--text-muted);font-size:.95rem}
+#error-screen h2{color:var(--red);font-size:1.3rem}
+#error-screen p{color:var(--text-muted);font-size:.9rem;max-width:320px}
+#retry-btn{
+  margin-top:8px;
+  padding:10px 24px;
+  background:var(--accent);
+  color:#fff;border:none;border-radius:8px;
+  font-size:.95rem;font-weight:700;cursor:pointer;
+}
+#retry-btn:hover{filter:brightness(1.1)}
+
+/* ── header ── */
+header{
+  background:var(--header-bg);
+  border-bottom:1px solid var(--border);
+  padding:12px 16px;
+  display:flex;align-items:center;justify-content:center;
+  position:sticky;top:0;z-index:100;
+}
+.header-left{position:absolute;left:16px;display:flex;gap:8px}
+.header-right{position:absolute;right:16px;display:flex;gap:8px;align-items:center}
+.header-btn{
+  background:none;border:1px solid var(--border);
+  border-radius:8px;padding:6px 10px;
+  color:var(--text);cursor:pointer;font-size:1rem;
+  display:flex;align-items:center;justify-content:center;
+  transition:background .15s,color .15s;
+}
+.header-btn:hover{background:var(--accent-light)}
+h1{
+  font-size:1.5rem;font-weight:900;
+  letter-spacing:.03em;
+  background:linear-gradient(135deg,#7c3aed,#c026d3);
+  -webkit-background-clip:text;-webkit-text-fill-color:transparent;
+  background-clip:text;
+  cursor:default;
+}
+#discord-btn{
+  display:flex;align-items:center;justify-content:center;
+  color:var(--text);text-decoration:none;
+  border:1px solid var(--border);border-radius:8px;padding:6px 10px;
+}
+#discord-btn:hover{color:#5865F2}
+#day-nav{
+  display:flex;align-items:center;gap:6px;
+  font-size:.8rem;color:var(--text-muted);
+  margin-top:2px;
+  position:absolute;bottom:-20px;left:50%;transform:translateX(-50%);
+  white-space:nowrap;
+}
+#day-nav button{
+  background:none;border:none;color:var(--accent);cursor:pointer;
+  font-size:1rem;line-height:1;padding:0 2px;
+}
+#day-nav button:disabled{opacity:.3;cursor:default}
+
+/* ── main layout ── */
+main{
+  max-width:560px;
+  margin:0 auto;
+  padding:32px 16px 60px;
+}
+#day-label{
+  text-align:center;
+  font-size:.8rem;color:var(--text-muted);
+  margin-bottom:8px;
+  margin-top:8px;
+}
+
+/* ── hint cards ── */
+#hints-area{display:flex;flex-direction:column;gap:8px;margin-bottom:20px}
+.hint-card{
+  background:var(--hint-bg);
+  border:1px solid var(--hint-border);
+  border-radius:10px;
+  padding:12px 16px;
+  animation:fadeIn .3s ease;
+}
+@keyframes fadeIn{from{opacity:0;transform:translateY(-6px)}to{opacity:1;transform:translateY(0)}}
+.hint-label{
+  font-size:.7rem;font-weight:700;text-transform:uppercase;
+  letter-spacing:.08em;color:var(--accent);margin-bottom:3px;
+}
+.hint-value{font-size:1rem;font-weight:600;color:var(--text)}
+
+/* ── input area ── */
+#input-area{position:relative;margin-bottom:12px}
+#guess-input{
+  width:100%;padding:12px 16px;
+  border:2px solid var(--border);border-radius:10px;
+  background:var(--bg-card);color:var(--text);
+  font-size:1rem;outline:none;
+  transition:border-color .15s;
+}
+#guess-input:focus{border-color:var(--accent)}
+#guess-input:disabled{opacity:.5;cursor:not-allowed}
+#submit-btn{
+  width:100%;margin-top:8px;
+  padding:12px;
+  background:var(--accent);color:#fff;
+  border:none;border-radius:10px;
+  font-size:1rem;font-weight:700;cursor:pointer;
+  letter-spacing:.05em;text-transform:uppercase;
+  transition:filter .15s,transform .1s;
+}
+#submit-btn:hover{filter:brightness(1.1)}
+#submit-btn:active{transform:scale(.98)}
+#submit-btn:disabled{opacity:.5;cursor:not-allowed}
+
+/* ── autocomplete ── */
+#autocomplete{
+  display:none;
+  position:absolute;top:calc(100% + 4px);left:0;right:0;
+  background:var(--bg-card);border:1px solid var(--border);
+  border-radius:10px;overflow-y:auto;max-height:260px;
+  z-index:50;box-shadow:0 4px 16px var(--shadow);
+}
+#autocomplete.active{display:block}
+.ac-item{
+  padding:10px 14px;cursor:pointer;
+  display:flex;align-items:center;justify-content:space-between;
+  gap:8px;border-bottom:1px solid var(--border);
+  transition:background .1s;
+}
+.ac-item:last-child{border-bottom:none}
+.ac-item:hover,.ac-item.selected{background:var(--accent-light)}
+.ac-name{font-weight:600;font-size:.95rem;color:var(--text)}
+.ac-creator{font-size:.75rem;color:var(--text-muted);white-space:nowrap}
+.ac-pos{font-size:.7rem;color:var(--accent);font-weight:700;white-space:nowrap}
+
+/* ── guess history ── */
+#guess-history{display:flex;flex-direction:column;gap:6px;margin-bottom:16px}
+.guess-row{
+  padding:10px 14px;border-radius:8px;
+  font-size:.95rem;font-weight:600;
+  display:flex;align-items:center;gap:8px;
+}
+.guess-row.wrong{
+  background:var(--red-bg);color:var(--red);
+  border:1px solid var(--red);
+}
+.guess-row.correct{
+  background:var(--green-bg);color:var(--green);
+  border:1px solid var(--green);
+}
+.guess-icon{font-size:1.1rem}
+
+/* ── result card ── */
+#result-card{
+  display:none;
+  background:var(--bg-card);
+  border:1px solid var(--border);
+  border-radius:14px;
+  padding:24px;
+  text-align:center;
+  margin-top:16px;
+  box-shadow:0 2px 12px var(--shadow);
+}
+#result-card.visible{display:block}
+#result-title{font-size:1.4rem;font-weight:900;margin-bottom:6px}
+#result-title.win{color:var(--green)}
+#result-title.lose{color:var(--red)}
+#result-answer{font-size:1.1rem;font-weight:700;color:var(--accent);margin-bottom:4px}
+#result-meta{font-size:.85rem;color:var(--text-muted);margin-bottom:16px}
+.share-buttons{display:none;gap:8px;width:100%}
+.share-buttons.visible{display:flex}
+#share-btn,#copy-btn{
+  flex:1;padding:12px;
+  background:var(--green);color:#fff;
+  border:none;border-radius:8px;
+  font-size:.95rem;font-weight:700;cursor:pointer;
+  display:flex;align-items:center;justify-content:center;gap:6px;
+  text-transform:uppercase;letter-spacing:.05em;
+  transition:filter .15s,transform .1s;
+}
+#share-btn:hover,#copy-btn:hover{filter:brightness(1.1)}
+#share-btn:active,#copy-btn:active{transform:scale(.98)}
+#share-btn svg,#copy-btn svg{width:16px;height:16px;fill:#fff}
+
+/* ── toast ── */
+#toast{
+  position:fixed;bottom:24px;left:50%;transform:translateX(-50%) translateY(20px);
+  background:#222;color:#fff;
+  padding:10px 20px;border-radius:8px;
+  font-size:.9rem;font-weight:600;
+  opacity:0;transition:opacity .2s,transform .2s;
+  pointer-events:none;z-index:999;white-space:nowrap;
+}
+#toast.show{opacity:1;transform:translateX(-50%) translateY(0)}
+
+/* ── how to play modal ── */
+#htp-overlay{
+  display:none;position:fixed;inset:0;
+  background:rgba(0,0,0,.5);z-index:200;
+  justify-content:center;align-items:center;
+}
+#htp-overlay.active{display:flex}
+#htp-modal{
+  background:var(--bg-card);color:var(--text);
+  border-radius:14px;padding:28px 24px;
+  max-width:420px;width:90%;
+  text-align:center;position:relative;
+  box-shadow:0 8px 32px rgba(0,0,0,.2);
+}
+#htp-close{
+  position:absolute;top:12px;right:14px;
+  background:none;border:none;font-size:1.4rem;
+  cursor:pointer;color:var(--text-muted);line-height:1;
+}
+#htp-modal h2{font-size:1.3rem;margin-bottom:12px;color:var(--accent)}
+#htp-modal p,#htp-modal li{font-size:.9rem;line-height:1.6;color:var(--text-muted);text-align:left}
+#htp-modal ul{padding-left:20px;margin:8px 0}
+#htp-modal strong{color:var(--text)}
+
+/* ── hints counter ── */
+#hints-counter{
+  text-align:center;font-size:.8rem;color:var(--text-muted);
+  margin-bottom:12px;
+}
+.hint-pips{display:flex;gap:5px;justify-content:center;margin-top:6px}
+.pip{
+  width:10px;height:10px;border-radius:50%;
+  background:var(--border);transition:background .3s;
+}
+.pip.revealed{background:var(--accent)}
+
+/* ── cache notice ── */
+#cache-notice{
+  text-align:center;font-size:.7rem;color:var(--text-muted);
+  margin-top:-4px;margin-bottom:12px;
+}
+
+/* ── no puzzles ── */
+#no-puzzle{
+  text-align:center;padding:40px;
+  color:var(--text-muted);font-size:.95rem;
+}
+</style>
+</head>
+<body>
+
+<!-- Loading -->
+<div id="loading-screen">
+  <div class="spinner"></div>
+  <p>Loading demon list…</p>
+</div>
+
+<!-- Error -->
+<div id="error-screen" class="hidden">
+  <h2>Couldn't load demons</h2>
+  <p id="error-msg">The AREDL API couldn't be reached. Check your connection and try again.</p>
+  <button id="retry-btn">Retry</button>
+</div>
+
+<!-- How to play -->
+<div id="htp-overlay">
+  <div id="htp-modal">
+    <button id="htp-close">×</button>
+    <h2>How to Play</h2>
+    <p>Guess today's AREDL demon in <strong>5 guesses</strong>.</p>
+    <ul>
+      <li>Each wrong guess reveals a new hint.</li>
+      <li>Hints go from vague to specific.</li>
+      <li>Use the autocomplete to find demons.</li>
+      <li>A new demon is chosen every day!</li>
+    </ul>
+    <br>
+    <p><strong>Hints revealed in order:</strong></p>
+    <ul>
+      <li>🕐 <strong>Length</strong> (Short / Medium / Long / XL)</li>
+      <li>🎮 <strong>Primary Skillset</strong></li>
+      <li>📊 <strong>List Position Tier</strong></li>
+      <li>📅 <strong>Publish & Rated Dates</strong></li>
+      <li>👤 <strong>Creator & Verifier</strong></li>
+    </ul>
+    <br>
+    <p style="text-align:center;font-style:italic;font-size:.85rem">GLHF 😈</p>
+  </div>
+</div>
+
+<!-- Game -->
+<div id="game-wrapper" style="display:none">
+  <header>
+    <div class="header-left">
+      <button class="header-btn" id="help-btn" aria-label="How to play">?</button>
+    </div>
+    <div>
+      <h1>Demondle</h1>
+    </div>
+    <div class="header-right">
+      <a class="header-btn" id="discord-btn" href="https://discord.gg/zBFvFREauX" target="_blank" rel="noopener" aria-label="Discord" title="Join the Discord">
+        <svg width="20" height="15" viewBox="0 0 71 55" fill="currentColor"><path d="M60.1 4.9A58.5 58.5 0 0 0 45.4.2a.2.2 0 0 0-.2.1 40.8 40.8 0 0 0-1.8 3.7 54 54 0 0 0-16.2 0A37.3 37.3 0 0 0 25.4.3a.2.2 0 0 0-.2-.1A58.4 58.4 0 0 0 10.6 4.9a.2.2 0 0 0-.1.1C1.5 18.7-.9 32.2.3 45.5v.2a58.9 58.9 0 0 0 17.8 9a.2.2 0 0 0 .3-.1 42.1 42.1 0 0 0 3.6-5.9.2.2 0 0 0-.1-.3 38.8 38.8 0 0 1-5.5-2.6.2.2 0 0 1 0-.4c.4-.3.7-.6 1.1-.8a.2.2 0 0 1 .2 0c11.6 5.3 24.2 5.3 35.6 0a.2.2 0 0 1 .3 0l1 .9a.2.2 0 0 1 0 .3 36.4 36.4 0 0 1-5.5 2.6.2.2 0 0 0-.1.4 47.2 47.2 0 0 0 3.6 5.8.2.2 0 0 0 .3.1A58.7 58.7 0 0 0 70.6 45.7v-.2c1.4-15-2.3-28.1-9.8-39.7a.2.2 0 0 0-.1-.1ZM23.7 37.3c-3.4 0-6.3-3.2-6.3-7s2.8-7 6.3-7 6.4 3.1 6.3 7-2.8 7-6.3 7Zm23.3 0c-3.4 0-6.3-3.2-6.3-7s2.8-7 6.3-7 6.4 3.1 6.3 7-2.8 7-6.3 7Z"/></svg>
+      </a>
+      <button class="header-btn" id="theme-toggle" aria-label="Toggle dark mode">☾</button>
+    </div>
+  </header>
+
+  <main>
+    <div id="day-label"></div>
+    <div id="cache-notice"></div>
+
+    <div id="hints-counter">
+      <div class="hint-pips">
+        <div class="pip" id="pip-0"></div>
+        <div class="pip" id="pip-1"></div>
+        <div class="pip" id="pip-2"></div>
+        <div class="pip" id="pip-3"></div>
+        <div class="pip" id="pip-4"></div>
+      </div>
+    </div>
+
+    <div id="hints-area"></div>
+
+    <div id="input-area">
+      <input id="guess-input" type="text" placeholder="Type a demon name…" autocomplete="off" spellcheck="false">
+      <div id="autocomplete"></div>
+    </div>
+    <button id="submit-btn">Guess</button>
+
+    <div id="guess-history"></div>
+
+    <div id="result-card">
+      <div id="result-title"></div>
+      <div id="result-answer"></div>
+      <div id="result-meta"></div>
+      <div class="share-buttons">
+        <button id="share-btn">
+          <svg viewBox="0 0 24 24"><path d="M18 16.08c-.76 0-1.44.3-1.96.77L8.91 12.7c.05-.23.09-.46.09-.7s-.04-.47-.09-.7l7.05-4.11c.54.5 1.25.81 2.04.81 1.66 0 3-1.34 3-3s-1.34-3-3-3-3 1.34-3 3c0 .24.04.47.09.7L8.04 9.81C7.5 9.31 6.79 9 6 9c-1.66 0-3 1.34-3 3s1.34 3 3 3c.79 0 1.5-.31 2.04-.81l7.12 4.16c-.05.21-.08.43-.08.65 0 1.61 1.31 2.92 2.92 2.92s2.92-1.31 2.92-2.92-1.31-2.92-2.92-2.92z"/></svg>
+          Share
+        </button>
+        <button id="copy-btn">
+          <svg viewBox="0 0 24 24"><path d="M16 1H4c-1.1 0-2 .9-2 2v14h2V3h12V1zm3 4H8c-1.1 0-2 .9-2 2v14c0 1.1.9 2 2 2h11c1.1 0 2-.9 2-2V7c0-1.1-.9-2-2-2zm0 16H8V7h11v14z"/></svg>
+          Copy
+        </button>
+      </div>
+    </div>
+  </main>
+</div>
+
+<div id="toast"></div>
+
+<script>
+// ── Config ────────────────────────────────────────────
+const API_BASE = 'https://api.aredl.net/v2';
+const CACHE_KEY = 'demondle-list-v1';
+const CACHE_TS_KEY = 'demondle-list-ts';
+const CACHE_TTL = 5 * 60 * 1000; // 5 minutes
+const START_DATE = new Date('2026-11-10T00:00:00');
+const MAX_HINTS = 5;
+const MAX_GUESSES = 5;
+
+// ── State ─────────────────────────────────────────────
+let demonList = [];
+let todayDemon = null;
+let dayIndex = 0;
+let viewingIndex = 0;
+let hintsRevealed = 0;
+let guesses = [];
+let gameOver = false;
+let acIndex = -1;
+
+// ── Utilities ─────────────────────────────────────────
+function getTodayIndex() {
+  const now = new Date();
+  const today = new Date(now.getFullYear(), now.getMonth(), now.getDate());
+  const start = new Date(START_DATE.getFullYear(), START_DATE.getMonth(), START_DATE.getDate());
+  return Math.max(0, Math.floor((today - start) / 86400000));
+}
+
+function getDayLabel(idx) {
+  const d = new Date(START_DATE);
+  d.setDate(d.getDate() + idx);
+  const months = ['Jan','Feb','Mar','Apr','May','Jun','Jul','Aug','Sep','Oct','Nov','Dec'];
+  return `Day ${idx + 1} — ${months[d.getMonth()]} ${d.getDate()}, ${d.getFullYear()}`;
+}
+
+function getDemonForDay(idx) {
+  if (!demonList.length) return null;
+  // Use simple date-based hash to pick demon, cycling through list
+  return demonList[idx % demonList.length];
+}
+
+function normalizeLength(raw) {
+  if (!raw && raw !== 0) return null;
+  if (typeof raw === 'number') {
+    if (raw < 30) return 'Short (<30s)';
+    if (raw < 60) return 'Medium (30–60s)';
+    if (raw < 120) return 'Long (1–2min)';
+    return 'XL (2min+)';
+  }
+  const s = String(raw).toLowerCase();
+  if (s === 'tiny' || s === 'short') return 'Short';
+  if (s === 'medium' || s === 'med') return 'Medium';
+  if (s === 'long') return 'Long';
+  if (s === 'xl' || s === 'extra long') return 'XL';
+  return raw;
+}
+
+function getListTier(pos, isLegacy) {
+  if (isLegacy) {
+    if (pos <= 50) return 'High Legacy (Top 50)';
+    if (pos <= 150) return 'Mid Legacy (Top 150)';
+    return 'Low Legacy (Top 300+)';
+  }
+  if (pos <= 25) return 'High Main List (Top 25)';
+  if (pos <= 75) return 'Mid Main List (Top 75)';
+  return 'Low Main List (Top 150)';
+}
+
+function formatDate(str) {
+  if (!str) return null;
+  try {
+    const d = new Date(str);
+    const months = ['Jan','Feb','Mar','Apr','May','Jun','Jul','Aug','Sep','Oct','Nov','Dec'];
+    return `${months[d.getMonth()]} ${d.getDate()}, ${d.getFullYear()}`;
+  } catch { return str; }
+}
+
+function escapeHtml(s) {
+  return String(s).replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;');
+}
+
+function showToast(msg) {
+  const t = document.getElementById('toast');
+  t.textContent = msg;
+  t.classList.add('show');
+  setTimeout(() => t.classList.remove('show'), 2000);
+}
+
+// ── API + Cache ───────────────────────────────────────
+async function getDemons() {
+  try {
+    const cached = localStorage.getItem(CACHE_KEY);
+    const ts = parseInt(localStorage.getItem(CACHE_TS_KEY) || '0');
+    if (cached && (Date.now() - ts) < CACHE_TTL) {
+      const list = JSON.parse(cached);
+      if (list.length > 0) {
+        updateCacheNotice(ts);
+        return list;
+      }
+    }
+  } catch (e) {}
+  return await fetchAndCache();
+}
+
+async function fetchAndCache() {
+  // Try fetching all at once first, then fall back to pagination
+  let demons = [];
+
+  // Attempt 1: all=true param
+  try {
+    const r = await fetch(`${API_BASE}/aredl/levels?all=true`);
+    if (r.ok) {
+      const data = await r.json();
+      demons = extractList(data);
+    }
+  } catch (e) {}
+
+  // Attempt 2: paginate if needed
+  if (!demons.length) {
+    try {
+      demons = await fetchPaginated();
+    } catch (e) {}
+  }
+
+  if (!demons.length) throw new Error('No demons returned from API');
+
+  const normalized = demons.map(normalizeDemon).filter(d => d.name);
+
+  try {
+    localStorage.setItem(CACHE_KEY, JSON.stringify(normalized));
+    localStorage.setItem(CACHE_TS_KEY, Date.now().toString());
+  } catch (e) {}
+
+  updateCacheNotice(Date.now());
+  return normalized;
+}
+
+async function fetchPaginated() {
+  let all = [], page = 1;
+  while (true) {
+    const r = await fetch(`${API_BASE}/aredl/levels?page=${page}&pageSize=100`);
+    if (!r.ok) break;
+    const data = await r.json();
+    const items = extractList(data);
+    if (!items.length) break;
+    all = all.concat(items);
+    // Check if there are more pages
+    const total = data.total || data.count || data.totalCount || 0;
+    if (!total || all.length >= total) break;
+    page++;
+    if (page > 20) break; // safety limit
+  }
+  return all;
+}
+
+function extractList(data) {
+  if (Array.isArray(data)) return data;
+  if (Array.isArray(data.data)) return data.data;
+  if (Array.isArray(data.results)) return data.results;
+  if (Array.isArray(data.levels)) return data.levels;
+  if (Array.isArray(data.demons)) return data.demons;
+  return [];
+}
+
+function normalizeDemon(d) {
+  const isLegacy = !!(d.legacy || d.is_legacy || d.in_legacy);
+  const pos = d.position || d.rank || d.id || 0;
+  const skillset = d.tags?.[0] || d.primary_skill || d.skillset || d.type || null;
+
+  return {
+    name: d.name || d.level_name || d.title || '',
+    position: pos,
+    isLegacy,
+    creator: d.publisher || d.creator || d.author || d.uploader || null,
+    verifier: d.verifier || null,
+    length: normalizeLength(d.level_length || d.length || d.duration || null),
+    skillset: skillset ? capitalize(skillset) : null,
+    listTier: getListTier(pos, isLegacy),
+    publishDate: formatDate(d.published_at || d.date_added || d.created_at || null),
+    ratedDate: formatDate(d.rated_at || d.accepted_at || d.list_added_at || null),
+  };
+}
+
+function capitalize(s) {
+  return String(s).charAt(0).toUpperCase() + String(s).slice(1);
+}
+
+function updateCacheNotice(ts) {
+  const ago = Math.round((Date.now() - ts) / 1000);
+  const el = document.getElementById('cache-notice');
+  if (!el) return;
+  if (ago < 10) el.textContent = 'Demon list: just refreshed';
+  else if (ago < 60) el.textContent = `Demon list: ${ago}s ago`;
+  else el.textContent = `Demon list: ${Math.round(ago/60)}m ago · refreshes every 5m`;
+}
+
+// ── Hints ─────────────────────────────────────────────
+function getHints(demon) {
+  const hints = [];
+  hints.push({
+    label: 'Length',
+    icon: '🕐',
+    value: demon.length || 'Unknown'
+  });
+  hints.push({
+    label: 'Primary Skillset',
+    icon: '🎮',
+    value: demon.skillset || 'Unknown'
+  });
+  hints.push({
+    label: 'List Position',
+    icon: '📊',
+    value: demon.listTier || 'Unknown'
+  });
+  const dates = [
+    demon.publishDate ? `Published: ${demon.publishDate}` : null,
+    demon.ratedDate ? `Rated: ${demon.ratedDate}` : null,
+  ].filter(Boolean);
+  hints.push({
+    label: 'Dates',
+    icon: '📅',
+    value: dates.length ? dates.join(' · ') : 'Unknown'
+  });
+  hints.push({
+    label: 'Creator & Verifier',
+    icon: '👤',
+    value: [demon.creator, demon.verifier].filter(Boolean).join(' / ') || 'Unknown'
+  });
+  return hints;
+}
+
+// ── Render ────────────────────────────────────────────
+function renderHints() {
+  const area = document.getElementById('hints-area');
+  area.innerHTML = '';
+  const hints = getHints(todayDemon);
+  for (let i = 0; i < hintsRevealed; i++) {
+    const h = hints[i];
+    const card = document.createElement('div');
+    card.className = 'hint-card';
+    card.innerHTML = `<div class="hint-label">${h.icon} ${escapeHtml(h.label)}</div>
+                      <div class="hint-value">${escapeHtml(h.value)}</div>`;
+    area.appendChild(card);
+  }
+  // pips
+  for (let i = 0; i < MAX_HINTS; i++) {
+    const pip = document.getElementById(`pip-${i}`);
+    if (pip) pip.classList.toggle('revealed', i < hintsRevealed);
+  }
+}
+
+function renderGuesses() {
+  const area = document.getElementById('guess-history');
+  area.innerHTML = '';
+  guesses.forEach(g => {
+    const row = document.createElement('div');
+    row.className = `guess-row ${g.correct ? 'correct' : 'wrong'}`;
+    row.innerHTML = `<span class="guess-icon">${g.correct ? '✓' : '✗'}</span> ${escapeHtml(g.text)}`;
+    area.appendChild(row);
+  });
+}
+
+function showResult() {
+  const won = guesses.length > 0 && guesses[guesses.length - 1].correct;
+  const card = document.getElementById('result-card');
+  const title = document.getElementById('result-title');
+  const answer = document.getElementById('result-answer');
+  const meta = document.getElementById('result-meta');
+
+  title.textContent = won
+    ? guesses.length === 1 ? '🎉 First Try!' : `🏆 Got it in ${guesses.length}!`
+    : '😈 Better luck tomorrow';
+  title.className = won ? 'win' : 'lose';
+  answer.textContent = todayDemon.name;
+  meta.textContent = [
+    todayDemon.creator ? `Created by ${todayDemon.creator}` : null,
+    todayDemon.position ? `#${todayDemon.position} on ${todayDemon.isLegacy ? 'Legacy' : 'AREDL'}` : null,
+  ].filter(Boolean).join(' · ');
+
+  card.classList.add('visible');
+  document.querySelector('.share-buttons').classList.add('visible');
+}
+
+// ── State persistence ─────────────────────────────────
+function saveState() {
+  const key = `demondle-state-day${viewingIndex}`;
+  localStorage.setItem(key, JSON.stringify({ guesses, hintsRevealed, gameOver }));
+}
+
+function loadState() {
+  const key = `demondle-state-day${viewingIndex}`;
+  try {
+    const s = JSON.parse(localStorage.getItem(key));
+    if (s) { guesses = s.guesses || []; hintsRevealed = s.hintsRevealed || 0; gameOver = s.gameOver || false; return true; }
+  } catch (e) {}
+  return false;
+}
+
+// ── Game Logic ────────────────────────────────────────
+function loadDay(idx) {
+  viewingIndex = idx;
+  todayDemon = getDemonForDay(idx);
+  if (!todayDemon) return;
+
+  guesses = [];
+  hintsRevealed = 0;
+  gameOver = false;
+
+  const hasState = loadState();
+
+  document.getElementById('day-label').textContent = getDayLabel(idx);
+  document.getElementById('guess-input').value = '';
+  document.getElementById('guess-input').disabled = gameOver;
+  document.getElementById('submit-btn').disabled = gameOver;
+  document.getElementById('autocomplete').classList.remove('active');
+  document.getElementById('autocomplete').innerHTML = '';
+  document.getElementById('result-card').classList.remove('visible');
+  document.querySelector('.share-buttons').classList.remove('visible');
+
+  renderHints();
+  renderGuesses();
+
+  if (gameOver) showResult();
+
+  // Show at least 1 hint on fresh load
+  if (hintsRevealed === 0 && !gameOver) {
+    hintsRevealed = 1;
+    renderHints();
+    saveState();
+  }
+}
+
+function submitGuess() {
+  if (gameOver) return;
+  const input = document.getElementById('guess-input');
+  const val = input.value.trim();
+  if (!val) return;
+
+  const correct = val.toLowerCase() === todayDemon.name.toLowerCase();
+  guesses.push({ text: val, correct });
+  input.value = '';
+  document.getElementById('autocomplete').classList.remove('active');
+  document.getElementById('autocomplete').innerHTML = '';
+
+  if (!correct && hintsRevealed < MAX_HINTS) hintsRevealed++;
+  if (correct || guesses.length >= MAX_GUESSES) {
+    gameOver = true;
+    document.getElementById('guess-input').disabled = true;
+    document.getElementById('submit-btn').disabled = true;
+  }
+
+  saveState();
+  renderHints();
+  renderGuesses();
+  if (gameOver) showResult();
+}
+
+// ── Share ─────────────────────────────────────────────
+function generateShareText() {
+  const won = guesses.length > 0 && guesses[guesses.length - 1].correct;
+  const lines = [`Demondle — Day ${viewingIndex + 1}`];
+  lines.push(won ? `Guessed in ${guesses.length}/${MAX_GUESSES}` : `X/${MAX_GUESSES}`);
+  lines.push('');
+  guesses.forEach(g => lines.push(g.correct ? '🟩' : '🟥'));
+  lines.push('');
+  lines.push('https://demondle.pages.dev');
+  return lines.join('\n');
+}
+
+function copyToClipboard(text) {
+  navigator.clipboard.writeText(text).then(() => {
+    showToast('Copied to clipboard!');
+  }).catch(() => {
+    const ta = document.createElement('textarea');
+    ta.value = text;
+    ta.style.cssText = 'position:fixed;opacity:0';
+    document.body.appendChild(ta);
+    ta.select();
+    document.execCommand('copy');
+    document.body.removeChild(ta);
+    showToast('Copied!');
+  });
+}
+
+// ── Autocomplete ──────────────────────────────────────
+function updateAutocomplete() {
+  const input = document.getElementById('guess-input');
+  const ac = document.getElementById('autocomplete');
+  const q = input.value.trim().toLowerCase();
+  acIndex = -1;
+
+  if (!q || gameOver) {
+    ac.classList.remove('active');
+    ac.innerHTML = '';
+    return;
+  }
+
+  const matches = demonList.filter(d =>
+    d.name.toLowerCase().includes(q)
+  ).sort((a, b) => {
+    const an = a.name.toLowerCase(), bn = b.name.toLowerCase();
+    const ap = an === q ? 0 : an.startsWith(q) ? 1 : 2;
+    const bp = bn === q ? 0 : bn.startsWith(q) ? 1 : 2;
+    return ap - bp;
+  }).slice(0, 20);
+
+  if (!matches.length) {
+    ac.classList.remove('active');
+    ac.innerHTML = '';
+    return;
+  }
+
+  ac.innerHTML = '';
+  matches.forEach((d, i) => {
+    const el = document.createElement('div');
+    el.className = 'ac-item';
+    el.innerHTML = `<span class="ac-name">${escapeHtml(d.name)}</span>
+                    <span class="ac-creator">${escapeHtml(d.creator || '')}</span>
+                    <span class="ac-pos">#${d.position}</span>`;
+    el.addEventListener('mousedown', e => {
+      e.preventDefault();
+      input.value = d.name;
+      ac.classList.remove('active');
+      ac.innerHTML = '';
+    });
+    ac.appendChild(el);
+  });
+  ac.classList.add('active');
+}
+
+// ── Init ──────────────────────────────────────────────
+async function init() {
+  document.getElementById('loading-screen').classList.remove('hidden');
+  document.getElementById('error-screen').classList.add('hidden');
+  document.getElementById('game-wrapper').style.display = 'none';
+
+  try {
+    demonList = await getDemons();
+  } catch (e) {
+    document.getElementById('loading-screen').classList.add('hidden');
+    document.getElementById('error-screen').classList.remove('hidden');
+    document.getElementById('error-msg').textContent = e.message || 'Could not load demon list.';
+    return;
+  }
+
+  document.getElementById('loading-screen').classList.add('hidden');
+  document.getElementById('game-wrapper').style.display = 'block';
+
+  dayIndex = getTodayIndex();
+  loadDay(dayIndex);
+
+  // Auto-refresh cache every 5 minutes
+  setInterval(async () => {
+    try {
+      const freshList = await fetchAndCache();
+      if (freshList.length) demonList = freshList;
+    } catch (e) {}
+  }, CACHE_TTL);
+}
+
+// ── Event listeners ───────────────────────────────────
+document.getElementById('retry-btn').addEventListener('click', init);
+
+document.getElementById('help-btn').addEventListener('click', () => {
+  document.getElementById('htp-overlay').classList.add('active');
+});
+document.getElementById('htp-close').addEventListener('click', () => {
+  document.getElementById('htp-overlay').classList.remove('active');
+});
+document.getElementById('htp-overlay').addEventListener('click', e => {
+  if (e.target === e.currentTarget) document.getElementById('htp-overlay').classList.remove('active');
+});
+
+document.getElementById('submit-btn').addEventListener('click', submitGuess);
+
+document.getElementById('share-btn').addEventListener('click', () => {
+  const text = generateShareText();
+  if (navigator.share) {
+    navigator.share({ text }).catch(() => copyToClipboard(text));
+  } else {
+    copyToClipboard(text);
+  }
+});
+document.getElementById('copy-btn').addEventListener('click', () => copyToClipboard(generateShareText()));
+
+document.getElementById('theme-toggle').addEventListener('click', () => {
+  document.body.classList.toggle('dark');
+  const dark = document.body.classList.contains('dark');
+  localStorage.setItem('demondle-theme', dark ? 'dark' : 'light');
+  document.getElementById('theme-toggle').innerHTML = dark ? '☀' : '☾';
+});
+
+document.getElementById('guess-input').addEventListener('input', updateAutocomplete);
+document.getElementById('guess-input').addEventListener('focus', updateAutocomplete);
+document.getElementById('guess-input').addEventListener('blur', () => {
+  setTimeout(() => {
+    document.getElementById('autocomplete').classList.remove('active');
+  }, 150);
+});
+
+document.getElementById('guess-input').addEventListener('keydown', e => {
+  const ac = document.getElementById('autocomplete');
+  const items = ac.querySelectorAll('.ac-item');
+
+  if (e.key === 'Enter') {
+    e.preventDefault();
+    if (ac.classList.contains('active') && items.length > 0) {
+      const pick = acIndex >= 0 ? items[acIndex] : items[0];
+      document.getElementById('guess-input').value = pick.querySelector('.ac-name').textContent;
+      ac.classList.remove('active');
+      ac.innerHTML = '';
+      acIndex = -1;
+    } else {
+      submitGuess();
+    }
+    return;
+  }
+  if (!ac.classList.contains('active') || !items.length) return;
+  if (e.key === 'ArrowDown') {
+    e.preventDefault();
+    acIndex = Math.min(acIndex + 1, items.length - 1);
+    items.forEach((el, i) => el.classList.toggle('selected', i === acIndex));
+    items[acIndex].scrollIntoView({ block: 'nearest' });
+  } else if (e.key === 'ArrowUp') {
+    e.preventDefault();
+    acIndex = Math.max(acIndex - 1, 0);
+    items.forEach((el, i) => el.classList.toggle('selected', i === acIndex));
+    items[acIndex].scrollIntoView({ block: 'nearest' });
+  }
+});
+
+// Theme + start
+(function() {
+  const theme = localStorage.getItem('demondle-theme');
+  if (theme === 'dark' || (!theme && window.matchMedia('(prefers-color-scheme:dark)').matches)) {
+    document.body.classList.add('dark');
+    document.getElementById('theme-toggle').innerHTML = '☀';
+  }
+  init();
+})();
+</script>
+</body>
+</html>
