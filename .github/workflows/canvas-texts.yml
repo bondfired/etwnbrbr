@@ -1,0 +1,52 @@
+name: Canvas assignment texts
+
+on:
+  schedule:
+    # GitHub runs schedules on UTC time. These hours cover 8am, 11am, 1pm, 3pm,
+    # 6pm, 8pm, 10pm and 11pm Pacific in both standard and daylight time. The
+    # script checks the Pacific clock and stays quiet on the hours that aren't send times.
+    - cron: "2 1,2,3,4,5,6,7,15,16,18,19,20,21,22,23 * * *"
+  workflow_dispatch:
+    inputs:
+      force:
+        description: "Send a text right now (for testing)"
+        type: boolean
+        default: true
+
+permissions:
+  contents: read
+  actions: write # lets the keep-alive step below work
+
+jobs:
+  text:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+
+      - name: Check Canvas and send the text
+        run: python canvas-texts/canvas_texts.py
+        env:
+          FORCE: ${{ github.event_name == 'workflow_dispatch' && inputs.force && '1' || '0' }}
+          CANVAS_ICS_URL: ${{ secrets.CANVAS_ICS_URL }}
+          CANVAS_DOMAIN: ${{ secrets.CANVAS_DOMAIN }}
+          CANVAS_TOKEN: ${{ secrets.CANVAS_TOKEN }}
+          PHONE_NUMBER: ${{ secrets.PHONE_NUMBER }}
+          SMS_PROVIDER: ${{ secrets.SMS_PROVIDER }}
+          TEXTBELT_KEY: ${{ secrets.TEXTBELT_KEY }}
+          TWILIO_ACCOUNT_SID: ${{ secrets.TWILIO_ACCOUNT_SID }}
+          TWILIO_AUTH_TOKEN: ${{ secrets.TWILIO_AUTH_TOKEN }}
+          TWILIO_FROM: ${{ secrets.TWILIO_FROM }}
+          TIMEZONE: America/Los_Angeles
+
+      # GitHub turns schedules off after 60 days without repo activity.
+      # Re-enabling the workflow on every run keeps that from happening.
+      - name: Keep the schedule alive
+        if: always()
+        continue-on-error: true
+        run: gh api -X PUT "repos/${{ github.repository }}/actions/workflows/canvas-texts.yml/enable"
+        env:
+          GH_TOKEN: ${{ github.token }}
