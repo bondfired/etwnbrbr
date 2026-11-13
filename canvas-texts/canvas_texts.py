@@ -1,5 +1,5 @@
 #!/usr/bin/env python3
-"""Text yourself the Canvas assignments you have coming up.
+"""Get phone notifications (or texts) about your upcoming Canvas assignments.
 
 Settings come from environment variables (GitHub Secrets when it runs on GitHub):
 
@@ -9,9 +9,11 @@ Settings come from environment variables (GitHub Secrets when it runs on GitHub)
     CANVAS_TOKEN      Account -> Settings -> New Access Token. With these set,
                       assignments you've already turned in are left out.
 
-  Where the text goes:
-    PHONE_NUMBER      Your cell number, e.g. +15551234567
-    SMS_PROVIDER      "textbelt" (default) or "twilio"
+  Where it goes:
+    SEND_VIA          "ntfy" (default, free), "textbelt" or "twilio" (paid texts)
+    NTFY_TOPIC        Your ntfy topic name (needed for ntfy). Make it hard to guess!
+    NTFY_SERVER       Default https://ntfy.sh
+    PHONE_NUMBER      Your cell number, e.g. +15551234567 (texts only)
     TEXTBELT_KEY      Your Textbelt key (needed for textbelt)
     TWILIO_ACCOUNT_SID, TWILIO_AUTH_TOKEN, TWILIO_FROM   (needed for twilio)
 
@@ -145,19 +147,32 @@ def build_message(items, now):
     end = now + timedelta(days=DAYS_AHEAD)
     upcoming = sorted((i for i in items if now <= i["due"] <= end), key=lambda i: i["due"])
     if not upcoming:
-        return f"Canvas: nothing due in the next {DAYS_AHEAD} days."
-    lines = [f"Canvas: {len(upcoming)} due soon"]
+        return "Nothing due 🎉", f"Nothing due in the next {DAYS_AHEAD} days."
+    title = f"{len(upcoming)} due soon"
+    lines = []
     for i in upcoming[:MAX_ITEMS]:
-        title = i["title"]
-        if len(title) > 45:
-            title = title[:44] + "…"
-        lines.append(f"- {title}: {when(i['due'], now)}")
+        name = i["title"]
+        if len(name) > 45:
+            name = name[:44] + "…"
+        lines.append(f"- {name}: {when(i['due'], now)}")
     if len(upcoming) > MAX_ITEMS:
         lines.append(f"+{len(upcoming) - MAX_ITEMS} more")
-    return "\n".join(lines)
+    return title, "\n".join(lines)
 
 
-# ---------- Sending the text ----------
+# ---------- Sending it ----------
+
+def send_ntfy(title, body):
+    topic = env("NTFY_TOPIC")
+    if not topic:
+        sys.exit("Set NTFY_TOPIC.")
+    server = (env("NTFY_SERVER") or "https://ntfy.sh").rstrip("/")
+    payload = {"topic": topic, "title": title, "message": body, "tags": ["books"]}
+    if title.startswith("Nothing"):
+        payload["priority"] = 2  # quiet when there's nothing due
+    http(server, data=json.dumps(payload).encode(), headers={"Content-Type": "application/json"})
+    print("Sent with ntfy.")
+
 
 def send_textbelt(phone, message):
     data = urllib.parse.urlencode({"phone": phone, "message": message, "key": env("TEXTBELT_KEY")}).encode()
@@ -191,16 +206,21 @@ def main():
     else:
         sys.exit("Set CANVAS_ICS_URL, or CANVAS_DOMAIN and CANVAS_TOKEN.")
 
-    message = build_message(items, now)
-    print(message)
+    title, body = build_message(items, now)
+    print(f"{title}\n{body}")
     if env("DRY_RUN") == "1":
         print("(Dry run, so nothing was sent.)")
         return
 
+    via = (env("SEND_VIA") or "ntfy").lower()
+    if via == "ntfy":
+        send_ntfy(title, body)
+        return
     phone = env("PHONE_NUMBER")
     if not phone:
         sys.exit("Set PHONE_NUMBER.")
-    if (env("SMS_PROVIDER") or "textbelt").lower() == "twilio":
+    message = f"Canvas: {title}\n{body}"
+    if via == "twilio":
         send_twilio(phone, message)
     else:
         send_textbelt(phone, message)

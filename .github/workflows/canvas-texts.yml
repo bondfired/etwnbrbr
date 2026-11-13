@@ -1,4 +1,4 @@
-name: Canvas assignment texts
+name: Canvas assignment reminders
 
 on:
   schedule:
@@ -9,7 +9,7 @@ on:
   workflow_dispatch:
     inputs:
       force:
-        description: "Send a text right now (for testing)"
+        description: "Send a reminder right now (for testing)"
         type: boolean
         default: true
 
@@ -27,7 +27,7 @@ jobs:
         with:
           python-version: "3.12"
 
-      - name: Check Canvas and send the text
+      - name: Check Canvas and send the reminder
         run: python canvas-texts/canvas_texts.py
         env:
           FORCE: ${{ github.event_name == 'workflow_dispatch' && inputs.force && '1' || '0' }}
@@ -35,7 +35,8 @@ jobs:
           CANVAS_DOMAIN: ${{ secrets.CANVAS_DOMAIN }}
           CANVAS_TOKEN: ${{ secrets.CANVAS_TOKEN }}
           PHONE_NUMBER: ${{ secrets.PHONE_NUMBER }}
-          SMS_PROVIDER: ${{ secrets.SMS_PROVIDER }}
+          SEND_VIA: ${{ secrets.SEND_VIA }}
+          NTFY_TOPIC: ${{ secrets.NTFY_TOPIC }}
           TEXTBELT_KEY: ${{ secrets.TEXTBELT_KEY }}
           TWILIO_ACCOUNT_SID: ${{ secrets.TWILIO_ACCOUNT_SID }}
           TWILIO_AUTH_TOKEN: ${{ secrets.TWILIO_AUTH_TOKEN }}
