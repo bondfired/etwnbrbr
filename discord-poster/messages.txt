@@ -1,0 +1,6 @@
+# One message per line. Lines starting with # are ignored.
+# Placeholders: {count} {time} {date} {weekday} {start} {fact}
+Good {weekday}! The time is {time}.
+Automated message #{count} - the bot has been up since {start}.
+Did you know? {fact}
+Stretch break! It's {time}, get up and move for a minute.
