@@ -48,8 +48,8 @@ a{color:var(--pink)}
 .skip:focus{left:8px}
 .wrap{max-width:1100px;margin:0 auto;padding:0 16px}
 h1,h2,h3{font-family:Montserrat,system-ui,sans-serif;line-height:1.15;margin:0 0 .4em}
-h2{font-size:clamp(1.8rem,5vw,2.6rem);text-align:center}
-.sub{color:var(--muted);text-align:center;margin:0 auto 2rem;max-width:560px}
+h2{font-size:clamp(1.8rem,5vw,2.6rem);text-align:center;margin-bottom:1.2rem}
+.sub{color:var(--muted);text-align:center;margin:-.6rem auto 2rem;max-width:560px}
 section{padding:64px 0}
 
 /* Nav */
@@ -121,7 +121,7 @@ dialog img{max-width:100%;max-height:86vh;width:auto;margin:0 auto;border-radius
 
 
 /* Currency converter */
-.fx{display:flex;flex-wrap:wrap;align-items:center;justify-content:center;gap:8px 12px;margin:-1rem auto 1.6rem;max-width:560px}
+.fx{display:flex;flex-wrap:wrap;align-items:center;justify-content:center;gap:8px 12px;margin:0 auto 1.6rem;max-width:560px}
 .fx label{margin:0}
 .fx select{width:auto;max-width:100%;background:var(--surface)}
 .fx-note{flex-basis:100%;text-align:center;color:var(--muted);font-size:.85rem;margin:0}
@@ -185,7 +185,6 @@ footer{text-align:center;color:var(--muted);padding:32px 16px 48px;font-size:.9r
   <section id="gallery">
     <div class="wrap">
       <h2>Gallery</h2>
-      <p class="sub">Tap any piece to see it full size.</p>
       <div class="gallery" id="gal">
         <button type="button" data-full="art/roses.jpg"><img src="art/roses-thumb.jpg" width="585" height="720" loading="lazy" alt="A long-haired girl with blue and pink hair in a cream dress, framed by giant pink roses and thorny vines"><span class="tag">Full body</span></button>
         <button type="button" data-full="art/headphones.jpg"><img src="art/headphones-thumb.jpg" width="720" height="670" loading="lazy" alt="Pink-haired girl with gold headphones grinning over her shoulder on a pink dotted background"><span class="tag">Bust</span></button>
@@ -205,7 +204,6 @@ footer{text-align:center;color:var(--muted);padding:32px 16px 48px;font-size:.9r
     <div class="wrap">
       <h2>Prices</h2>
       <!-- EDIT: prices and currency -->
-      <p class="sub">Prices are in USD for one character, fully coloured with a simple background.</p>
       <div class="fx">
         <label for="cur">Show prices in</label>
         <select id="cur">
@@ -232,25 +230,25 @@ footer{text-align:center;color:var(--muted);padding:32px 16px 48px;font-size:.9r
         <article class="card">
           <div class="thumb"><img src="art/hair-study-thumb.jpg" loading="lazy" alt=""></div>
           <h3>Headshot</h3>
-          <div class="price"><span class="money" data-usd="25">$25</span> <small>/ character</small></div>
+          <div class="price"><span class="money" data-usd="15">$15</span> <small>/ character</small></div>
           <ul><li>Head &amp; shoulders</li><li>Flat or dotted background</li></ul>
         </article>
         <article class="card">
           <div class="thumb"><img src="art/headphones-thumb.jpg" loading="lazy" alt=""></div>
           <h3>Bust</h3>
-          <div class="price"><span class="money" data-usd="40">$40</span> <small>/ character</small></div>
+          <div class="price"><span class="money" data-usd="30">$30</span> <small>/ character</small></div>
           <ul><li>Chest up</li><li>Fully rendered</li></ul>
         </article>
         <article class="card">
           <div class="thumb"><img src="art/trio-thumb.jpg" loading="lazy" alt=""></div>
           <h3>Half body</h3>
-          <div class="price"><span class="money" data-usd="60">$60</span> <small>/ character</small></div>
+          <div class="price"><span class="money" data-usd="50">$50</span> <small>/ character</small></div>
           <ul><li>Waist up</li><li>Outfit details included</li></ul>
         </article>
         <article class="card">
           <div class="thumb"><img src="art/roses-thumb.jpg" loading="lazy" alt=""></div>
           <h3>Full body</h3>
-          <div class="price"><span class="money" data-usd="85">$85</span> <small>/ character</small></div>
+          <div class="price"><span class="money" data-usd="75">$75</span> <small>/ character</small></div>
           <ul><li>Head to toe</li><li>Simple background</li></ul>
         </article>
       </div>
@@ -269,8 +267,8 @@ footer{text-align:center;color:var(--muted);padding:32px 16px 48px;font-size:.9r
       <h2>What I draw</h2>
       <p class="sub">Not sure if your idea fits? Ask anyway and I'll let you know.</p>
       <div class="terms">
-        <div class="card yes"><h3>Will draw</h3><ul><li>Original characters</li><li>Fan art</li><li>Couples &amp; groups</li><li>Light horror &amp; gore</li><li>Stylised portraits of you</li></ul></div>
-        <div class="card no"><h3>Won't draw</h3><ul><li>NSFW / explicit content</li><li>Hate or harassment</li><li>Detailed mecha</li><li>Art for NFTs or AI training</li></ul></div>
+        <div class="card yes"><h3>Will draw</h3><ul><li>Original characters</li><li>Fanart</li><li>Couples / Groups / Yumeships</li><li>Light horror / gore</li><li>Suggestive</li><li>Portraits</li></ul></div>
+        <div class="card no"><h3>Won't draw</h3><ul><li>NSFW</li><li>Hate or harassment</li><li>Fetish art</li><li>Detailed mecha</li><li>Furry (not good enough to draw yet sry)</li><li>Animals</li></ul></div>
       </div>
     </div>
   </section>
@@ -278,7 +276,6 @@ footer{text-align:center;color:var(--muted);padding:32px 16px 48px;font-size:.9r
   <section id="contact">
     <div class="wrap">
       <h2>Request a commission</h2>
-      <p class="sub">This opens your email app with everything filled in. Prefer DMs? Use the links below.</p>
       <div class="contact">
         <form id="req">
           <div class="row">
