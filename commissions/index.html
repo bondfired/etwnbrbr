@@ -115,6 +115,12 @@ dialog p{color:#fff;text-align:center;margin:10px 0 0;font-weight:700}
 .extras b{color:var(--pink)}
 
 
+/* Currency converter */
+.fx{display:flex;flex-wrap:wrap;align-items:center;justify-content:center;gap:8px 12px;margin:-1rem auto 1.6rem;max-width:560px}
+.fx label{margin:0}
+.fx select{width:auto;max-width:100%;background:var(--surface)}
+.fx-note{flex-basis:100%;text-align:center;color:var(--muted);font-size:.85rem;margin:0}
+
 /* Will / won't draw */
 .terms{display:grid;grid-template-columns:repeat(auto-fit,minmax(260px,1fr));gap:18px}
 .terms .card h3{margin-bottom:8px}
@@ -193,36 +199,58 @@ footer{text-align:center;color:var(--muted);padding:32px 16px 48px;font-size:.9r
       <h2>Prices</h2>
       <!-- EDIT: prices and currency -->
       <p class="sub">Prices are in USD for one character, fully coloured with a simple background.</p>
+      <div class="fx">
+        <label for="cur">Show prices in</label>
+        <select id="cur">
+          <option value="USD">USD $ (US dollar)</option>
+          <option value="EUR">EUR € (Euro)</option>
+          <option value="GBP">GBP £ (British pound)</option>
+          <option value="CAD">CAD $ (Canadian dollar)</option>
+          <option value="AUD">AUD $ (Australian dollar)</option>
+          <option value="NZD">NZD $ (NZ dollar)</option>
+          <option value="JPY">JPY ¥ (Japanese yen)</option>
+          <option value="KRW">KRW ₩ (Korean won)</option>
+          <option value="CNY">CNY ¥ (Chinese yuan)</option>
+          <option value="INR">INR ₹ (Indian rupee)</option>
+          <option value="PHP">PHP ₱ (Philippine peso)</option>
+          <option value="IDR">IDR Rp (Indonesian rupiah)</option>
+          <option value="MXN">MXN $ (Mexican peso)</option>
+          <option value="BRL">BRL R$ (Brazilian real)</option>
+          <option value="SEK">SEK kr (Swedish krona)</option>
+          <option value="PLN">PLN zł (Polish złoty)</option>
+        </select>
+        <p id="fx-note" class="fx-note" aria-live="polite"></p>
+      </div>
       <div class="prices">
         <article class="card">
           <div class="thumb"><img src="art/hair-study-thumb.jpg" loading="lazy" alt=""></div>
           <h3>Headshot</h3>
-          <div class="price">$25 <small>/ character</small></div>
+          <div class="price"><span class="money" data-usd="25">$25</span> <small>/ character</small></div>
           <ul><li>Head &amp; shoulders</li><li>Flat or dotted background</li></ul>
         </article>
         <article class="card">
           <div class="thumb"><img src="art/headphones-thumb.jpg" loading="lazy" alt=""></div>
           <h3>Bust</h3>
-          <div class="price">$40 <small>/ character</small></div>
+          <div class="price"><span class="money" data-usd="40">$40</span> <small>/ character</small></div>
           <ul><li>Chest up</li><li>Fully rendered</li></ul>
         </article>
         <article class="card">
           <div class="thumb"><img src="art/trio-thumb.jpg" loading="lazy" alt=""></div>
           <h3>Half body</h3>
-          <div class="price">$60 <small>/ character</small></div>
+          <div class="price"><span class="money" data-usd="60">$60</span> <small>/ character</small></div>
           <ul><li>Waist up</li><li>Outfit details included</li></ul>
         </article>
         <article class="card">
           <div class="thumb"><img src="art/roses-thumb.jpg" loading="lazy" alt=""></div>
           <h3>Full body</h3>
-          <div class="price">$85 <small>/ character</small></div>
+          <div class="price"><span class="money" data-usd="85">$85</span> <small>/ character</small></div>
           <ul><li>Head to toe</li><li>Simple background</li></ul>
         </article>
       </div>
       <div class="extras" aria-label="Add-ons">
         <div><span>Extra character</span><b>+75% of base</b></div>
-        <div><span>Detailed background</span><b>+$20 to $40</b></div>
-        <div><span>Ref sheet (front + side)</span><b>+$30</b></div>
+        <div><span>Detailed background</span><b>+<span class="money" data-usd="20">$20</span> to <span class="money" data-usd="40">$40</span></b></div>
+        <div><span>Ref sheet (front + side)</span><b>+<span class="money" data-usd="30">$30</span></b></div>
         <div><span>Commercial use</span><b>×2</b></div>
       </div>
     </div>
@@ -329,6 +357,29 @@ document.getElementById('req').addEventListener('submit', e => {
   const body = `Name: ${f.get('name')}\nContact: ${f.get('contact')}\nType: ${f.get('type')}\nCharacters: ${f.get('chars')}\n\nIdea:\n${f.get('idea')}`;
   location.href = `mailto:${ARTIST_EMAIL}?subject=${encodeURIComponent(subject)}&body=${encodeURIComponent(body)}`;
 });
+
+// Currency converter: live rates from frankfurter.dev (free, no key),
+// with rough built-in rates as a fallback if the request fails.
+const FALLBACK = {USD:1,EUR:0.92,GBP:0.79,CAD:1.38,AUD:1.53,NZD:1.68,JPY:150,KRW:1380,CNY:7.2,INR:84,PHP:58,IDR:15800,MXN:19,BRL:5.6,SEK:10.6,PLN:4};
+let rates = FALLBACK, live = false;
+const curSel = document.getElementById('cur'), fxNote = document.getElementById('fx-note');
+function renderPrices(){
+  const c = curSel.value, r = rates[c] || FALLBACK[c] || 1;
+  const fmt = new Intl.NumberFormat(undefined,{style:'currency',currency:c,maximumFractionDigits:0,minimumFractionDigits:0});
+  document.querySelectorAll('.money').forEach(el => {
+    const usd = +el.dataset.usd;
+    el.textContent = c === 'USD' ? fmt.format(usd) : '≈ ' + fmt.format(Math.round(usd * r));
+  });
+  fxNote.textContent = c === 'USD' ? '' :
+    `Approximate, using ${live ? "today's" : 'estimated'} exchange rate. You'll be invoiced in USD.`;
+}
+curSel.addEventListener('change', () => { renderPrices(); try{localStorage.setItem('cur',curSel.value)}catch(e){} });
+try { const saved = localStorage.getItem('cur'); if (saved && FALLBACK[saved]) curSel.value = saved; } catch(e){}
+renderPrices();
+fetch('https://api.frankfurter.dev/v1/latest?base=USD')
+  .then(r => r.ok ? r.json() : Promise.reject())
+  .then(d => { rates = {...FALLBACK, ...d.rates, USD:1}; live = true; renderPrices(); })
+  .catch(() => {});
 </script>
 </body>
 </html>
