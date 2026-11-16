@@ -102,7 +102,6 @@ header.nav{position:sticky;top:0;z-index:20;background:color-mix(in srgb,var(--b
 dialog{border:0;padding:0;background:transparent;max-width:min(96vw,1200px);max-height:96vh}
 dialog::backdrop{background:rgba(10,4,10,.88)}
 dialog img{max-width:100%;max-height:86vh;width:auto;margin:0 auto;border-radius:12px}
-dialog p{color:#fff;text-align:center;margin:10px 0 0;font-weight:700}
 .lb-btn{position:fixed;top:50%;transform:translateY(-50%);background:rgba(255,255,255,.15);color:#fff;border:0;width:48px;height:48px;border-radius:50%;font-size:1.6rem;cursor:pointer}
 .lb-prev{left:12px}.lb-next{right:12px}
 .lb-close{position:fixed;top:12px;right:12px;background:rgba(255,255,255,.15);color:#fff;border:0;width:44px;height:44px;border-radius:50%;font-size:1.4rem;cursor:pointer}
@@ -189,16 +188,16 @@ footer{text-align:center;color:var(--muted);padding:32px 16px 48px;font-size:.9r
       <h2>Gallery</h2>
       <p class="sub">Tap any piece to see it full size.</p>
       <div class="gallery" id="gal">
-        <button type="button" data-full="art/roses.jpg" data-cap="Rose Garden"><img src="art/roses-thumb.jpg" width="585" height="720" loading="lazy" alt="A long-haired girl with blue and pink hair in a cream dress, framed by giant pink roses and thorny vines"><span class="tag">Full body</span></button>
-        <button type="button" data-full="art/headphones.jpg" data-cap="Headphones"><img src="art/headphones-thumb.jpg" width="720" height="670" loading="lazy" alt="Pink-haired girl with gold headphones grinning over her shoulder on a pink dotted background"><span class="tag">Bust</span></button>
-        <button type="button" data-full="art/trio.jpg" data-cap="The Three"><img src="art/trio-thumb.jpg" width="720" height="709" loading="lazy" alt="Three dark-haired characters in black and white coats posed together on a blue polka-dot background"><span class="tag">Group</span></button>
-        <button type="button" data-full="art/red-apple.jpg" data-cap="Forbidden Fruit"><img src="art/red-apple-thumb.jpg" width="720" height="549" loading="lazy" alt="White-haired figure with a black streak and red eyes smiling beside a glossy red apple pierced by forks and swords"><span class="tag">Bust · Illustration</span></button>
-        <button type="button" data-full="art/striped-tee.jpg" data-cap="Striped Tee"><img src="art/striped-tee-thumb.jpg" width="720" height="709" loading="lazy" alt="Character sheet of a girl with highlighted wavy hair, shown full body in a teal striped top and close up in a black top"><span class="tag">Full body + Bust</span></button>
-        <button type="button" data-full="art/red-room.jpg" data-cap="Red Room"><img src="art/red-room-thumb.jpg" width="527" height="720" loading="lazy" alt="A grinning green-haired girl above two decaying girls on a red background"><span class="tag">Group</span></button>
-        <button type="button" data-full="art/hair-study.jpg" data-cap="Hair Studies"><img src="art/hair-study-thumb.jpg" width="720" height="720" loading="lazy" alt="Four headshots showing front and side views of two characters, one with highlighted black hair and one with blue and pink hair"><span class="tag">Headshot · Ref sheet</span></button>
-        <button type="button" data-full="art/angel.jpg" data-cap="Folded Wings"><img src="art/angel-thumb.jpg" width="720" height="709" loading="lazy" alt="A pale, statue-like angel curled up with knees to chest, wrapped in long white hair under a large feathered wing, on a deep blue background"><span class="tag">Full body</span></button>
-        <button type="button" data-full="art/gem-face.jpg" data-cap="Cracked Gem"><img src="art/gem-face-thumb.jpg" width="653" height="653" loading="lazy" alt="Close-up of a mint-haired figure whose cracked porcelain face breaks open into green crystal, on a black background"><span class="tag">Headshot</span></button>
-        <button type="button" data-full="art/washroom.jpg" data-cap="Tiled Washroom"><img src="art/washroom-thumb.jpg" width="720" height="637" loading="lazy" alt="Painted study of a teal-tiled washroom with two sinks and dark mirrors, with the reference photo in the corner"><span class="tag">Background study</span></button>
+        <button type="button" data-full="art/roses.jpg"><img src="art/roses-thumb.jpg" width="585" height="720" loading="lazy" alt="A long-haired girl with blue and pink hair in a cream dress, framed by giant pink roses and thorny vines"><span class="tag">Full body</span></button>
+        <button type="button" data-full="art/headphones.jpg"><img src="art/headphones-thumb.jpg" width="720" height="670" loading="lazy" alt="Pink-haired girl with gold headphones grinning over her shoulder on a pink dotted background"><span class="tag">Bust</span></button>
+        <button type="button" data-full="art/trio.jpg"><img src="art/trio-thumb.jpg" width="720" height="709" loading="lazy" alt="Three dark-haired characters in black and white coats posed together on a blue polka-dot background"><span class="tag">Group</span></button>
+        <button type="button" data-full="art/red-apple.jpg"><img src="art/red-apple-thumb.jpg" width="720" height="549" loading="lazy" alt="White-haired figure with a black streak and red eyes smiling beside a glossy red apple pierced by forks and swords"><span class="tag">Bust · Illustration</span></button>
+        <button type="button" data-full="art/striped-tee.jpg"><img src="art/striped-tee-thumb.jpg" width="720" height="709" loading="lazy" alt="Character sheet of a girl with highlighted wavy hair, shown full body in a teal striped top and close up in a black top"><span class="tag">Full body + Bust</span></button>
+        <button type="button" data-full="art/red-room.jpg"><img src="art/red-room-thumb.jpg" width="527" height="720" loading="lazy" alt="A grinning green-haired girl above two decaying girls on a red background"><span class="tag">Group</span></button>
+        <button type="button" data-full="art/hair-study.jpg"><img src="art/hair-study-thumb.jpg" width="720" height="720" loading="lazy" alt="Four headshots showing front and side views of two characters, one with highlighted black hair and one with blue and pink hair"><span class="tag">Headshot · Ref sheet</span></button>
+        <button type="button" data-full="art/angel.jpg"><img src="art/angel-thumb.jpg" width="720" height="709" loading="lazy" alt="A pale, statue-like angel curled up with knees to chest, wrapped in long white hair under a large feathered wing, on a deep blue background"><span class="tag">Full body</span></button>
+        <button type="button" data-full="art/gem-face.jpg"><img src="art/gem-face-thumb.jpg" width="653" height="653" loading="lazy" alt="Close-up of a mint-haired figure whose cracked porcelain face breaks open into green crystal, on a black background"><span class="tag">Headshot</span></button>
+        <button type="button" data-full="art/washroom.jpg"><img src="art/washroom-thumb.jpg" width="720" height="637" loading="lazy" alt="Painted study of a teal-tiled washroom with two sinks and dark mirrors, with the reference photo in the corner"><span class="tag">Background study</span></button>
       </div>
     </div>
   </section>
@@ -318,7 +317,6 @@ footer{text-align:center;color:var(--muted);padding:32px 16px 48px;font-size:.9r
   <button class="lb-close" type="button" aria-label="Close">✕</button>
   <button class="lb-btn lb-prev" type="button" aria-label="Previous">‹</button>
   <img id="lb-img" alt="">
-  <p id="lb-cap"></p>
   <button class="lb-btn lb-next" type="button" aria-label="Next">›</button>
 </dialog>
 
@@ -339,14 +337,13 @@ document.getElementById('theme').addEventListener('click', () => {
 
 // Lightbox
 const items = [...document.querySelectorAll('#gal button')];
-const lb = document.getElementById('lb'), lbImg = document.getElementById('lb-img'), lbCap = document.getElementById('lb-cap');
+const lb = document.getElementById('lb'), lbImg = document.getElementById('lb-img');
 let cur = 0;
 function show(i){
   cur = (i + items.length) % items.length;
   const b = items[cur];
   lbImg.src = b.dataset.full;
   lbImg.alt = b.querySelector('img').alt;
-  lbCap.textContent = b.dataset.cap;
 }
 items.forEach((b,i) => b.addEventListener('click', () => { show(i); lb.showModal(); }));
 lb.querySelector('.lb-close').onclick = () => lb.close();
