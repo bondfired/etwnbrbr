@@ -309,8 +309,7 @@ footer{text-align:center;color:var(--muted);padding:32px 16px 48px;font-size:.9r
 </main>
 
 <footer>
-  <!-- EDIT: name -->
-  © <span id="yr"></span> yourname. All artwork belongs to the artist. Please don't repost or use for AI training.
+  All artwork belongs to the artist. Please don't repost or use for AI training. Coded by Carianna
 </footer>
 
 <dialog id="lb" aria-label="Artwork viewer">
@@ -324,7 +323,6 @@ footer{text-align:center;color:var(--muted);padding:32px 16px 48px;font-size:.9r
 // EDIT: the email address commission requests are sent to
 const ARTIST_EMAIL = "you@example.com";
 
-document.getElementById('yr').textContent = new Date().getFullYear();
 
 // Theme toggle (remembered per visitor)
 const root = document.documentElement;
