@@ -62,6 +62,12 @@ header.nav{position:sticky;top:0;z-index:20;background:color-mix(in srgb,var(--b
 .nav nav a:hover{background:var(--pink-soft)}
 .theme{border:1px solid var(--line);background:var(--surface);color:var(--ink);width:40px;height:40px;border-radius:50%;cursor:pointer;font-size:1.1rem;flex:none}
 
+@media (max-width:640px){
+  .nav .wrap{flex-wrap:wrap;height:auto;padding-top:8px;padding-bottom:6px;row-gap:2px}
+  .nav nav{order:3;width:100%;justify-content:center}
+  .nav nav a{padding:6px 10px}
+}
+
 /* Hero */
 .hero{padding:48px 0 32px}
 .hero .wrap{display:grid;grid-template-columns:1.05fr 1fr;gap:40px;align-items:center}
@@ -149,7 +155,7 @@ footer{text-align:center;color:var(--muted);padding:32px 16px 48px;font-size:.9r
 <header class="nav">
   <div class="wrap">
     <!-- EDIT: artist name -->
-    <a class="brand" href="#top">your<span>name</span>.art</a>
+    <a class="brand" href="#top">naya<span>comms</span>.github.io</a>
     <nav aria-label="Main">
       <a href="#gallery">Gallery</a>
       <a href="#prices">Prices</a>
@@ -188,7 +194,7 @@ footer{text-align:center;color:var(--muted);padding:32px 16px 48px;font-size:.9r
         <button type="button" data-full="art/trio.jpg" data-cap="The Three"><img src="art/trio-thumb.jpg" width="720" height="709" loading="lazy" alt="Three dark-haired characters in black and white coats posed together on a blue polka-dot background"><span class="tag">Group</span></button>
         <button type="button" data-full="art/red-apple.jpg" data-cap="Forbidden Fruit"><img src="art/red-apple-thumb.jpg" width="720" height="549" loading="lazy" alt="White-haired figure with a black streak and red eyes smiling beside a glossy red apple pierced by forks and swords"><span class="tag">Bust · Illustration</span></button>
         <button type="button" data-full="art/striped-tee.jpg" data-cap="Striped Tee"><img src="art/striped-tee-thumb.jpg" width="720" height="709" loading="lazy" alt="Character sheet of a girl with highlighted wavy hair, shown full body in a teal striped top and close up in a black top"><span class="tag">Full body + Bust</span></button>
-        <button type="button" data-full="art/red-room.jpg" data-cap="Red Room (horror)"><img src="art/red-room-thumb.jpg" width="527" height="720" loading="lazy" alt="Horror piece: a grinning green-haired girl above two decaying girls on a red background"><span class="tag">Horror</span></button>
+        <button type="button" data-full="art/red-room.jpg" data-cap="Red Room"><img src="art/red-room-thumb.jpg" width="527" height="720" loading="lazy" alt="A grinning green-haired girl above two decaying girls on a red background"><span class="tag">Group</span></button>
         <button type="button" data-full="art/hair-study.jpg" data-cap="Hair Studies"><img src="art/hair-study-thumb.jpg" width="720" height="720" loading="lazy" alt="Four headshots showing front and side views of two characters, one with highlighted black hair and one with blue and pink hair"><span class="tag">Headshot · Ref sheet</span></button>
         <button type="button" data-full="art/angel.jpg" data-cap="Folded Wings"><img src="art/angel-thumb.jpg" width="720" height="709" loading="lazy" alt="A pale, statue-like angel curled up with knees to chest, wrapped in long white hair under a large feathered wing, on a deep blue background"><span class="tag">Full body</span></button>
         <button type="button" data-full="art/gem-face.jpg" data-cap="Cracked Gem"><img src="art/gem-face-thumb.jpg" width="653" height="653" loading="lazy" alt="Close-up of a mint-haired figure whose cracked porcelain face breaks open into green crystal, on a black background"><span class="tag">Headshot</span></button>
