@@ -370,7 +370,7 @@ function renderPrices(){
     el.textContent = c === 'USD' ? fmt.format(usd) : '≈ ' + fmt.format(Math.round(usd * r));
   });
   fxNote.textContent = c === 'USD' ? '' :
-    `Approximate, using ${live ? "today's" : 'estimated'} exchange rate. You'll be invoiced in USD.`;
+    `Approximate, using ${live ? "today's" : 'estimated'} exchange rate.`;
 }
 curSel.addEventListener('change', () => { renderPrices(); try{localStorage.setItem('cur',curSel.value)}catch(e){} });
 try { const saved = localStorage.getItem('cur'); if (saved && FALLBACK[saved]) curSel.value = saved; } catch(e){}
