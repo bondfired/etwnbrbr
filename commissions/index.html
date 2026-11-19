@@ -321,8 +321,8 @@ input,textarea{cursor:text}
   All artwork belongs to me, Naya. Please don't repost or use for AI training or everyone dies. Website coded by Carianna
 </footer>
 
-<button class="music" id="music" type="button" aria-pressed="false" aria-label="Play Nana song"><span class="ic" aria-hidden="true">▶</span><span>Nana song</span></button>
-<audio id="song" src="nana-song.mp3" preload="none" loop></audio>
+<button class="music" id="music" type="button" aria-pressed="false" aria-label="Play Nyaya"><span class="ic" aria-hidden="true">▶</span><span>Nyaya</span></button>
+<audio id="song" src="nyaya.mp3" preload="none" loop></audio>
 
 <dialog id="lb" aria-label="Artwork viewer">
   <button class="lb-close" type="button" aria-label="Close">✕</button>
@@ -409,7 +409,7 @@ fetch('https://api.frankfurter.dev/v1/latest?base=USD')
 // Music player: plays only when the visitor taps the button.
 (() => {
   const btn = document.getElementById('music'), song = document.getElementById('song'), ic = btn.querySelector('.ic');
-  const set = on => { btn.classList.toggle('playing', on); btn.setAttribute('aria-pressed', on); btn.setAttribute('aria-label', on ? "Pause Nana song" : "Play Nana song"); ic.textContent = on ? '❚❚' : '▶'; };
+  const set = on => { btn.classList.toggle('playing', on); btn.setAttribute('aria-pressed', on); btn.setAttribute('aria-label', on ? "Pause Nyaya" : "Play Nyaya"); ic.textContent = on ? '❚❚' : '▶'; };
   btn.addEventListener('click', () => song.paused ? song.play().catch(() => set(false)) : song.pause());
   song.addEventListener('play', () => set(true));
   song.addEventListener('pause', () => set(false));
