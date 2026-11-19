@@ -147,6 +147,14 @@ form .btn{border:2px solid var(--pink);cursor:pointer;font:inherit;font-weight:8
 .socials a:hover{border-color:var(--pink)}
 footer{text-align:center;color:var(--muted);padding:32px 16px 48px;font-size:.9rem}
 
+/* Music player */
+.music{position:fixed;right:16px;bottom:16px;z-index:30;display:flex;align-items:center;gap:10px;background:var(--surface);color:var(--ink);border:2px solid var(--pink);border-radius:999px;padding:8px 16px 8px 8px;font:inherit;font-weight:800;box-shadow:var(--shadow)}
+.music .ic{display:grid;place-items:center;width:36px;height:36px;border-radius:50%;background:var(--pink);color:#fff;font-size:.95rem}
+.music.playing .ic{animation:pulse 1.2s ease-in-out infinite}
+@keyframes pulse{50%{transform:scale(1.12)}}
+@media (prefers-reduced-motion: reduce){.music.playing .ic{animation:none}}
+footer{padding-bottom:96px}
+
 /* Raccoon cursor (animated by the script at the bottom of the page) */
 :root{--rc-cur:url(data:image/png;base64,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) 18 2}
 html{cursor:var(--rc-cur),auto}
@@ -313,6 +321,9 @@ input,textarea{cursor:text}
   All artwork belongs to me, Naya. Please don't repost or use for AI training or everyone dies. Website coded by Carianna
 </footer>
 
+<button class="music" id="music" type="button" aria-pressed="false" aria-label="Play Nana song"><span class="ic" aria-hidden="true">▶</span><span>Nana song</span></button>
+<audio id="song" src="nana-song.mp3" preload="none" loop></audio>
+
 <dialog id="lb" aria-label="Artwork viewer">
   <button class="lb-close" type="button" aria-label="Close">✕</button>
   <button class="lb-btn lb-prev" type="button" aria-label="Previous">‹</button>
@@ -393,6 +404,15 @@ fetch('https://api.frankfurter.dev/v1/latest?base=USD')
   if (matchMedia('(prefers-reduced-motion: reduce)').matches) return;
   let i = 0;
   setInterval(() => { i = (i + 1) % F.length; root.style.setProperty('--rc-cur', `url(${F[i]}) 18 2`); }, 200);
+})();
+
+// Music player: plays only when the visitor taps the button.
+(() => {
+  const btn = document.getElementById('music'), song = document.getElementById('song'), ic = btn.querySelector('.ic');
+  const set = on => { btn.classList.toggle('playing', on); btn.setAttribute('aria-pressed', on); btn.setAttribute('aria-label', on ? "Pause Nana song" : "Play Nana song"); ic.textContent = on ? '❚❚' : '▶'; };
+  btn.addEventListener('click', () => song.paused ? song.play().catch(() => set(false)) : song.pause());
+  song.addEventListener('play', () => set(true));
+  song.addEventListener('pause', () => set(false));
 })();
 </script>
 </body>
